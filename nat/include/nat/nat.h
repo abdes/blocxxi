@@ -50,7 +50,6 @@ class NoPortMapper : public PortMapper {
   ~NoPortMapper() override = default;
   //@}
 
-  /// @copydoc PortMapper::AddMapping()
   /// Does nothing.
   std::error_condition AddMapping(Protocol,
                                   unsigned short,
@@ -60,7 +59,6 @@ class NoPortMapper : public PortMapper {
     return {};
   }
 
-  /// @copydoc PortMapper::AddMapping()
   /// Does nothing.
   std::error_condition DeleteMapping(Protocol, unsigned short) override {
     return {};
