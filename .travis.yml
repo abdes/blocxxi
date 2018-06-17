@@ -142,7 +142,7 @@ matrix:
     script:
       - cmake -DENABLE_ASAN=ON -DCMAKE_CXX_COMPILER="g++-6" ..
       - make
-      - make test
+      - ctest --output-on-failure
 
   #
   # Google Undefined Sanitizer
@@ -160,7 +160,7 @@ matrix:
     script:
       - cmake -DENABLE_USAN=ON -DCMAKE_CXX_COMPILER="g++-6" ..
       - make
-      - make test
+      - ctest --output-on-failure
 
   #
   # Google Thread Sanitizer
@@ -178,7 +178,7 @@ matrix:
     script:
       - cmake -DENABLE_TSAN=ON -DCMAKE_CXX_COMPILER="g++-6" ..
       - make
-      - make test
+      - ctest --output-on-failure
 
   #
   # Valgrind
@@ -197,7 +197,7 @@ matrix:
     script:
       - cmake -DCMAKE_CXX_COMPILER="g++-6" ..
       - make
-      - ctest -T memcheck
+      - ctest -T memcheck --output-on-failure
 
   #
   # G++ 5
