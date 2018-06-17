@@ -19,6 +19,8 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 # that come with CMake.
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
+include(ExternalProject)
+find_package(Git REQUIRED)
 include(GNUInstallDirs)
 include(BuildHelpers)
 include(DownloadProject)
@@ -82,6 +84,64 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 set(SRCROOT "${CODEROOT}/src")
 set(SRCINCLUDEROOT "${CODEROOT}/include")
 set(DOXTOSRCDIR "../src")
+
+
+# ------------------------------------------------------------------------------
+# CppCheck
+# ------------------------------------------------------------------------------
+
+if(ENABLE_CPPCHECK)
+
+    list(APPEND CPPCHECK_CMAKE_ARGS
+        "-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}"
+    )
+
+    ExternalProject_Add(
+        cppcheck
+        GIT_REPOSITORY      https://github.com/danmar/cppcheck.git
+        GIT_TAG             1.79
+        GIT_SHALLOW         1
+        CMAKE_ARGS          ${CPPCHECK_CMAKE_ARGS}
+        PREFIX              ${CMAKE_BINARY_DIR}/external/cppcheck/prefix
+        TMP_DIR             ${CMAKE_BINARY_DIR}/external/cppcheck/tmp
+        STAMP_DIR           ${CMAKE_BINARY_DIR}/external/cppcheck/stamp
+        DOWNLOAD_DIR        ${CMAKE_BINARY_DIR}/external/cppcheck/download
+        SOURCE_DIR          ${CMAKE_BINARY_DIR}/external/cppcheck/src
+        BINARY_DIR          ${CMAKE_BINARY_DIR}/external/cppcheck/build
+    )
+
+    list(APPEND CPPCHECK_ARGS
+        --enable=warning,style,performance,portability,unusedFunction
+        --std=c++14
+        --verbose
+        --error-exitcode=1
+        --language=c++
+        -DMAIN=main
+        -I ${CMAKE_SOURCE_DIR}/common/include
+        -I ${CMAKE_SOURCE_DIR}/codec/include
+        -I ${CMAKE_SOURCE_DIR}/crypto/include
+        -I ${CMAKE_SOURCE_DIR}/nat/include
+        -I ${CMAKE_SOURCE_DIR}/p2p/include
+        ${CMAKE_SOURCE_DIR}/common/include
+        ${CMAKE_SOURCE_DIR}/common/src
+        ${CMAKE_SOURCE_DIR}/crypto/include
+        ${CMAKE_SOURCE_DIR}/crypto/src
+        ${CMAKE_SOURCE_DIR}/codec/include
+        ${CMAKE_SOURCE_DIR}/codec/src
+        ${CMAKE_SOURCE_DIR}/nat/include
+        ${CMAKE_SOURCE_DIR}/nat/src
+        ${CMAKE_SOURCE_DIR}/p2p/include
+        ${CMAKE_SOURCE_DIR}/p2p/src
+    )
+
+    add_custom_target(
+        check
+        COMMAND cppcheck ${CPPCHECK_ARGS}
+        COMMENT "running cppcheck"
+    )
+
+endif()
+
 
 # Doxygen related macros and commands:
 set(DOXROOT "${CMAKE_BINARY_DIR}/dox")
@@ -160,4 +220,3 @@ add_subdirectory(crypto)
 add_subdirectory(nat)
 add_subdirectory(p2p)
 add_subdirectory(ndagent)
-

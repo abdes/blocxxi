@@ -72,6 +72,25 @@ matrix:
           git diff --check HEAD^
           exit -1
         fi
+
+  #
+  # CppCheck
+  #
+  - os: linux
+    env:
+      - TEST="CppCheck"
+    addons:
+      apt:
+        sources:
+          - ubuntu-toolchain-r-test
+        packages:
+          - gcc-6
+          - g++-6
+    script:
+      - cmake -DENABLE_CPPCHECK=ON -DCMAKE_CXX_COMPILER="g++-6" ..
+      - make
+      - make check
+
   #
   # G++ 5
   #
