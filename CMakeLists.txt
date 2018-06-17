@@ -168,7 +168,7 @@ if(ENABLE_CPPCHECK)
 
     add_custom_target(
         check
-        COMMAND cppcheck ${CPPCHECK_ARGS}
+        COMMAND ${CMAKE_BINARY_DIR}/bin/cppcheck ${CPPCHECK_ARGS}
         COMMENT "running cppcheck"
     )
 
