@@ -274,6 +274,8 @@ endif()
 
 
 # CryptoPP integration
+SET(CRYPTOPP_BUILD_SHARED OFF CACHE BOOL "Build shared library")
+SET(CRYPTOPP_BUILD_TESTING OFF CACHE BOOL "Build library tests")
 include(External_cryptopp)
 
 # Project modules

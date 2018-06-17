@@ -5,6 +5,6 @@ set(BOOST_URL_SHA256 2684c972994ee57fc5632e03bf044746f6eb45d4920c343937a465fd67a
 add_subdirectory(boost-cmake)
 
 add_subdirectory(gsl-lite)
+SET(SPDLOG_BUILD_TESTING OFF CACHE BOOL "Build spdlog tests")
 add_subdirectory(spdlog)
 add_subdirectory(miniupnpc)
-

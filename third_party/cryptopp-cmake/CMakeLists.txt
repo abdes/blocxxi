@@ -40,15 +40,15 @@ include(CheckCXXCompilerFlag)
 # Settable options
 #============================================================================
 
-option(BUILD_STATIC "Build static library" ON)
-option(BUILD_SHARED "Build shared library" ON)
-option(BUILD_TESTING "Build library tests" ON)
-option(BUILD_DOCUMENTATION "Use Doxygen to create the HTML based API documentation" OFF)
-option(USE_INTERMEDIATE_OBJECTS_TARGET "Use a common intermediate objects target for the static and shared library targets" ON)
+option(CRYPTOPP_BUILD_STATIC "Build static library" ON)
+option(CRYPTOPP_BUILD_SHARED "Build shared library" ON)
+option(CRYPTOPP_BUILD_TESTING "Build library tests" ON)
+option(CRYPTOPP_BUILD_DOCUMENTATION "Use Doxygen to create the HTML based API documentation" OFF)
+option(CRYPTOPP_USE_INTERMEDIATE_OBJECTS_TARGET "Use a common intermediate objects target for the static and shared library targets" ON)
 
-if (CMAKE_VERSION VERSION_LESS 2.8.8 AND USE_INTERMEDIATE_OBJECTS_TARGET)
-  message(STATUS "Forcing USE_INTERMEDIATE_OBJECTS_TARGET to OFF - requires CMake >= 2.8.8")
-  set(USE_INTERMEDIATE_OBJECTS_TARGET OFF CACHE BOOL "Use a common intermediate objects target for the static and shared library targets" FORCE)
+if (CMAKE_VERSION VERSION_LESS 2.8.8 AND CRYPTOPP_USE_INTERMEDIATE_OBJECTS_TARGET)
+  message(STATUS "Forcing CRYPTOPP_USE_INTERMEDIATE_OBJECTS_TARGET to OFF - requires CMake >= 2.8.8")
+  set(CRYPTOPP_USE_INTERMEDIATE_OBJECTS_TARGET OFF CACHE BOOL "Use a common intermediate objects target for the static and shared library targets" FORCE)
 endif ()
 
 # These are IA-32 options. TODO: Add ARM A-32, Aarch64 and Power8 options.
@@ -620,12 +620,12 @@ if (CMAKE_VERSION VERSION_LESS 2.8.12)
 	include_directories("${CMAKE_CURRENT_SOURCE_DIR}")
 endif ()
 
-if (USE_INTERMEDIATE_OBJECTS_TARGET)
+if (CRYPTOPP_USE_INTERMEDIATE_OBJECTS_TARGET)
 	add_library(cryptopp-object OBJECT ${cryptopp_SOURCES})
 endif ()
 
-if (BUILD_STATIC)
-	if (USE_INTERMEDIATE_OBJECTS_TARGET)
+if (CRYPTOPP_BUILD_STATIC)
+	if (CRYPTOPP_USE_INTERMEDIATE_OBJECTS_TARGET)
 		add_library(cryptopp-static STATIC $<TARGET_OBJECTS:cryptopp-object>)
 	else ()
 		add_library(cryptopp-static STATIC ${cryptopp_SOURCES})
@@ -636,8 +636,8 @@ if (BUILD_STATIC)
 	endif ()
 endif ()
 
-if (BUILD_SHARED)
-	if (USE_INTERMEDIATE_OBJECTS_TARGET)
+if (CRYPTOPP_BUILD_SHARED)
+	if (CRYPTOPP_USE_INTERMEDIATE_OBJECTS_TARGET)
 		add_library(cryptopp-shared SHARED $<TARGET_OBJECTS:cryptopp-object>)
 	else ()
 		add_library(cryptopp-shared SHARED ${cryptopp_SOURCES})
@@ -652,12 +652,12 @@ endif ()
 if (NOT MSVC)
 	set(COMPAT_VERSION ${cryptopp_VERSION_MAJOR}.${cryptopp_VERSION_MINOR})
 
-	if (BUILD_STATIC)
+	if (CRYPTOPP_BUILD_STATIC)
 		set_target_properties(cryptopp-static
 				PROPERTIES
 				OUTPUT_NAME cryptopp)
 	endif ()
-	if (BUILD_SHARED)
+	if (CRYPTOPP_BUILD_SHARED)
 		set_target_properties(cryptopp-shared
 				PROPERTIES
 				SOVERSION ${COMPAT_VERSION}
@@ -666,11 +666,11 @@ if (NOT MSVC)
 endif ()
 
 # Targets, compatible with Crypto++ GNUMakefile
-if (BUILD_STATIC)
+if (CRYPTOPP_BUILD_STATIC)
 	add_custom_target(static)
 	add_dependencies(static cryptopp-static)
 endif ()
-if (BUILD_SHARED)
+if (CRYPTOPP_BUILD_SHARED)
 	add_custom_target(dynamic)
 	add_dependencies(dynamic cryptopp-shared)
 endif ()
@@ -680,29 +680,29 @@ endif ()
 #============================================================================
 
 if (WIN32)
-	if (BUILD_STATIC)
+	if (CRYPTOPP_BUILD_STATIC)
 		target_link_libraries(cryptopp-static ws2_32)
 	endif ()
-	if (BUILD_SHARED)
+	if (CRYPTOPP_BUILD_SHARED)
 		target_link_libraries(cryptopp-shared ws2_32)
 	endif ()
 endif ()
 
 # This may need to be expanded to "Solaris"
 if (CRYPTOPP_SOLARIS)
-	if (BUILD_STATIC)
+	if (CRYPTOPP_BUILD_STATIC)
 		target_link_libraries(cryptopp-static nsl socket)
 	endif ()
-	if (BUILD_SHARED)
+	if (CRYPTOPP_BUILD_SHARED)
 		target_link_libraries(cryptopp-shared nsl socket)
 	endif ()
 endif ()
 
 find_package(Threads)
-if (BUILD_STATIC)
+if (CRYPTOPP_BUILD_STATIC)
 	target_link_libraries(cryptopp-static ${CMAKE_THREAD_LIBS_INIT})
 endif ()
-if (BUILD_SHARED)
+if (CRYPTOPP_BUILD_SHARED)
 	target_link_libraries(cryptopp-shared ${CMAKE_THREAD_LIBS_INIT})
 endif ()
 
@@ -711,7 +711,7 @@ endif ()
 #============================================================================
 
 enable_testing()
-if (BUILD_TESTING)
+if (CRYPTOPP_BUILD_TESTING)
 	add_executable(cryptest ${cryptopp_SOURCES_TEST})
 	target_link_libraries(cryptest cryptopp-static)
 
@@ -736,7 +736,7 @@ endif ()
 # Doxygen documentation
 #============================================================================
 
-if (BUILD_DOCUMENTATION)
+if (CRYPTOPP_BUILD_DOCUMENTATION)
 	find_package(Doxygen REQUIRED)
 
 	set(in_source_DOCS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/html-docs")
@@ -764,7 +764,7 @@ endif ()
 set(export_name "cryptopp-targets")
 
 # Runtime package
-if (BUILD_SHARED)
+if (CRYPTOPP_BUILD_SHARED)
 	install(
 			TARGETS cryptopp-shared
 			EXPORT ${export_name}
@@ -776,7 +776,7 @@ if (BUILD_SHARED)
 endif ()
 
 # Development package
-if (BUILD_STATIC)
+if (CRYPTOPP_BUILD_STATIC)
 	install(TARGETS cryptopp-static EXPORT ${export_name} DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif ()
 install(FILES ${cryptopp_HEADERS} DESTINATION include/cryptopp)
@@ -790,14 +790,14 @@ if (NOT CMAKE_VERSION VERSION_LESS 2.8.8)	# CMakePackageConfigHelpers is support
 endif ()
 
 # Tests
-if (BUILD_TESTING)
+if (CRYPTOPP_BUILD_TESTING)
 	install(TARGETS cryptest DESTINATION ${CMAKE_INSTALL_BINDIR})
 	install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/TestData DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/cryptopp)
 	install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/TestVectors DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/cryptopp)
 endif ()
 
 # Documentation
-if (BUILD_DOCUMENTATION)
+if (CRYPTOPP_BUILD_DOCUMENTATION)
 	install(DIRECTORY "${out_source_DOCS_DIR}" DESTINATION ${CMAKE_INSTALL_DOCDIR})
 endif ()
 
