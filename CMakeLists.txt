@@ -6,7 +6,7 @@
 # We require 3.0 for modern, target-based CMake.  We require 3.1 for the use of
 # CXX_STANDARD in our targets.
 cmake_minimum_required(VERSION 3.1)
-project(blocxxi VERSION 0.9.0 LANGUAGES CXX)
+project(blocxxi VERSION 0.9.1 LANGUAGES CXX)
 
 # The folder that will be used when generating project files for IDEs
 # For example, Visual Studio supports folders.
