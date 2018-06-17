@@ -1,0 +1,205 @@
+language:          cpp
+dist:              trusty
+git:
+  submodules:      true
+env:
+  global:
+    # Misc
+    #- RUN_TESTS=true
+    #- COVERAGE=false
+
+#
+# Build Dependencies
+#
+before_script:
+
+  #
+  # Build Folder
+  #
+  - mkdir _build
+  - cd _build
+
+  #
+  # Update / Install CMake
+  #
+  - |
+    if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
+      mkdir -p external/cmake
+      pushd external/cmake
+      wget https://cmake.org/files/v3.8/cmake-3.8.0-Linux-x86_64.sh
+      chmod +x cmake-*-Linux-x86_64.sh
+      ./cmake-*-Linux-x86_64.sh --exclude-subdir --skip-license
+      export PATH="${PWD}/bin:$PATH"
+      popd
+    else
+      if ! brew ls --version cmake &>/dev/null; then brew update; brew install cmake; fi
+    fi
+
+matrix:
+  include:
+  #
+  # Doxygen
+  #
+  - os: linux
+    env:
+      - TEST="Doxygen"
+    addons:
+      apt:
+        packages:
+          - graphviz
+          - doxygen
+    script:
+      - cmake ..
+      - make dox
+      - |
+        if [[ -s dox/doxygen_warnings.txt ]]; then
+          echo "You must fix doxygen before submitting a pull request"
+          echo ""
+          cat dox/doxygen_warnings.txt
+          exit -1
+        fi
+  #
+  # Git Check
+  #
+  - os: linux
+    env:
+      - TEST="Git Check"
+    script:
+      - |
+        if [[ -n $(git diff --check HEAD^) ]]; then
+          echo "You must remove whitespace before submitting a pull request"
+          echo ""
+          git diff --check HEAD^
+          exit -1
+        fi
+  #
+  # G++ 5
+  #
+  - os: linux
+    env:
+      - TEST="G++ 5"
+    addons:
+      apt:
+        sources:
+          - ubuntu-toolchain-r-test
+        packages:
+          - gcc-5
+          - g++-5
+    script:
+      - cmake -DCMAKE_CXX_COMPILER="g++-5" ..
+      - make
+      - ctest --output-on-failure
+
+  #
+  # G++ 6
+  #
+  - os: linux
+    env:
+      - TEST="G++ 6"
+    addons:
+      apt:
+        sources:
+          - ubuntu-toolchain-r-test
+        packages:
+          - gcc-6
+          - g++-6
+    script:
+      - cmake -DCMAKE_CXX_COMPILER="g++-6" ..
+      - make
+      - ctest --output-on-failure
+
+  #
+  # Clang 3.8
+  #
+  - os: linux
+    env:
+      - TEST="Clang 3.8"
+    addons:
+      apt:
+        sources:
+          - ubuntu-toolchain-r-test
+          - llvm-toolchain-trusty-4.0
+        packages:
+          - clang-3.8
+          - gcc-6
+          - g++-6
+    script:
+      - cmake -DCMAKE_C_COMPILER=clang-3.8 -DCMAKE_CXX_COMPILER=clang++-3.8 ..
+      - make
+      - ctest --output-on-failure
+
+  #
+  # Clang 3.9
+  #
+  - os: linux
+    env:
+      - TEST="Clang 3.9"
+    addons:
+      apt:
+        sources:
+          - ubuntu-toolchain-r-test
+          - llvm-toolchain-trusty-3.9
+        packages:
+          - clang-3.9
+          - gcc-6
+          - g++-6
+    script:
+      - cmake -DCMAKE_C_COMPILER=clang-3.9 -DCMAKE_CXX_COMPILER=clang++-3.9 ..
+      - make
+      - ctest --output-on-failure
+
+  #
+  # Clang 4.0
+  #
+  - os: linux
+    env:
+      - TEST="Clang 4.0"
+    addons:
+      apt:
+        sources:
+          - ubuntu-toolchain-r-test
+          - llvm-toolchain-trusty-4.0
+        packages:
+          - clang-4.0
+          - gcc-6
+          - g++-6
+    script:
+      - cmake -DCMAKE_C_COMPILER=clang-4.0 -DCMAKE_CXX_COMPILER=clang++-4.0 ..
+      - make
+      - ctest --output-on-failure
+
+  #
+  # XCode 8.1
+  #
+  - os: osx
+    env:
+      - TEST="XCode 8.1"
+    osx_image: xcode8.1
+    script:
+      - cmake ..
+      - make
+      - ctest --output-on-failure
+
+  #
+  # XCode 8.2
+  #
+  - os: osx
+    env:
+      - TEST="XCode 8.2"
+    osx_image: xcode8.2
+    script:
+      - cmake ..
+      - make
+      - ctest --output-on-failure
+
+  #
+  # XCode 8.3
+  #
+  - os: osx
+    env:
+      - TEST="XCode 8.3"
+    osx_image: xcode8.3
+    script:
+      - cmake ..
+      - make
+      - ctest --output-on-failure
