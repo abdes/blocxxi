@@ -36,7 +36,7 @@ class CoDecTest : public ::testing::TestWithParam<EncodeTestParams> {
     hex_ = GetParam().hex_;
   }
   void TearDown() override {
-	  delete[] binary_.data(); 
+	  delete[] binary_.data();
   }
 
  protected:
@@ -60,7 +60,6 @@ std::vector<EncodeTestParams> createValidValuesForEncodeTest() {
   std::vector<EncodeTestParams> valid_values;
 
   // No reverse, Upper Case
-  addTestValue<0>(valid_values, {}, false, false, "");
   addTestValue<1>(valid_values, {0xFF}, false, false, "FF");
   addTestValue<1>(valid_values, {0x00}, false, false, "00");
   addTestValue<3>(valid_values, {0xFF, 0xEE, 0xDD}, false, false, "FFEEDD");
