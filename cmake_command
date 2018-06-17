@@ -1,0 +1,1 @@
+cd _build && cmake -DBLOXI_RUN_TESTS=ON -DBLOXI_USE_GOOGLETEST_HEAD=ON ..

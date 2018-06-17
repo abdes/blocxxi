@@ -1,0 +1,163 @@
+#        Copyright The Authors 2018.
+#    Distributed under the 3-Clause BSD License.
+#    (See accompanying file LICENSE or copy at
+#   https://opensource.org/licenses/BSD-3-Clause)
+
+# We require 3.0 for modern, target-based CMake.  We require 3.1 for the use of
+# CXX_STANDARD in our targets.
+cmake_minimum_required(VERSION 3.1)
+project(blocxxi VERSION 0.9.0 LANGUAGES CXX)
+
+# The folder that will be used when generating project files for IDEs
+# For example, Visual Studio supports folders.
+# Must set the GLOBAL property USE_FOLDERS to ON for this to work.
+set(BLOXI_IDE_FOLDER Blocxxi)
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
+# List of directories specifying a search path for CMake modules to be loaded by
+# the the include() or find_package() commands before checking the default modules
+# that come with CMake.
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+
+include(GNUInstallDirs)
+include(BuildHelpers)
+include(DownloadProject)
+include(FindDoxygen)
+
+# detect operating system and host processor
+message(STATUS "== We are on a ${CMAKE_SYSTEM_NAME} system")
+message(STATUS "== The host processor is ${CMAKE_HOST_SYSTEM_PROCESSOR}")
+message(STATUS "== CMAKE_CXX_COMPILER_ID is ${CMAKE_CXX_COMPILER_ID}")
+
+# The default build type provided by CMake is to include no compiler flags for
+# optimization. For some projects you may want to set a default build type so
+# that you do not have to remember to set it.
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    message("Setting build type to 'RelWithDebInfo' as none was specified.")
+    set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build." FORCE)
+    # Set the possible values of build type for cmake-gui
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
+            "MinSizeRel" "RelWithDebInfo")
+endif()
+
+
+# When wanting to specify a particular C++ version, the recommended way to do
+# this with CMake 3.1 and later is to use the CXX_STANDARD, CXX_STANDARD_REQUIRED
+# and CXX_EXTENSIONS target properties, or their variable equivalents to specify
+# target defaults. Full details can be found at:
+# (https://crascit.com/2015/03/28/enabling-cxx11-in-cmake/)
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+
+if (CMAKE_BUILD_TYPE MATCHES Debug)
+    add_definitions(-DBLOCXXI_USE_ASSERTS)
+endif ()
+
+
+# config options
+if (MSVC)
+    # /wd4005  macro-redefinition
+    # /wd4068  unknown pragma
+    # /wd4244  conversion from 'type1' to 'type2'
+    # /wd4267  conversion from 'size_t' to 'type2'
+    # /wd4800  force value to bool 'true' or 'false' (performance warning)
+    add_compile_options(/W3 /WX /wd4005 /wd4068 /wd4244 /wd4267 /wd4800)
+    add_definitions(/DNOMINMAX /DWIN32_LEAN_AND_MEAN=1 /D_CRT_SECURE_NO_WARNINGS /D_SCL_SECURE_NO_WARNINGS /D_WIN32_WINNT=0x0501)
+else ()
+    add_compile_options(-Wall -pedantic -Wextra)
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+        add_compile_options(-ftemplate-depth=1024)
+    endif()
+endif ()
+
+# Include our own module path. This makes #include "x.h"
+# work in project subfolders to include the main directory headers.
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
+
+
+# This defines the basic input (src) and output (lib & include) directories.
+set(SRCROOT "${CODEROOT}/src")
+set(SRCINCLUDEROOT "${CODEROOT}/include")
+set(DOXTOSRCDIR "../src")
+
+# Doxygen related macros and commands:
+set(DOXROOT "${CMAKE_BINARY_DIR}/dox")
+
+macro(configure_doxyfile TARGET_NAME TARGET_TITLE TARGET_BRIEF TARGET_INPUT_PATH)
+    message(STATUS "Configuring Doxygen: do we have '${CMAKE_SOURCE_DIR}/Doxyfile.in'?")
+
+    if (EXISTS "${CMAKE_SOURCE_DIR}/Doxyfile.in")
+        set(DOXY_TARGET_OUTPUT_DIR "${TARGET_NAME}")
+        set(DOXY_TARGET_ROOT_DIR "") # ${DOXTOSRCDIR} - set(DOXTOSRCDIR "../src")
+        set(DOXY_TARGET_NAME "${TARGET_NAME}")
+        set(DOXY_TARGET_TITLE "${TARGET_TITLE}")
+        set(DOXY_TARGET_BRIEF "${TARGET_BRIEF}")
+        set(DOXY_TARGET_INPUT_PATH "${TARGET_INPUT_PATH}")
+        set(DOXY_TARGET_FILE_VERSION_FILTER "\"${PRINT_FILE_DATE_COMMAND_STR} \"")
+        if (NOT EXISTS "${DOXROOT}/${DOXY_TARGET_OUTPUT_DIR}")
+            file(MAKE_DIRECTORY "${DOXROOT}/${DOXY_TARGET_OUTPUT_DIR}")
+        endif ()
+        configure_file("${CMAKE_SOURCE_DIR}/Doxyfile.in" "${DOXROOT}/${TARGET_NAME}_Doxyfile" @ONLY)
+        message(STATUS "Configured Doxyfile: '${CMAKE_SOURCE_DIR}/Doxyfile.in' --> '${DOXROOT}/${TARGET_NAME}_Doxyfile'.")
+    else ()
+        message(STATUS "WARNING : The '${CMAKE_SOURCE_DIR}/Doxyfile.in' file does not exist!")
+    endif ()
+endmacro(configure_doxyfile)
+
+if (DOXYGEN_FOUND)
+    message(STATUS "Doxygen package was found.")
+    add_custom_target(dox)
+    macro(add_doxygen_target TARGET_NAME)
+        add_custom_target(${TARGET_NAME}_dox
+                ${CMAKE_COMMAND} -E remove -f "${TARGET_NAME}_Doxyfile.out"
+                COMMAND ${CMAKE_COMMAND} -E copy "${TARGET_NAME}_Doxyfile" "${TARGET_NAME}_Doxyfile.out"
+                COMMAND ${DOXYGEN_EXECUTABLE} "${TARGET_NAME}_Doxyfile.out"
+                COMMAND ${CMAKE_COMMAND} -E remove -f "${TARGET_NAME}_Doxyfile.out"
+                WORKING_DIRECTORY "${DOXROOT}" VERBATIM)
+        add_dependencies(dox ${TARGET_NAME}_dox)
+    endmacro()
+	set_target_properties(dox PROPERTIES EXCLUDE_FROM_ALL TRUE)
+else ()
+    message(STATUS "WARNING : Doxygen package is not available on this system!")
+    macro(add_doxygen_target TARGET_NAME)
+    endmacro()
+endif ()
+
+
+
+# Google Test integration into the build
+option(BLOXI_USE_GOOGLETEST_HEAD
+        "If ON, we will download HEAD from googletest at config time." OFF)
+
+option(BLOXI_RUN_TESTS "If ON, tests will be run." OFF)
+
+set(BLOXI_RUN_TESTS ON)
+if (${BLOXI_RUN_TESTS})
+    # enable CTest.  This will set BUILD_TESTING to ON unless otherwise specified
+    # on the command line
+    include(CTest)
+    enable_testing()
+    include(External_googletest)
+endif ()
+
+if( CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT )
+    message(STATUS "Setting default CMAKE_INSTALL_PREFIX path to ${CMAKE_BINARY_DIR}/install")
+    set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE STRING "The path to use for make install" FORCE)
+endif()
+
+
+# CryptoPP integration
+include(External_cryptopp)
+
+# Project modules
+add_subdirectory(third_party)
+add_subdirectory(common)
+add_subdirectory(codec)
+add_subdirectory(crypto)
+add_subdirectory(nat)
+add_subdirectory(p2p)
+add_subdirectory(ndagent)
+
