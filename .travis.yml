@@ -122,6 +122,79 @@ matrix:
       - make check
 
   #
+  # Google Address Sanitizer
+  #
+  - os: linux
+    addons:
+      apt:
+        sources:
+          - ubuntu-toolchain-r-test
+        packages:
+          - gcc-6
+          - g++-6
+    env:
+      - TEST="Google Address Sanitizer"
+    script:
+      - cmake -DENABLE_ASAN=ON -DCMAKE_CXX_COMPILER="g++-6" ..
+      - make
+      - make test
+
+  #
+  # Google Undefined Sanitizer
+  #
+  - os: linux
+    env:
+      - TEST="Google Undefined Sanitizer"
+    addons:
+      apt:
+        sources:
+          - ubuntu-toolchain-r-test
+        packages:
+          - gcc-6
+          - g++-6
+    script:
+      - cmake -DENABLE_USAN=ON -DCMAKE_CXX_COMPILER="g++-6" ..
+      - make
+      - make test
+
+  #
+  # Google Thread Sanitizer
+  #
+  - os: linux
+    env:
+      - TEST="Google Thread Sanitizer"
+    addons:
+      apt:
+        sources:
+          - ubuntu-toolchain-r-test
+        packages:
+          - gcc-6
+          - g++-6
+    script:
+      - cmake -DENABLE_TSAN=ON -DCMAKE_CXX_COMPILER="g++-6" ..
+      - make
+      - make test
+
+  #
+  # Valgrind
+  #
+  - os: linux
+    env:
+      - TEST="Valgrind"
+    addons:
+      apt:
+        sources:
+          - ubuntu-toolchain-r-test
+        packages:
+          - gcc-6
+          - g++-6
+          - valgrind
+    script:
+      - cmake -DCMAKE_CXX_COMPILER="g++-6" ..
+      - make
+      - ctest -T memcheck
+
+  #
   # G++ 5
   #
   - os: linux
