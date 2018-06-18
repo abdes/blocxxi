@@ -94,7 +94,7 @@ matrix:
           - clang-4.0
           - clang-tidy-4.0
     script:
-      - cmake -DENABLE_CLANG_TIDY=ON -DCMAKE_CXX_COMPILER="clang++-4" ..
+      - cmake -DENABLE_CLANG_TIDY=ON -DCMAKE_CXX_COMPILER="clang++-4.0" ..
       - make 2>&1 | tee output.txt
       - |
         if [[ -n $(grep -E "(warning: |error: )" output.txt | grep -v -E "(third_party|_build)")  ]]; then
@@ -266,7 +266,7 @@ matrix:
   #
   - os: osx
     env:
-      - TEST="XCode 9.3 - OS X 10.13"
+      - TEST="XCode 9.4 - OS X 10.13"
     osx_image: xcode9.4
     script:
       - cmake ..
