@@ -7,7 +7,11 @@
 # We require 3.1 for the use of CXX_STANDARD in our targets.
 # We require 3.6 for CXX_CLANG_TIDY
 # We require 3.10 for CMAKE_CXX_CPPCHECK
-cmake_minimum_required(VERSION 3.10)
+if(ENABLE_CPPCHECK)
+    cmake_minimum_required(VERSION 3.10)
+else()
+    cmake_minimum_required(VERSION 3.6)
+endif()
 project(blocxxi VERSION 0.9.2 LANGUAGES CXX)
 
 # The folder that will be used when generating project files for IDEs
