@@ -27,7 +27,7 @@ class MessageSerializer {
    *
    * @param my_id this node's id, which will be automatically added to headers.
    */
-  MessageSerializer(Node::IdType const &my_id);
+  explicit MessageSerializer(Node::IdType const &my_id);
 
   /// Not copyable
   MessageSerializer(MessageSerializer const &) = delete;

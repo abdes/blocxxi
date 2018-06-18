@@ -8,10 +8,10 @@
 //#include <boost/asio.hpp>
 #ifdef WIN32
 // TODO: windows includes for interfaces enumeration
-#else 
+#else
 #include <arpa/inet.h>
 #include <ifaddrs.h>
-#endif // WIN32
+#endif  // WIN32
 
 #include <common/logging.h>
 
@@ -33,7 +33,7 @@ namespace {
  * @param ipv6 indicates if the address is an IPV4 or IPV6 address.
  * @return true if the address is a loopback address; false otherwise.
  */
-bool IsLoopback(std::string address, bool ipv6 = false) {
+bool IsLoopback(std::string const &address, bool ipv6 = false) {
   return address == ((ipv6) ? "::1" : "127.0.0.1");
 }
 

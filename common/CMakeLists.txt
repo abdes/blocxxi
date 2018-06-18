@@ -36,6 +36,8 @@ bloxi_library(
 )
 set_tidy_target_properties(bloxi_common)
 
+set_cppcheck_command()
+
 add_subdirectory(test)
 
 configure_doxyfile(CommonLib 

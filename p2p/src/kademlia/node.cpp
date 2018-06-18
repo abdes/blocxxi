@@ -65,9 +65,9 @@ std::string const &Node::ToString() const {
 
 Node Node::FromUrlString(const std::string &url) {
   // Validate the URL string and extract the different parts out of it
-  auto start = 0;
   auto pos = url.find("://");
   if (pos != std::string::npos) {
+    auto start = 0;
     auto url_type = url.substr(start, pos - start);
     if (url_type == "knode") {
       start = pos + 3;

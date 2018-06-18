@@ -15,7 +15,6 @@ using blocxxi::nat::PortMapper;
 TEST(PortFwdTest, Example) {
   auto &logger = Registry::GetLogger(blocxxi::logging::Id::TESTING);
 
-  int port = 7272;
   auto pf = GetPortMapper("");
   if (!pf) {
     BXLOG_TO_LOGGER(logger, debug, "port forwarder init failed.");
@@ -23,7 +22,8 @@ TEST(PortFwdTest, Example) {
     BXLOG_TO_LOGGER(logger, info, "External IP : {}", pf->ExternalIP());
     BXLOG_TO_LOGGER(logger, info, "Internal IP : {}", pf->InternalIP());
 
-    auto failure = pf->AddMapping(PortMapper::Protocol::UDP, 7272, 7272, "test",
+    int port = 7272;
+    auto failure = pf->AddMapping(PortMapper::Protocol::UDP, port, port, "test",
                                   std::chrono::seconds(0));
     if (failure) {
       BXLOG_TO_LOGGER(logger, debug, "port ({}) forwarding failed.", port);

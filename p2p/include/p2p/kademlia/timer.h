@@ -61,8 +61,8 @@ class Timer final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
 
   /// Move constructor cancels other deadline timer, moves all timeouts and
   /// starts a new deadline timer waiting for them.
-  Timer(Timer &&other) noexcept : timer_(std::move(other.timer_)),
-                                  timeouts_(std::move(other.timeouts_)) {
+  Timer(Timer &&other)
+      : timer_(std::move(other.timer_)), timeouts_(std::move(other.timeouts_)) {
     other.timer_.cancel();
     if (!timeouts_.empty()) {
       ScheduleNextTick(timeouts_.begin()->first);
@@ -71,7 +71,7 @@ class Timer final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
 
   /// Move assignments cancels both deadline timers, moves all timeouts and
   /// starts a new deadline timer waiting for them.
-  Timer &operator=(Timer &&other) noexcept {
+  Timer &operator=(Timer &&other) {
     timer_.cancel();
     other.timer_.cancel();
     timeouts_ = std::move(other.timeouts_);

@@ -43,10 +43,6 @@ list(APPEND P2P_PUBLIC_INCLUDE_DIRS
   ${CRYPTOPP_INCLUDE_DIRS}
   )
 
-list(APPEND P2P_PRIVATE_INCLUDE_DIRS
-  ${CMAKE_CURRENT_SOURCE_DIR}/src
-  )
-
 set(P2P_PUBLIC_LIBRARIES
   bloxi::crypto
   bloxi::codec
@@ -61,12 +57,13 @@ bloxi_library(
   SOURCES ${P2P_SRC}
   EXPORT_NAME p2p
   PUBLIC_INCLUDE_DIRS ${P2P_PUBLIC_INCLUDE_DIRS}
-  PUBLIC_PRIVATE_DIRS ${P2P_PRIVATE_INCLUDE_DIRS}
   PUBLIC_LIBRARIES ${P2P_PUBLIC_LIBRARIES}
 )
 set_tidy_target_properties(bloxi_p2p)
 
 add_subdirectory(test)
+
+set_cppcheck_command()
 
 configure_doxyfile(P2PLib
   "\"P2P Module\""
