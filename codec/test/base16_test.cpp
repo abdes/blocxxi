@@ -95,7 +95,7 @@ std::vector<EncodeTestParams> createValidValuesForEncodeTest() {
 }
 
 INSTANTIATE_TEST_CASE_P(Base16, CoDecTest,
-                        ::testing::ValuesIn(createValidValuesForEncodeTest()));
+                        ::testing::ValuesIn(createValidValuesForEncodeTest()),);
 
 TEST_P(CoDecTest, EncodeCorrectness) {
   auto out = Encode(binary_, reverse_, lower_case_);
