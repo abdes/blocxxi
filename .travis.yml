@@ -98,8 +98,9 @@ matrix:
       - cmake -DENABLE_CLANG_TIDY=ON -DCMAKE_CXX_COMPILER="g++-6" ..
       - make 2>&1 | tee output.txt
       - |
-        if [[ -n $(grep "blocxxi.*warning: " output.txt) ]] || [[ -n $(grep "blocxxi.*error: " output.txt) ]]; then
+        if [[ -n $(grep -E "(warning: |error: )" output.txt | grep -v -E "(third_party|_build)")  ]]; then
             echo "You must pass the clang tidy checks before submitting a pull request"
+            grep -E "(warning: |error: )" output.txt | grep -v -E "(third_party|_build)"
             exit -1;
         else
             echo -e "\033[1;32m\xE2\x9C\x93 passed:\033[0m $1";
