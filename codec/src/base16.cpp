@@ -77,7 +77,14 @@ struct DecLookupTable {
 template<typename LambdaType, unsigned... Is>
 constexpr DecLookupTable<sizeof...(Is)> DecTableGenerator(seq<Is...>,
                                                           LambdaType DecForIndex) {
+#if __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-braces"
+#endif
   return {DecForIndex(Is)...};
+#if __clang__
+#pragma clang diagnostic pop
+#endif
 }
 
 template<unsigned N, typename LambdaType>
