@@ -95,7 +95,7 @@ if(ENABLE_CLANG_TIDY)
 
     find_program(
         CLANG_TIDY_EXE 
-        NAMES "clang-tidy"
+        NAMES "clang-tidy" "clang-tidy-4.0"
         DOC "Path to clang-tidy executable")
 
     if(NOT CLANG_TIDY_EXE)
@@ -104,7 +104,9 @@ if(ENABLE_CLANG_TIDY)
         endmacro()
     
     else ()
-
+        #set(CMAKE_C_COMPILER "/usr/bin/clang" CACHE string "clang compiler" FORCE)
+        #set(CMAKE_CXX_COMPILER "/usr/bin/clang++" CACHE string "clang C++ compiler" FORCE)
+        
         list(APPEND CLANG_TIDY_BIN_ARGS
             -header-filter=.*
             -checks=*,-clang-analyzer-alpha.*
@@ -113,7 +115,7 @@ if(ENABLE_CLANG_TIDY)
         macro(set_tidy_target_properties TARGET_NAME)
             set_target_properties(
                 ${TARGET_NAME} PROPERTIES
-                CXX_CLANG_TIDY ${CLANG_TIDY_BIN} ${RUN_CLANG_TIDY_BIN_ARGS})
+                CXX_CLANG_TIDY ${CLANG_TIDY_EXE} ${RUN_CLANG_TIDY_BIN_ARGS})
         endmacro()
 
     endif ()
