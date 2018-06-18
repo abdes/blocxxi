@@ -89,10 +89,12 @@ matrix:
       apt:
         sources:
           - ubuntu-toolchain-r-test
-          - llvm-toolchain-trusty-5.0
+          - llvm-toolchain-trusty-6.0
         packages:
-          - clang-5.0
-          - clang-tidy-5.0
+          - clang-6.0
+          - clang-tidy-6.0
+          - gcc-6
+          - g++-6
     script:
       - cmake -DENABLE_CLANG_TIDY=ON -DCMAKE_CXX_COMPILER="clang++-5.0" ..
       - make 2>&1 | tee output.txt
@@ -226,6 +228,8 @@ matrix:
           - llvm-toolchain-trusty-4.0
         packages:
           - clang-4.0
+          - gcc-6
+          - g++-6
     script:
       - cmake -DCMAKE_C_COMPILER=clang-3.9 -DCMAKE_CXX_COMPILER=clang++-4.0 ..
       - make
@@ -244,6 +248,8 @@ matrix:
           - llvm-toolchain-trusty-5.0
         packages:
           - clang-5.0
+          - gcc-6
+          - g++-6
     script:
       - cmake -DCMAKE_C_COMPILER=clang-4.0 -DCMAKE_CXX_COMPILER=clang++-5.0 ..
       - make
