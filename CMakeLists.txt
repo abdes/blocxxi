@@ -6,7 +6,8 @@
 # We require 3.0 for modern, target-based CMake.
 # We require 3.1 for the use of CXX_STANDARD in our targets.
 # We require 3.6 for CXX_CLANG_TIDY
-cmake_minimum_required(VERSION 3.6)
+# We require 3.10 for CMAKE_CXX_CPPCHECK
+cmake_minimum_required(VERSION 3.10)
 project(blocxxi VERSION 0.9.2 LANGUAGES CXX)
 
 # The folder that will be used when generating project files for IDEs
@@ -87,6 +88,33 @@ set(SRCINCLUDEROOT "${CODEROOT}/include")
 set(DOXTOSRCDIR "../src")
 
 
+# Google Test integration into the build
+option(BLOXI_USE_GOOGLETEST_HEAD
+        "If ON, we will download HEAD from googletest at config time." OFF)
+
+option(BLOXI_RUN_TESTS "If ON, tests will be run." OFF)
+
+set(BLOXI_RUN_TESTS ON)
+if (${BLOXI_RUN_TESTS})
+    # enable CTest.  This will set BUILD_TESTING to ON unless otherwise specified
+    # on the command line
+    include(CTest)
+    enable_testing()
+    include(External_googletest)
+endif ()
+
+if( CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT )
+    message(STATUS "Setting default CMAKE_INSTALL_PREFIX path to ${CMAKE_BINARY_DIR}/install")
+    set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE STRING "The path to use for make install" FORCE)
+endif()
+
+
+# CryptoPP integration
+SET(CRYPTOPP_BUILD_SHARED OFF CACHE BOOL "Build shared library")
+SET(CRYPTOPP_BUILD_TESTING OFF CACHE BOOL "Build library tests")
+include(External_cryptopp)
+
+
 # ------------------------------------------------------------------------------
 # Clang Tidy
 # ------------------------------------------------------------------------------
@@ -124,6 +152,7 @@ else()
 endif()
 
 
+
 # ------------------------------------------------------------------------------
 # CppCheck
 # ------------------------------------------------------------------------------
@@ -147,38 +176,22 @@ if(ENABLE_CPPCHECK)
         SOURCE_DIR          ${CMAKE_BINARY_DIR}/external/cppcheck/src
         BINARY_DIR          ${CMAKE_BINARY_DIR}/external/cppcheck/build
     )
-
-    list(APPEND CPPCHECK_ARGS
-        --enable=warning,style,performance,portability,unusedFunction
-        --std=c++14
-        --verbose
-        --error-exitcode=1
-        --language=c++
-        -DMAIN=main
-        -I ${CMAKE_SOURCE_DIR}/common/include
-        -I ${CMAKE_SOURCE_DIR}/codec/include
-        -I ${CMAKE_SOURCE_DIR}/crypto/include
-        -I ${CMAKE_SOURCE_DIR}/nat/include
-        -I ${CMAKE_SOURCE_DIR}/p2p/include
-        ${CMAKE_SOURCE_DIR}/common/include
-        ${CMAKE_SOURCE_DIR}/common/src
-        ${CMAKE_SOURCE_DIR}/crypto/include
-        ${CMAKE_SOURCE_DIR}/crypto/src
-        ${CMAKE_SOURCE_DIR}/codec/include
-        ${CMAKE_SOURCE_DIR}/codec/src
-        ${CMAKE_SOURCE_DIR}/nat/include
-        ${CMAKE_SOURCE_DIR}/nat/src
-        ${CMAKE_SOURCE_DIR}/p2p/include
-        ${CMAKE_SOURCE_DIR}/p2p/src
-    )
-
-    add_custom_target(
-        check
-        COMMAND ${CMAKE_BINARY_DIR}/bin/cppcheck ${CPPCHECK_ARGS}
-        COMMENT "running cppcheck"
-    )
+    set(CMAKE_CXX_CPPCHECK "${CMAKE_BINARY_DIR}/bin/cppcheck")
+    macro(set_cppcheck_command)
+        list(APPEND CMAKE_CXX_CPPCHECK
+            "--enable=all"
+            "--language=c++"
+            "--std=c++14"
+            "--error-exitcode=1"
+            "--inline-suppr"
+            "--suppress=*:*_build*"
+            "--suppress=*:*third_party*"
+            "--suppress=unmatchedSuppression:*"
+        )
+    endmacro()
 
 endif()
+
 
 # ------------------------------------------------------------------------------
 # Google Sanitizers
@@ -256,33 +269,6 @@ else ()
     endmacro()
 endif ()
 
-
-
-# Google Test integration into the build
-option(BLOXI_USE_GOOGLETEST_HEAD
-        "If ON, we will download HEAD from googletest at config time." OFF)
-
-option(BLOXI_RUN_TESTS "If ON, tests will be run." OFF)
-
-set(BLOXI_RUN_TESTS ON)
-if (${BLOXI_RUN_TESTS})
-    # enable CTest.  This will set BUILD_TESTING to ON unless otherwise specified
-    # on the command line
-    include(CTest)
-    enable_testing()
-    include(External_googletest)
-endif ()
-
-if( CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT )
-    message(STATUS "Setting default CMAKE_INSTALL_PREFIX path to ${CMAKE_BINARY_DIR}/install")
-    set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE STRING "The path to use for make install" FORCE)
-endif()
-
-
-# CryptoPP integration
-SET(CRYPTOPP_BUILD_SHARED OFF CACHE BOOL "Build shared library")
-SET(CRYPTOPP_BUILD_TESTING OFF CACHE BOOL "Build library tests")
-include(External_cryptopp)
 
 # Project modules
 add_subdirectory(third_party)

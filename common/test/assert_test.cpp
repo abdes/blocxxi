@@ -71,9 +71,8 @@ TEST(AssertTests, TestAssertVal) {
 
   stack:
   */
-  auto regex = "";
   auto var = 100;
-  regex =
+  auto regex =
       "Assertion.*\n"
       ".*\n"
       "file:.*\n"
@@ -87,9 +86,8 @@ TEST(AssertTests, TestAssertVal) {
 }
 
 TEST(AssertTests, TestAssertFailVal) {
-  auto regex = "";
   auto str = "Value";
-  regex =
+  auto regex =
       "Assertion failed.*\n"
       ".*\n"
       "file:.*\n"

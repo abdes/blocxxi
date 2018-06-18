@@ -20,8 +20,7 @@ namespace nat {
 UpnpPortMapper::UpnpPortMapper() : urls_(nullptr), data_(nullptr) {}
 
 UpnpPortMapper::UpnpPortMapper(UpnpPortMapper &&other) noexcept
-    : urls_(other.urls_),
-      data_(other.data_) {
+    : urls_(other.urls_), data_(other.data_) {
   other.urls_ = nullptr;
   other.data_ = nullptr;
 }
@@ -105,8 +104,8 @@ std::unique_ptr<PortMapper> UpnpPortMapper::Discover(
 
   auto mapper = new UpnpPortMapper();
 
-  mapper->urls_ = (UPNPUrls *)malloc(sizeof(struct UPNPUrls));
-  mapper->data_ = (IGDdatas *)malloc(sizeof(struct IGDdatas));
+  mapper->urls_ = static_cast<UPNPUrls *>(malloc(sizeof(struct UPNPUrls)));
+  mapper->data_ = static_cast<IGDdatas *>(malloc(sizeof(struct IGDdatas)));
   memset(mapper->urls_, 0, sizeof(struct UPNPUrls));
   memset(mapper->data_, 0, sizeof(struct IGDdatas));
 

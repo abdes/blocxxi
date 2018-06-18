@@ -26,9 +26,12 @@ bloxi_library(
         ${CODEC_PUBLIC_INCLUDE_DIRS}
         PUBLIC_LIBRARIES
         ${CODEC_PUBLIC_LIBRARIES}
-        )
+)
+set_tidy_target_properties(bloxi_codec)
 
 add_subdirectory(test)
+
+set_cppcheck_command()
 
 configure_doxyfile(CoDecLib 
                    "\"CoDec Module\"" 

@@ -33,3 +33,5 @@ bloxi_executable(TARGET
         ${NDAGENT_LIBRARIES}
 )
 set_tidy_target_properties(ndagent)
+
+set_cppcheck_command()

@@ -20,7 +20,7 @@ function(bloxi_library)
   cmake_parse_arguments(BLOXI_LIB
     "DISABLE_INSTALL" # keep that in case we want to support installation one day
     "TARGET;EXPORT_NAME"
-          "SOURCES;PUBLIC_LIBRARIES;PUBLIC_INCLUDE_DIRS;PRIVATE_COMPILE_FLAGS;PRIVATE_INCLUDE_DIRS"
+    "SOURCES;PUBLIC_LIBRARIES;PUBLIC_INCLUDE_DIRS;PRIVATE_COMPILE_FLAGS;PRIVATE_INCLUDE_DIRS"
     ${ARGN}
   )
 
@@ -109,8 +109,7 @@ function(bloxi_executable)
 
     target_compile_options(${_NAME} PRIVATE ${BLOXI_COMPILE_CXXFLAGS} ${BLOXI_TEST_PRIVATE_COMPILE_FLAGS})
     target_link_libraries(${_NAME} PUBLIC ${BLOXI_EXE_LIBRARIES})
-    target_include_directories(${_NAME}
-      PRIVATE ${BLOXI_COMMON_INCLUDE_DIRS} ${BLOXI_EXE_INCLUDE_DIRS}
+    target_include_directories(${_NAME} PUBLIC ${BLOXI_COMMON_INCLUDE_DIRS} ${BLOXI_EXE_INCLUDE_DIRS}
 	)
 
     # Add all targets to a folder in the IDE for organization.
@@ -153,8 +152,7 @@ function(bloxi_test)
     target_compile_options(${_NAME}_bin PRIVATE ${BLOXI_COMPILE_CXXFLAGS} ${BLOXI_TEST_PRIVATE_COMPILE_FLAGS})
     target_link_libraries(${_NAME}_bin PUBLIC ${BLOXI_TEST_PUBLIC_LIBRARIES} ${BLOXI_TEST_COMMON_LIBRARIES})
     target_include_directories(${_NAME}_bin
-      PUBLIC ${BLOXI_COMMON_INCLUDE_DIRS} ${BLOXI_TEST_PUBLIC_INCLUDE_DIRS}
-      PRIVATE ${GMOCK_INCLUDE_DIRS} ${GTEST_INCLUDE_DIRS}
+      PUBLIC ${BLOXI_COMMON_INCLUDE_DIRS} ${BLOXI_TEST_PUBLIC_INCLUDE_DIRS} ${GMOCK_INCLUDE_DIRS} ${GTEST_INCLUDE_DIRS}
     )
 
     # Add all targets to a folder in the IDE for organization.
