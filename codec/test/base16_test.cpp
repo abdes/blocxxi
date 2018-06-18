@@ -58,44 +58,44 @@ std::vector<EncodeTestParams> createValidValuesForEncodeTest() {
   std::vector<EncodeTestParams> valid_values;
 
   // No reverse, Upper Case
-  addTestValue<1>(valid_values, {0xFF}, false, false, "FF");
-  addTestValue<1>(valid_values, {0x00}, false, false, "00");
-  addTestValue<3>(valid_values, {0xFF, 0xEE, 0xDD}, false, false, "FFEEDD");
-  addTestValue<4>(valid_values, {0x11, 0x22, 0x33, 0x44}, false, false,
+  addTestValue<1>(valid_values, {{0xFF}}, false, false, "FF");
+  addTestValue<1>(valid_values, {{0x00}}, false, false, "00");
+  addTestValue<3>(valid_values, {{0xFF, 0xEE, 0xDD}}, false, false, "FFEEDD");
+  addTestValue<4>(valid_values, {{0x11, 0x22, 0x33, 0x44}}, false, false,
                   "11223344");
 
   // No reverse, Lower Case
-  addTestValue<1>(valid_values, {0xFF}, false, true, "ff");
-  addTestValue<1>(valid_values, {0x00}, false, true, "00");
-  addTestValue<3>(valid_values, {0xFF, 0xEE, 0xDD}, false, true, "ffeedd");
-  addTestValue<4>(valid_values, {0x11, 0x22, 0x33, 0x44}, false, true,
+  addTestValue<1>(valid_values, {{0xFF}}, false, true, "ff");
+  addTestValue<1>(valid_values, {{0x00}}, false, true, "00");
+  addTestValue<3>(valid_values, {{0xFF, 0xEE, 0xDD}}, false, true, "ffeedd");
+  addTestValue<4>(valid_values, {{0x11, 0x22, 0x33, 0x44}}, false, true,
                   "11223344");
 
   // Reverse, Upper Case
-  addTestValue<1>(valid_values, {0xFF}, true, false, "FF");
-  addTestValue<1>(valid_values, {0x00}, true, false, "00");
-  addTestValue<3>(valid_values, {0x1D, 0x2E, 0x3F}, true, false, "F3E2D1");
-  addTestValue<4>(valid_values, {0xA4, 0xB3, 0xC2, 0xD1}, true, false,
+  addTestValue<1>(valid_values, {{0xFF}}, true, false, "FF");
+  addTestValue<1>(valid_values, {{0x00}}, true, false, "00");
+  addTestValue<3>(valid_values, {{0x1D, 0x2E, 0x3F}}, true, false, "F3E2D1");
+  addTestValue<4>(valid_values, {{0xA4, 0xB3, 0xC2, 0xD1}}, true, false,
                   "1D2C3B4A");
 
   // Reverse, Lower Case
-  addTestValue<1>(valid_values, {0xFF}, true, true, "ff");
-  addTestValue<1>(valid_values, {0x00}, true, true, "00");
-  addTestValue<3>(valid_values, {0x1D, 0x2E, 0x3F}, true, true, "f3e2d1");
-  addTestValue<4>(valid_values, {0xA4, 0xB3, 0x62, 0xD1}, true, true,
+  addTestValue<1>(valid_values, {{0xFF}}, true, true, "ff");
+  addTestValue<1>(valid_values, {{0x00}}, true, true, "00");
+  addTestValue<3>(valid_values, {{0x1D, 0x2E, 0x3F}}, true, true, "f3e2d1");
+  addTestValue<4>(valid_values, {{0xA4, 0xB3, 0x62, 0xD1}}, true, true,
                   "1d263b4a");
 
   // corner case
-  addTestValue<5>(valid_values, {0x00, 0x00, 0x00, 0x29, 0x00}, false, false,
+  addTestValue<5>(valid_values, {{0x00, 0x00, 0x00, 0x29, 0x00}}, false, false,
                   "0000002900");
-  addTestValue<5>(valid_values, {0x00, 0x00, 0x00, 0xEF, 0x00}, true, false,
+  addTestValue<5>(valid_values, {{0x00, 0x00, 0x00, 0xEF, 0x00}}, true, false,
                   "00FE000000");
 
   return valid_values;
 }
 
 INSTANTIATE_TEST_CASE_P(Base16, CoDecTest,
-                        ::testing::ValuesIn(createValidValuesForEncodeTest()));
+                        ::testing::ValuesIn(createValidValuesForEncodeTest()),);
 
 TEST_P(CoDecTest, EncodeCorrectness) {
   auto out = Encode(binary_, reverse_, lower_case_);

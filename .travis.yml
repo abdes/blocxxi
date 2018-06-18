@@ -37,7 +37,8 @@ before_script:
       export PATH="${PWD}/bin:$PATH"
       popd
     else
-      if ! brew ls --version cmake &>/dev/null; then brew update; brew install cmake; fi
+      brew update
+      brew outdated cmake || brew upgrade cmake
     fi
 
 matrix:
@@ -88,14 +89,14 @@ matrix:
       apt:
         sources:
           - ubuntu-toolchain-r-test
-          - llvm-toolchain-trusty-4.0
+          - llvm-toolchain-trusty-6.0
         packages:
-          - clang-4.0
-          - clang-tidy-4.0
+          - clang-6.0
+          - clang-tidy-6.0
           - gcc-6
           - g++-6
     script:
-      - cmake -DENABLE_CLANG_TIDY=ON -DCMAKE_CXX_COMPILER="g++-6" ..
+      - cmake -DENABLE_CLANG_TIDY=ON -DCMAKE_CXX_COMPILER="clang++-6.0" ..
       - make 2>&1 | tee output.txt
       - |
         if [[ -n $(grep -E "(warning: |error: )" output.txt | grep -v -E "(third_party|_build)")  ]]; then
@@ -197,78 +198,20 @@ matrix:
       - ctest -T memcheck --output-on-failure
 
   #
-  # G++ 5
+  # G++ 7
   #
   - os: linux
     env:
-      - TEST="G++ 5"
+      - TEST="G++ 7"
     addons:
       apt:
         sources:
           - ubuntu-toolchain-r-test
         packages:
-          - gcc-5
-          - g++-5
+          - gcc-7
+          - g++-7
     script:
-      - cmake -DCMAKE_CXX_COMPILER="g++-5" ..
-      - make
-      - ctest --output-on-failure
-
-  #
-  # G++ 6
-  #
-  - os: linux
-    env:
-      - TEST="G++ 6"
-    addons:
-      apt:
-        sources:
-          - ubuntu-toolchain-r-test
-        packages:
-          - gcc-6
-          - g++-6
-    script:
-      - cmake -DCMAKE_CXX_COMPILER="g++-6" ..
-      - make
-      - ctest --output-on-failure
-
-  #
-  # Clang 3.8
-  #
-  - os: linux
-    env:
-      - TEST="Clang 3.8"
-    addons:
-      apt:
-        sources:
-          - ubuntu-toolchain-r-test
-          - llvm-toolchain-trusty-4.0
-        packages:
-          - clang-3.8
-          - gcc-6
-          - g++-6
-    script:
-      - cmake -DCMAKE_C_COMPILER=clang-3.8 -DCMAKE_CXX_COMPILER=clang++-3.8 ..
-      - make
-      - ctest --output-on-failure
-
-  #
-  # Clang 3.9
-  #
-  - os: linux
-    env:
-      - TEST="Clang 3.9"
-    addons:
-      apt:
-        sources:
-          - ubuntu-toolchain-r-test
-          - llvm-toolchain-trusty-3.9
-        packages:
-          - clang-3.9
-          - gcc-6
-          - g++-6
-    script:
-      - cmake -DCMAKE_C_COMPILER=clang-3.9 -DCMAKE_CXX_COMPILER=clang++-3.9 ..
+      - cmake -DCMAKE_CXX_COMPILER="g++-7" ..
       - make
       - ctest --output-on-failure
 
@@ -293,26 +236,22 @@ matrix:
       - ctest --output-on-failure
 
   #
-  # XCode 8.1
+  # Clang 5.0
   #
-  - os: osx
+  - os: linux
     env:
-      - TEST="XCode 8.1"
-    osx_image: xcode8.1
+      - TEST="Clang 5.0"
+    addons:
+      apt:
+        sources:
+          - ubuntu-toolchain-r-test
+          - llvm-toolchain-trusty-5.0
+        packages:
+          - clang-5.0
+          - gcc-6
+          - g++-6
     script:
-      - cmake ..
-      - make
-      - ctest --output-on-failure
-
-  #
-  # XCode 8.2
-  #
-  - os: osx
-    env:
-      - TEST="XCode 8.2"
-    osx_image: xcode8.2
-    script:
-      - cmake ..
+      - cmake -DCMAKE_C_COMPILER=clang-5.0 -DCMAKE_CXX_COMPILER=clang++-5.0 ..
       - make
       - ctest --output-on-failure
 
@@ -321,8 +260,20 @@ matrix:
   #
   - os: osx
     env:
-      - TEST="XCode 8.3"
+      - TEST="XCode 8.3 - OS X 10.12"
     osx_image: xcode8.3
+    script:
+      - cmake ..
+      - make
+      - ctest --output-on-failure
+
+  #
+  # XCode 9.4
+  #
+  - os: osx
+    env:
+      - TEST="XCode 9.4 - OS X 10.13"
+    osx_image: xcode9.4
     script:
       - cmake ..
       - make
