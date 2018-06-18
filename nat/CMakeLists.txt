@@ -37,6 +37,7 @@ bloxi_library(
         PUBLIC_LIBRARIES
         ${NAT_PUBLIC_LIBRARIES}
 )
+set_tidy_target_properties(bloxi_nat)
 
 add_subdirectory(test)
 

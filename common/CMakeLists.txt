@@ -34,6 +34,7 @@ bloxi_library(
         PUBLIC_LIBRARIES
         ${COMMON_PUBLIC_LIBRARIES}
 )
+set_tidy_target_properties(bloxi_common)
 
 add_subdirectory(test)
 

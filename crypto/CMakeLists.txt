@@ -30,6 +30,7 @@ bloxi_library(
         PUBLIC_LIBRARIES
         ${CRYPTO_PUBLIC_LIBRARIES}
 )
+set_tidy_target_properties(bloxi_crypto)
 
 add_subdirectory(test)
 

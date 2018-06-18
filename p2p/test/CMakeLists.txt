@@ -23,6 +23,7 @@ bloxi_test(
   PUBLIC_LIBRARIES
   ${P2P_LIBRARIES}
 )
+set_tidy_target_properties(p2p_test_bin)
 
 #Needed for spdlog
 find_package(Threads REQUIRED)
@@ -30,9 +31,10 @@ find_package(Threads REQUIRED)
 set(P2P_SIM_LIBRARIES bloxi::p2p spdlog Boost::program_options)
 
 bloxi_executable(TARGET
-  "p2psim"
+  p2psim
   SOURCES
   ${P2P_SIM_SRC}
   LIBRARIES
   ${P2P_SIM_LIBRARIES}
 )
+set_tidy_target_properties(p2psim)
