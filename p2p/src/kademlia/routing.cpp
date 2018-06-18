@@ -167,7 +167,7 @@ std::vector<Node> RoutingTable::FindNeighbors(Node::IdType const &id,
   auto bucket_index = GetBucketIndexFor(id);
   auto bucket = buckets_.begin();
   std::advance(bucket, bucket_index);
-  auto left = buckets_.begin();
+  auto left = bucket;
   auto right = (bucket != buckets_.end()) ? bucket + 1 : bucket;
 
   auto current_bucket = bucket;
@@ -179,10 +179,11 @@ std::vector<Node> RoutingTable::FindNeighbors(Node::IdType const &id,
     for (auto const &neighbor : *current_bucket) {
       // Exclude the node
       if (neighbor.Id() != id) {
-        BXLOG(debug, "found neighbor {} for {}",
-              neighbor.Id().ToBitStringShort(), id.ToBitStringShort());
+        ++count;
+        BXLOG(debug, "found neighbor(count={}) {}", count,
+              neighbor.Id().ToBitStringShort());
         neighbors.insert(neighbor);
-        if (++count == k) goto Done;
+        if (count == k) goto Done;
       } else {
         BXLOG(debug, "skip caller node from neighbors list");
       }
@@ -190,15 +191,20 @@ std::vector<Node> RoutingTable::FindNeighbors(Node::IdType const &id,
 
     // If one bucket does not have enough, fill by alternating left and right
     // buckets until we collect the requested number of neighbors
-    if (use_left && left != bucket) {
+    if (right == buckets_.end()) use_left = true;
+    if (left != buckets_.begin()) {
       has_more = true;
-      current_bucket = left++;
-      use_left = false;
-      continue;
+      if (use_left) {
+        --left;
+        current_bucket = left;
+        use_left = false;
+        continue;
+      }
     }
     if (right != buckets_.end()) {
       has_more = true;
-      current_bucket = right++;
+      current_bucket = right;
+      ++right;
     }
     use_left = true;
   }

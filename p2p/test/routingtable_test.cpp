@@ -49,6 +49,7 @@ TEST(RoutingTableTest, FindNeighborsReturnsRequestedNodesIfAvailable) {
   for (auto i = 0U; i < 30; ++i) {
     rt.AddPeer(Node(Node::IdType::RandomHash(), "::1", i));
   }
+  rt.DumpToLog();
   auto neighbors10 = rt.FindNeighbors(Node::IdType::RandomHash(), 10);
   ASSERT_EQ(10, neighbors10.size());
   auto neighbors7 = rt.FindNeighbors(Node::IdType::RandomHash(), 7);
