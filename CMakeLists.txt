@@ -76,7 +76,7 @@ if (MSVC)
 else ()
     add_compile_options(-Wall -pedantic -Wextra)
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-        add_compile_options(-ftemplate-depth=1024)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-depth=1024" CACHE STRING "" FORCE)
     endif()
 endif ()
 
