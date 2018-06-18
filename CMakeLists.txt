@@ -94,7 +94,7 @@ set(DOXTOSRCDIR "../src")
 if(ENABLE_CLANG_TIDY)
 
     find_program(
-        CLANG_TIDY_EXE 
+        CLANG_TIDY_EXE
         NAMES "clang-tidy" "clang-tidy-4.0"
         DOC "Path to clang-tidy executable")
 
