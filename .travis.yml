@@ -96,7 +96,7 @@ matrix:
           - gcc-6
           - g++-6
     script:
-      - cmake -DENABLE_CLANG_TIDY=ON -DCMAKE_CXX_COMPILER="clang++-5.0" ..
+      - cmake -DENABLE_CLANG_TIDY=ON -DCMAKE_CXX_COMPILER="clang++-6.0" ..
       - make 2>&1 | tee output.txt
       - |
         if [[ -n $(grep -E "(warning: |error: )" output.txt | grep -v -E "(third_party|_build)")  ]]; then
