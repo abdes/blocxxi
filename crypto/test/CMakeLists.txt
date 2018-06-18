@@ -14,3 +14,4 @@ bloxi_test(
         PUBLIC_LIBRARIES
         ${CRYPTO_TEST_LIBRARIES}
 )
+set_tidy_target_properties(crypto_test_bin)

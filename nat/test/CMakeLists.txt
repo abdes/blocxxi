@@ -13,3 +13,4 @@ bloxi_test(
         PUBLIC_LIBRARIES
         ${PORTFWD_TEST_LIBRARIES}
 )
+set_tidy_target_properties(portfwd_test_bin)

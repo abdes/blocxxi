@@ -47,7 +47,6 @@ list(APPEND P2P_PRIVATE_INCLUDE_DIRS
   ${CMAKE_CURRENT_SOURCE_DIR}/src
   )
 
-
 set(P2P_PUBLIC_LIBRARIES
   bloxi::crypto
   bloxi::codec
@@ -65,6 +64,7 @@ bloxi_library(
   PUBLIC_PRIVATE_DIRS ${P2P_PRIVATE_INCLUDE_DIRS}
   PUBLIC_LIBRARIES ${P2P_PUBLIC_LIBRARIES}
 )
+set_tidy_target_properties(bloxi_p2p)
 
 add_subdirectory(test)
 

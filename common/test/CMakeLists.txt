@@ -14,3 +14,4 @@ bloxi_test(
   PUBLIC_LIBRARIES
     ${COMMON_TEST_LIBRARIES}
 )
+set_tidy_target_properties(common_test_bin)

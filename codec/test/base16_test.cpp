@@ -35,9 +35,7 @@ class CoDecTest : public ::testing::TestWithParam<EncodeTestParams> {
     lower_case_ = GetParam().lower_case_;
     hex_ = GetParam().hex_;
   }
-  void TearDown() override {
-	  delete[] binary_.data();
-  }
+  void TearDown() override { delete[] binary_.data(); }
 
  protected:
   gsl::span<const uint8_t> binary_;
@@ -46,12 +44,12 @@ class CoDecTest : public ::testing::TestWithParam<EncodeTestParams> {
   std::string hex_;
 };
 
-template<size_t N>
+template <size_t N>
 void addTestValue(std::vector<EncodeTestParams> &values,
                   const std::array<const uint8_t, N> &data, bool reverse,
                   bool lower_case, const std::string hex) {
   auto buffer = new uint8_t[N];
-  if (N>0) memcpy(buffer, &data[0], N);
+  if (N > 0) memcpy(buffer, &data[0], N);
   auto data_span = gsl::make_span(buffer, N);
   values.emplace_back(EncodeTestParams(data_span, reverse, lower_case, hex));
 }
@@ -67,7 +65,6 @@ std::vector<EncodeTestParams> createValidValuesForEncodeTest() {
                   "11223344");
 
   // No reverse, Lower Case
-  addTestValue<0>(valid_values, {}, false, true, "");
   addTestValue<1>(valid_values, {0xFF}, false, true, "ff");
   addTestValue<1>(valid_values, {0x00}, false, true, "00");
   addTestValue<3>(valid_values, {0xFF, 0xEE, 0xDD}, false, true, "ffeedd");
@@ -75,7 +72,6 @@ std::vector<EncodeTestParams> createValidValuesForEncodeTest() {
                   "11223344");
 
   // Reverse, Upper Case
-  addTestValue<0>(valid_values, {}, true, false, "");
   addTestValue<1>(valid_values, {0xFF}, true, false, "FF");
   addTestValue<1>(valid_values, {0x00}, true, false, "00");
   addTestValue<3>(valid_values, {0x1D, 0x2E, 0x3F}, true, false, "F3E2D1");
@@ -83,7 +79,6 @@ std::vector<EncodeTestParams> createValidValuesForEncodeTest() {
                   "1D2C3B4A");
 
   // Reverse, Lower Case
-  addTestValue<0>(valid_values, {}, true, true, "");
   addTestValue<1>(valid_values, {0xFF}, true, true, "ff");
   addTestValue<1>(valid_values, {0x00}, true, true, "00");
   addTestValue<3>(valid_values, {0x1D, 0x2E, 0x3F}, true, true, "f3e2d1");
@@ -112,8 +107,7 @@ TEST_P(CoDecTest, DecodeCorrectness) {
   Decode(gsl::cstring_span(hex_), gsl::span<uint8_t>(buf), reverse_);
   for (auto ii = 0U; ii < binary_.size(); ii++) {
     ASSERT_EQ(binary_.data()[ii], buf[ii])
-                  << "Decoded buffer and expected buffer differ at index "
-                  << ii;
+        << "Decoded buffer and expected buffer differ at index " << ii;
   }
 }
 
@@ -128,7 +122,8 @@ TEST(Base16, DecodeOddSizeHexStringAborts) {
 
 TEST(Base16, DecodeWithImproperlySizedDestBufferAborts) {
   uint8_t buf[1]{0};
-  ASSERT_DEATH(Decode(gsl::cstring_span("F"), gsl::span<uint8_t>(buf), false), ".*");
+  ASSERT_DEATH(Decode(gsl::cstring_span("F"), gsl::span<uint8_t>(buf), false),
+               ".*");
   ASSERT_DEATH(
       Decode(gsl::cstring_span("FAB2244"), gsl::span<uint8_t>(buf), false),
       ".*");

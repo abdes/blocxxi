@@ -3,9 +3,10 @@
 #    (See accompanying file LICENSE or copy at
 #   https://opensource.org/licenses/BSD-3-Clause)
 
-# We require 3.0 for modern, target-based CMake.  We require 3.1 for the use of
-# CXX_STANDARD in our targets.
-cmake_minimum_required(VERSION 3.1)
+# We require 3.0 for modern, target-based CMake.
+# We require 3.1 for the use of CXX_STANDARD in our targets.
+# We require 3.6 for CXX_CLANG_TIDY
+cmake_minimum_required(VERSION 3.6)
 project(blocxxi VERSION 0.9.2 LANGUAGES CXX)
 
 # The folder that will be used when generating project files for IDEs
@@ -92,29 +93,34 @@ set(DOXTOSRCDIR "../src")
 
 if(ENABLE_CLANG_TIDY)
 
-    find_program(CLANG_TIDY_BIN clang-tidy-4.0)
-    find_program(RUN_CLANG_TIDY_BIN run-clang-tidy-4.0.py)
+    find_program(
+        CLANG_TIDY_EXE 
+        NAMES "clang-tidy" "clang-tidy-4.0"
+        DOC "Path to clang-tidy executable")
 
-    if(CLANG_TIDY_BIN STREQUAL "CLANG_TIDY_BIN-NOTFOUND")
-        message(FATAL_ERROR "unable to locate clang-tidy-4.0")
-    endif()
+    if(NOT CLANG_TIDY_EXE)
+        message(FATAL_ERROR "unable to locate clang-tidy")
+        macro(set_tidy_target_properties TARGET_NAME)
+        endmacro()
 
-    if(RUN_CLANG_TIDY_BIN STREQUAL "RUN_CLANG_TIDY_BIN-NOTFOUND")
-        message(FATAL_ERROR "unable to locate run-clang-tidy-4.0.py")
-    endif()
+    else ()
 
-    list(APPEND RUN_CLANG_TIDY_BIN_ARGS
-        -clang-tidy-binary ${CLANG_TIDY_BIN}
-        -header-filter=.*
-        -checks=clan*,cert*,misc*,perf*,cppc*,read*,mode*,-cert-err58-cpp,-misc-noexcept-move-constructor
-    )
+        list(APPEND CLANG_TIDY_BIN_ARGS
+            -header-filter=.*
+            -checks=*,-clang-analyzer-alpha.*
+        )
 
-    add_custom_target(
-        tidy
-        COMMAND ${RUN_CLANG_TIDY_BIN} ${RUN_CLANG_TIDY_BIN_ARGS}
-        COMMENT "running clang tidy"
-    )
+        macro(set_tidy_target_properties TARGET_NAME)
+            set_target_properties(
+                ${TARGET_NAME} PROPERTIES
+                CXX_CLANG_TIDY ${CLANG_TIDY_EXE} ${RUN_CLANG_TIDY_BIN_ARGS})
+        endmacro()
 
+    endif ()
+
+else()
+    macro(set_tidy_target_properties TARGET_NAME)
+    endmacro()
 endif()
 
 

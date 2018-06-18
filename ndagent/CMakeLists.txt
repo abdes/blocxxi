@@ -24,11 +24,12 @@ set(NDAGENT_LIBRARIES
 
 bloxi_executable(TARGET
         TARGET
-        "ndagent"
+        ndagent
         SOURCES
         ${NDAGENT_SRC}
         INCLUDE_DIRS
         ${NDAGENT_INCLUDE_DIRS}
         LIBRARIES
         ${NDAGENT_LIBRARIES}
-        )
+)
+set_tidy_target_properties(ndagent)
