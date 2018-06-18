@@ -102,11 +102,9 @@ if(ENABLE_CLANG_TIDY)
         message(FATAL_ERROR "unable to locate clang-tidy")
         macro(set_tidy_target_properties TARGET_NAME)
         endmacro()
-    
+
     else ()
-        #set(CMAKE_C_COMPILER "/usr/bin/clang" CACHE string "clang compiler" FORCE)
-        #set(CMAKE_CXX_COMPILER "/usr/bin/clang++" CACHE string "clang C++ compiler" FORCE)
-        
+
         list(APPEND CLANG_TIDY_BIN_ARGS
             -header-filter=.*
             -checks=*,-clang-analyzer-alpha.*
