@@ -231,7 +231,7 @@ matrix:
           - gcc-6
           - g++-6
     script:
-      - cmake -DCMAKE_C_COMPILER=clang-3.9 -DCMAKE_CXX_COMPILER=clang++-4.0 ..
+      - cmake -DCMAKE_C_COMPILER=clang-4.0 -DCMAKE_CXX_COMPILER=clang++-4.0 ..
       - make
       - ctest --output-on-failure
 
@@ -251,7 +251,7 @@ matrix:
           - gcc-6
           - g++-6
     script:
-      - cmake -DCMAKE_C_COMPILER=clang-4.0 -DCMAKE_CXX_COMPILER=clang++-5.0 ..
+      - cmake -DCMAKE_C_COMPILER=clang-5.0 -DCMAKE_CXX_COMPILER=clang++-5.0 ..
       - make
       - ctest --output-on-failure
 
