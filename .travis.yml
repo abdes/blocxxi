@@ -147,7 +147,7 @@ matrix:
     env:
       - TEST="Google Address Sanitizer"
     script:
-      - cmake -DENABLE_ASAN=ON -DCMAKE_CXX_COMPILER="g++-6" ..
+      - cmake -DENABLE_ASAN=ON -DCMAKE_C_COMPILER="gcc-6" -DCMAKE_CXX_COMPILER="g++-6" ..
       - make
       - ctest --output-on-failure
 
@@ -165,7 +165,7 @@ matrix:
           - gcc-6
           - g++-6
     script:
-      - cmake -DENABLE_USAN=ON -DCMAKE_CXX_COMPILER="g++-6" ..
+      - cmake -DENABLE_USAN=ON -DCMAKE_C_COMPILER="gcc-6" -DCMAKE_CXX_COMPILER="g++-6" ..
       - make
       - ctest --output-on-failure
 
@@ -183,7 +183,7 @@ matrix:
           - gcc-6
           - g++-6
     script:
-      - cmake -DENABLE_TSAN=ON -DCMAKE_CXX_COMPILER="g++-6" ..
+      - cmake -DENABLE_TSAN=ON -DCMAKE_C_COMPILER="gcc-6" -DCMAKE_CXX_COMPILER="g++-6" ..
       - make
       - ctest --output-on-failure
 
@@ -202,7 +202,7 @@ matrix:
           - g++-6
           - valgrind
     script:
-      - cmake -DCMAKE_CXX_COMPILER="g++-6" ..
+      - cmake -DCMAKE_C_COMPILER="gcc-6" -DCMAKE_CXX_COMPILER="g++-6" ..
       - make
       - ctest -T memcheck --output-on-failure
 
@@ -220,7 +220,7 @@ matrix:
           - gcc-7
           - g++-7
     script:
-      - cmake -DCMAKE_CXX_COMPILER="g++-7" ..
+      - cmake -DCMAKE_C_COMPILER="gcc-7" -DCMAKE_CXX_COMPILER="g++-7" ..
       - make
       - ctest --output-on-failure
 
