@@ -12,7 +12,7 @@ if(ENABLE_CPPCHECK)
 else()
     cmake_minimum_required(VERSION 3.6)
 endif()
-project(blocxxi VERSION 0.9.4 LANGUAGES CXX)
+project(blocxxi VERSION 0.9.4 LANGUAGES CXX C)
 
 # The folder that will be used when generating project files for IDEs
 # For example, Visual Studio supports folders.
