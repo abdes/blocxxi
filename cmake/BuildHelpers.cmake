@@ -2,8 +2,23 @@
 
 include(CMakeParseArguments)
 
+function(set_common_compiler_flags TARGET)
+  if (MSVC)
+      # /wd4005  macro-redefinition
+      # /wd4068  unknown pragma
+      # /wd4244  conversion from 'type1' to 'type2'
+      # /wd4267  conversion from 'size_t' to 'type2'
+      # /wd4800  force value to bool 'true' or 'false' (performance warning)
+      target_compile_options(${TARGET} PUBLIC /W3 /WX /wd4005 /wd4068 /wd4244 /wd4267 /wd4800)
+      target_compile_definitions(${TARGET} PUBLIC /DNOMINMAX /DWIN32_LEAN_AND_MEAN=1 /D_CRT_SECURE_NO_WARNINGS /D_SCL_SECURE_NO_WARNINGS /D_WIN32_WINNT=0x0501)
+  else ()
+      target_compile_options(${TARGET} PUBLIC -Wall -pedantic -Wextra)
+      if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+          target_compile_options(${TRAGET} PUBLIC -ftemplate-depth=1024)
+      endif()
+  endif ()
+endfunction()
 
-#
 # create a library in the bloxi namespace
 #
 # parameters
@@ -29,6 +44,7 @@ function(bloxi_library)
 
   add_library(${_NAME} STATIC ${BLOXI_LIB_SOURCES})
 
+  set_common_compiler_flags(${_NAME})
   target_compile_options(${_NAME} PRIVATE ${BLOXI_COMPILE_CXXFLAGS} ${BLOXI_LIB_PRIVATE_COMPILE_FLAGS})
   target_link_libraries(${_NAME} PUBLIC ${BLOXI_LIB_PUBLIC_LIBRARIES})
   target_include_directories(${_NAME}
@@ -75,6 +91,7 @@ function(bloxi_header_library)
 
 
   add_library(${_NAME} ${__dummy_header_only_lib_file})
+  set_common_compiler_flags(${_NAME})
   target_link_libraries(${_NAME} PUBLIC ${BLOXI_HO_LIB_PUBLIC_LIBRARIES})
   target_include_directories(${_NAME}
     PUBLIC ${BLOXI_COMMON_INCLUDE_DIRS} ${BLOXI_HO_LIB_PUBLIC_INCLUDE_DIRS}
@@ -106,7 +123,7 @@ function(bloxi_executable)
     set(_NAME ${BLOXI_EXE_TARGET})
 
     add_executable(${_NAME} ${BLOXI_EXE_SOURCES})
-
+    set_common_compiler_flags(${_NAME})
     target_compile_options(${_NAME} PRIVATE ${BLOXI_COMPILE_CXXFLAGS} ${BLOXI_TEST_PRIVATE_COMPILE_FLAGS})
     target_link_libraries(${_NAME} PUBLIC ${BLOXI_EXE_LIBRARIES})
     target_include_directories(${_NAME} PUBLIC ${BLOXI_COMMON_INCLUDE_DIRS} ${BLOXI_EXE_INCLUDE_DIRS}
@@ -148,7 +165,7 @@ function(bloxi_test)
     string(TOUPPER ${_NAME} _UPPER_NAME)
 
     add_executable(${_NAME}_bin ${BLOXI_TEST_SOURCES})
-
+    set_common_compiler_flags(${_NAME}_bin)
     target_compile_options(${_NAME}_bin PRIVATE ${BLOXI_COMPILE_CXXFLAGS} ${BLOXI_TEST_PRIVATE_COMPILE_FLAGS})
     target_link_libraries(${_NAME}_bin PUBLIC ${BLOXI_TEST_PUBLIC_LIBRARIES} ${BLOXI_TEST_COMMON_LIBRARIES})
     target_include_directories(${_NAME}_bin
@@ -160,17 +177,5 @@ function(bloxi_test)
 
     add_test(${_NAME} ${_NAME}_bin)
   endif(BUILD_TESTING)
-
-endfunction()
-
-
-
-
-function(check_target my_target)
-
-  #if(NOT TARGET ${my_target})
-   # message(FATAL_ERROR " BLOXI: compiling bloxi requires a ${my_target} CMake target in your project,
-    #               see CMake/README.md for more details")
-  #endif(NOT TARGET ${my_target})
 
 endfunction()
