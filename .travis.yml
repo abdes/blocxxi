@@ -41,6 +41,11 @@ before_script:
       brew outdated cmake || brew upgrade cmake
     fi
 
+  #
+  # Update / Install Xorg dev and other libs for glfw3
+  #
+  - sudo apt-get update && sudo apt-get install xorg-dev libglu1-mesa-dev
+
 matrix:
   include:
   #
