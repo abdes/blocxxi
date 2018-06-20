@@ -11,7 +11,7 @@ function(set_common_compiler_flags BLOXI_TARGET)
       # /wd4267  conversion from 'size_t' to 'type2'
       # /wd4800  force value to bool 'true' or 'false' (performance warning)
       target_compile_options(${BLOXI_TARGET} PUBLIC /W3 /WX /wd4005 /wd4068 /wd4244 /wd4267 /wd4800)
-      target_compile_definitions(${BLOXI_TARGET} PUBLIC /DNOMINMAX /DWIN32_LEAN_AND_MEAN=1 /D_CRT_SECURE_NO_WARNINGS /D_SCL_SECURE_NO_WARNINGS /D_WIN32_WINNT=0x0501)
+      target_compile_definitions(${BLOXI_TARGET} PRIVATE -DNOMINMAX -DWIN32_LEAN_AND_MEAN=1 -D_CRT_SECURE_NO_WARNINGS -D_SCL_SECURE_NO_WARNINGS -D_WIN32_WINNT=0x0501)
   else ()
       target_compile_options(${BLOXI_TARGET} PUBLIC -Wall -pedantic -Wextra)
   endif ()
@@ -107,7 +107,7 @@ endfunction()
 
 
 #
-# 
+#
 #
 function(bloxi_executable)
 
