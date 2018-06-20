@@ -32,6 +32,7 @@ UpnpPortMapper &UpnpPortMapper::operator=(UpnpPortMapper &&moved) noexcept {
 }
 
 UpnpPortMapper::~UpnpPortMapper() {
+  FreeUPNPUrls(urls_);
   free(urls_);
   free(data_);
 }
