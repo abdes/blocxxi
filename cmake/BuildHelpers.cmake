@@ -15,6 +15,9 @@ function(set_common_compiler_flags BLOXI_TARGET)
   else ()
       target_compile_options(${BLOXI_TARGET} PUBLIC -Wall -pedantic -Wextra)
   endif ()
+  # Enable asserts all the time
+  target_compile_definitions(${BLOXI_TARGET} PRIVATE -DBLOCXXI_USE_ASSERTS)
+
 endfunction()
 
 # create a library in the bloxi namespace

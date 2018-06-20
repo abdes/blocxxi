@@ -60,11 +60,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 
-if (CMAKE_BUILD_TYPE MATCHES Debug)
-    add_definitions(-DBLOCXXI_USE_ASSERTS)
-endif ()
-
-
 # Include our own module path. This makes #include "x.h"
 # work in project subfolders to include the main directory headers.
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
