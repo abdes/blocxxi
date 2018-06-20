@@ -220,8 +220,6 @@ set(MEMORYCHECK_COMMAND_OPTIONS "${MEMORYCHECK_COMMAND_OPTIONS} --error-exitcode
 set(DOXROOT "${CMAKE_BINARY_DIR}/dox")
 
 macro(configure_doxyfile TARGET_NAME TARGET_TITLE TARGET_BRIEF TARGET_INPUT_PATH)
-    message(STATUS "Configuring Doxygen: do we have '${CMAKE_SOURCE_DIR}/Doxyfile.in'?")
-
     if (EXISTS "${CMAKE_SOURCE_DIR}/Doxyfile.in")
         set(DOXY_TARGET_OUTPUT_DIR "${TARGET_NAME}")
         set(DOXY_TARGET_ROOT_DIR "") # ${DOXTOSRCDIR} - set(DOXTOSRCDIR "../src")
@@ -234,7 +232,7 @@ macro(configure_doxyfile TARGET_NAME TARGET_TITLE TARGET_BRIEF TARGET_INPUT_PATH
             file(MAKE_DIRECTORY "${DOXROOT}/${DOXY_TARGET_OUTPUT_DIR}")
         endif ()
         configure_file("${CMAKE_SOURCE_DIR}/Doxyfile.in" "${DOXROOT}/${TARGET_NAME}_Doxyfile" @ONLY)
-        message(STATUS "Configured Doxyfile: '${CMAKE_SOURCE_DIR}/Doxyfile.in' --> '${DOXROOT}/${TARGET_NAME}_Doxyfile'.")
+        message(STATUS "== Copy Doxyfile.in --> '${DOXROOT}/${TARGET_NAME}_Doxyfile'")
     else ()
         message(STATUS "WARNING : The '${CMAKE_SOURCE_DIR}/Doxyfile.in' file does not exist!")
     endif ()
