@@ -7,7 +7,7 @@
 
 list(APPEND NDAGENT_SRC
         "src/KHR/khrplatform.h"
-        "src/glad/glad.h"
+        "src/glad/gl.h"
         "src/imgui_impl_opengl3.h"
         "src/imgui_impl_opengl3.cpp"
         "src/imgui_impl_glfw.h"

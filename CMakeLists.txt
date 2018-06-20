@@ -36,6 +36,7 @@ include(FindDoxygen)
 message(STATUS "== We are on a ${CMAKE_SYSTEM_NAME} system")
 message(STATUS "== The host processor is ${CMAKE_HOST_SYSTEM_PROCESSOR}")
 message(STATUS "== CMAKE_CXX_COMPILER_ID is ${CMAKE_CXX_COMPILER_ID}")
+message(STATUS "== CMAKE_C_COMPILER_ID is ${CMAKE_C_COMPILER_ID}")
 
 # The default build type provided by CMake is to include no compiler flags for
 # optimization. For some projects you may want to set a default build type so
@@ -78,7 +79,6 @@ endif ()
 # Include our own module path. This makes #include "x.h"
 # work in project subfolders to include the main directory headers.
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-
 
 
 # This defines the basic input (src) and output (lib & include) directories.
