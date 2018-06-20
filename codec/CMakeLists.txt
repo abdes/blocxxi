@@ -28,7 +28,7 @@ bloxi_library(
         ${CODEC_PUBLIC_LIBRARIES}
 )
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-        target_compile_options(bloxi_codec PUBLIC -ftemplate-depth=1024)
+        target_compile_options(bloxi_codec PRIVATE -ftemplate-depth=1024)
 endif()
 
 set_tidy_target_properties(bloxi_codec)
