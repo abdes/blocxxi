@@ -36,6 +36,7 @@ include(FindDoxygen)
 message(STATUS "== We are on a ${CMAKE_SYSTEM_NAME} system")
 message(STATUS "== The host processor is ${CMAKE_HOST_SYSTEM_PROCESSOR}")
 message(STATUS "== CMAKE_CXX_COMPILER_ID is ${CMAKE_CXX_COMPILER_ID}")
+message(STATUS "== CMAKE_C_COMPILER_ID is ${CMAKE_C_COMPILER_ID}")
 
 # The default build type provided by CMake is to include no compiler flags for
 # optimization. For some projects you may want to set a default build type so
@@ -64,26 +65,9 @@ if (CMAKE_BUILD_TYPE MATCHES Debug)
 endif ()
 
 
-# config options
-if (MSVC)
-    # /wd4005  macro-redefinition
-    # /wd4068  unknown pragma
-    # /wd4244  conversion from 'type1' to 'type2'
-    # /wd4267  conversion from 'size_t' to 'type2'
-    # /wd4800  force value to bool 'true' or 'false' (performance warning)
-    add_compile_options(/W3 /WX /wd4005 /wd4068 /wd4244 /wd4267 /wd4800)
-    add_definitions(/DNOMINMAX /DWIN32_LEAN_AND_MEAN=1 /D_CRT_SECURE_NO_WARNINGS /D_SCL_SECURE_NO_WARNINGS /D_WIN32_WINNT=0x0501)
-else ()
-    add_compile_options(-Wall -pedantic -Wextra)
-    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-depth=1024" CACHE STRING "" FORCE)
-    endif()
-endif ()
-
 # Include our own module path. This makes #include "x.h"
 # work in project subfolders to include the main directory headers.
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-
 
 
 # This defines the basic input (src) and output (lib & include) directories.
