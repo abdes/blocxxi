@@ -6,6 +6,23 @@
 #endif()
 
 list(APPEND NDAGENT_SRC
+        #FONTS
+        src/ui/theme.h
+        src/ui/theme.cpp
+        src/fonts/fonts.h
+        src/fonts/Roboto-Black.cpp
+        src/fonts/Roboto-BlackItalic.cpp
+        src/fonts/Roboto-Bold.cpp
+        src/fonts/Roboto-BoldItalic.cpp
+        src/fonts/Roboto-Italic.cpp
+        src/fonts/Roboto-Light.cpp
+        src/fonts/Roboto-LightItalic.cpp
+        src/fonts/Roboto-Medium.cpp
+        src/fonts/Roboto-MediumItalic.cpp
+        src/fonts/Roboto-Regular.cpp
+        src/fonts/Roboto-Thin.cpp
+        src/fonts/Roboto-ThinItalic.cpp
+        #
         "src/KHR/khrplatform.h"
         "src/glad/gl.h"
         "src/imgui_impl_opengl3.h"
