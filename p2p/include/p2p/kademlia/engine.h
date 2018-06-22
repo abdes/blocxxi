@@ -63,6 +63,8 @@ class Engine final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
 
   ~Engine() { BXLOG(debug, "Destroy Engine"); }
 
+  RoutingTable const &GetRoutingTable() const { return routing_table_; }
+
   void AddBootstrapNode(const std::string &bnode_url) {
     AddBootstrapNode(Node::FromUrlString(bnode_url));
   }

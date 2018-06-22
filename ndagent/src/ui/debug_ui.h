@@ -13,6 +13,7 @@ namespace debug {
 namespace ui {
 
 extern void ShowLogSettings(char const* title, bool* open = nullptr);
+extern void ShowRoutingInfo(char const* title, p2p::kademlia::RoutingTable const &router, bool* open = nullptr);
 
 }  // namespace ui
 }  // namespace debug
