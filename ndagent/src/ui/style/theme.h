@@ -5,13 +5,13 @@
 
 #pragma once
 
-#include <string>
 #include <map>
+#include <string>
 
 struct ImFont;
 
 namespace blocxxi {
-namespace ndagent {
+namespace debug {
 namespace ui {
 
 class Font final {
@@ -86,5 +86,5 @@ class Theme {
 };
 
 }  // namespace ui
-}  // namespace ndagent
+}  // namespace debug
 }  // namespace blocxxi

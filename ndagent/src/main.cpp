@@ -14,20 +14,17 @@
 #include <nat/nat.h>
 
 #include <p2p/kademlia/engine.h>
-#include <p2p/kademlia/parameters.h>
 #include <p2p/kademlia/session.h>
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
-#include "fonts/fonts.h"
-#include <stdio.h>
 // This example is using gl3w to access OpenGL functions. You may freely use any
 // other OpenGL loader such as: glew, glad, glLoadGen, etc.
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 
-#include <ui/theme.h>
+#include <ui/log/sink.h>
 
 static void glfw_error_callback(int error, const char *description) {
   fprintf(stderr, "Glfw Error %d: %s\n", error, description);
@@ -101,7 +98,7 @@ using blocxxi::p2p::kademlia::RoutingTable;
 using blocxxi::p2p::kademlia::Session;
 
 using NetworkType =
-    blocxxi::p2p::kademlia::Network<AsyncUdpChannel, MessageSerializer>;
+blocxxi::p2p::kademlia::Network<AsyncUdpChannel, MessageSerializer>;
 using EngineType = blocxxi::p2p::kademlia::Engine<RoutingTable, NetworkType>;
 
 int main(int argc, char **argv) {
@@ -247,14 +244,14 @@ int main(int argc, char **argv) {
     }
 
     glfwMakeContextCurrent(window);
-    gladLoadGL((GLADloadfunc)glfwGetProcAddress);
+    gladLoadGL((GLADloadfunc) glfwGetProcAddress);
     glfwSwapInterval(1);  // Enable vsync
 
     // Setup Dear ImGui binding
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();
-    (void)io;
+    (void) io;
     // io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard
     // Controls io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;   // Enable
     // Gamepad Controls
@@ -292,7 +289,10 @@ int main(int argc, char **argv) {
 
     // const ImFontConfig* font_cfg_template, const ImWchar* glyph_ranges
 
-    blocxxi::ndagent::ui::Theme::Init();
+    blocxxi::debug::ui::Theme::Init();
+
+	auto sink = std::make_shared<blocxxi::debug::ui::ImGuiLogSink>();
+	blocxxi::logging::Registry::AddSink(sink);
 
     bool show_demo_window = false;
     bool show_log_settings_window = true;
@@ -329,7 +329,7 @@ int main(int argc, char **argv) {
             1.0f);  // Edit 1 float using a slider from 0.0f to 1.0f
         ImGui::ColorEdit3(
             "clear color",
-            (float *)&clear_color);  // Edit 3 floats representing a color
+            (float *) &clear_color);  // Edit 3 floats representing a color
 
         ImGui::Checkbox("Demo Window",
                         &show_demo_window);  // Edit bools storing our windows
@@ -337,7 +337,7 @@ int main(int argc, char **argv) {
         ImGui::Checkbox("Log Settings Window", &show_log_settings_window);
 
         if (ImGui::Button(
-                "Button"))  // Buttons return true when clicked (NB: most
+            "Button"))  // Buttons return true when clicked (NB: most
           // widgets return true when edited/activated)
           counter++;
         ImGui::SameLine();
@@ -380,15 +380,20 @@ int main(int argc, char **argv) {
               typename std::underlying_type<blocxxi::logging::Id>::type>(id);
           levels[id_value] = the_logger.level();
           auto format = std::string("%u (")
-                            .append(spdlog::level::to_str(
-                                spdlog::level::level_enum(levels[id_value])))
-                            .append(")");
+              .append(spdlog::level::to_str(
+                  spdlog::level::level_enum(levels[id_value])))
+              .append(")");
           if (ImGui::SliderInt(the_logger.name().c_str(), &levels[id_value], 0,
                                6, format.c_str())) {
             the_logger.set_level(spdlog::level::level_enum(levels[id_value]));
           }
         }
         ImGui::End();
+      }
+
+      // Demonstrate creating a simple log window with basic filtering.
+      {
+        sink->Draw("Example: Log");
       }
 
       // Rendering
@@ -406,6 +411,7 @@ int main(int argc, char **argv) {
     }
 
     // Shutdown
+    mapper->DeleteMapping(PortMapper::Protocol::UDP, port);
     io_context.stop();
     server_thread.join();
 

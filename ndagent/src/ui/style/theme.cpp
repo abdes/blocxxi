@@ -9,18 +9,18 @@
 
 #include <imgui.h>
 
-#include <ui/theme.h>
-#include <fonts/fonts.h>
+#include <ui/fonts/fonts.h>
+#include <ui/style/theme.h>
 
 namespace blocxxi {
-namespace ndagent {
+namespace debug {
 namespace ui {
 
-std::map<std::string, ImFont *> Theme::fonts_;
+std::map<std::string, ImFont*> Theme::fonts_;
 
 namespace {
 
-std::string BuildFontName(char const *family, Font::Weight weight,
+std::string BuildFontName(char const* family, Font::Weight weight,
                           Font::Style style, Font::Size size) {
   std::string name(family);
   name.append(" ").append(Font::WeightString(weight));
@@ -30,26 +30,26 @@ std::string BuildFontName(char const *family, Font::Weight weight,
   return name;
 }
 
-ImFont *LoadRobotoFont(std::string const &name, Font::Weight weight,
+ImFont* LoadRobotoFont(std::string const& name, Font::Weight weight,
                        Font::Style style, Font::Size size) {
-  ImGuiIO &io = ImGui::GetIO();
+  ImGuiIO& io = ImGui::GetIO();
   ImFontConfig fontConfig;
   fontConfig.MergeMode = false;
   strncpy(fontConfig.Name, name.c_str(), 40);
-  ImFont *font = nullptr;
+  ImFont* font = nullptr;
   switch (weight) {
     case Font::Weight::LIGHTER:
       switch (style) {
         case Font::Style::ITALIC:
           font = io.Fonts->AddFontFromMemoryCompressedTTF(
-              blocxxi::ndagent::Fonts::ROBOTO_THINITALIC_COMPRESSED_DATA,
-              blocxxi::ndagent::Fonts::ROBOTO_THINITALIC_COMPRESSED_SIZE,
+              blocxxi::debug::ui::Fonts::ROBOTO_THINITALIC_COMPRESSED_DATA,
+              blocxxi::debug::ui::Fonts::ROBOTO_THINITALIC_COMPRESSED_SIZE,
               Font::SizeFloat(size), &fontConfig);
           break;
         case Font::Style::NORMAL:
           font = io.Fonts->AddFontFromMemoryCompressedTTF(
-              blocxxi::ndagent::Fonts::ROBOTO_THIN_COMPRESSED_DATA,
-              blocxxi::ndagent::Fonts::ROBOTO_THIN_COMPRESSED_SIZE,
+              blocxxi::debug::ui::Fonts::ROBOTO_THIN_COMPRESSED_DATA,
+              blocxxi::debug::ui::Fonts::ROBOTO_THIN_COMPRESSED_SIZE,
               Font::SizeFloat(size), &fontConfig);
           break;
       }
@@ -58,14 +58,14 @@ ImFont *LoadRobotoFont(std::string const &name, Font::Weight weight,
       switch (style) {
         case Font::Style::ITALIC:
           font = io.Fonts->AddFontFromMemoryCompressedTTF(
-              blocxxi::ndagent::Fonts::ROBOTO_LIGHTITALIC_COMPRESSED_DATA,
-              blocxxi::ndagent::Fonts::ROBOTO_LIGHTITALIC_COMPRESSED_SIZE,
+              blocxxi::debug::ui::Fonts::ROBOTO_LIGHTITALIC_COMPRESSED_DATA,
+              blocxxi::debug::ui::Fonts::ROBOTO_LIGHTITALIC_COMPRESSED_SIZE,
               Font::SizeFloat(size), &fontConfig);
           break;
         case Font::Style::NORMAL:
           font = io.Fonts->AddFontFromMemoryCompressedTTF(
-              blocxxi::ndagent::Fonts::ROBOTO_LIGHT_COMPRESSED_DATA,
-              blocxxi::ndagent::Fonts::ROBOTO_LIGHT_COMPRESSED_SIZE,
+              blocxxi::debug::ui::Fonts::ROBOTO_LIGHT_COMPRESSED_DATA,
+              blocxxi::debug::ui::Fonts::ROBOTO_LIGHT_COMPRESSED_SIZE,
               Font::SizeFloat(size), &fontConfig);
           break;
       }
@@ -74,14 +74,14 @@ ImFont *LoadRobotoFont(std::string const &name, Font::Weight weight,
       switch (style) {
         case Font::Style::ITALIC:
           font = io.Fonts->AddFontFromMemoryCompressedTTF(
-              blocxxi::ndagent::Fonts::ROBOTO_ITALIC_COMPRESSED_DATA,
-              blocxxi::ndagent::Fonts::ROBOTO_ITALIC_COMPRESSED_SIZE,
+              blocxxi::debug::ui::Fonts::ROBOTO_ITALIC_COMPRESSED_DATA,
+              blocxxi::debug::ui::Fonts::ROBOTO_ITALIC_COMPRESSED_SIZE,
               Font::SizeFloat(size), &fontConfig);
           break;
         case Font::Style::NORMAL:
           font = io.Fonts->AddFontFromMemoryCompressedTTF(
-              blocxxi::ndagent::Fonts::ROBOTO_REGULAR_COMPRESSED_DATA,
-              blocxxi::ndagent::Fonts::ROBOTO_REGULAR_COMPRESSED_SIZE,
+              blocxxi::debug::ui::Fonts::ROBOTO_REGULAR_COMPRESSED_DATA,
+              blocxxi::debug::ui::Fonts::ROBOTO_REGULAR_COMPRESSED_SIZE,
               Font::SizeFloat(size), &fontConfig);
           break;
       }
@@ -90,14 +90,14 @@ ImFont *LoadRobotoFont(std::string const &name, Font::Weight weight,
       switch (style) {
         case Font::Style::ITALIC:
           font = io.Fonts->AddFontFromMemoryCompressedTTF(
-              blocxxi::ndagent::Fonts::ROBOTO_MEDIUMITALIC_COMPRESSED_DATA,
-              blocxxi::ndagent::Fonts::ROBOTO_MEDIUMITALIC_COMPRESSED_SIZE,
+              blocxxi::debug::ui::Fonts::ROBOTO_MEDIUMITALIC_COMPRESSED_DATA,
+              blocxxi::debug::ui::Fonts::ROBOTO_MEDIUMITALIC_COMPRESSED_SIZE,
               Font::SizeFloat(size), &fontConfig);
           break;
         case Font::Style::NORMAL:
           font = io.Fonts->AddFontFromMemoryCompressedTTF(
-              blocxxi::ndagent::Fonts::ROBOTO_MEDIUM_COMPRESSED_DATA,
-              blocxxi::ndagent::Fonts::ROBOTO_MEDIUM_COMPRESSED_SIZE,
+              blocxxi::debug::ui::Fonts::ROBOTO_MEDIUM_COMPRESSED_DATA,
+              blocxxi::debug::ui::Fonts::ROBOTO_MEDIUM_COMPRESSED_SIZE,
               Font::SizeFloat(size), &fontConfig);
           break;
       }
@@ -106,14 +106,14 @@ ImFont *LoadRobotoFont(std::string const &name, Font::Weight weight,
       switch (style) {
         case Font::Style::ITALIC:
           font = io.Fonts->AddFontFromMemoryCompressedTTF(
-              blocxxi::ndagent::Fonts::ROBOTO_BOLDITALIC_COMPRESSED_DATA,
-              blocxxi::ndagent::Fonts::ROBOTO_BOLDITALIC_COMPRESSED_SIZE,
+              blocxxi::debug::ui::Fonts::ROBOTO_BOLDITALIC_COMPRESSED_DATA,
+              blocxxi::debug::ui::Fonts::ROBOTO_BOLDITALIC_COMPRESSED_SIZE,
               Font::SizeFloat(size), &fontConfig);
           break;
         case Font::Style::NORMAL:
           font = io.Fonts->AddFontFromMemoryCompressedTTF(
-              blocxxi::ndagent::Fonts::ROBOTO_BOLD_COMPRESSED_DATA,
-              blocxxi::ndagent::Fonts::ROBOTO_BOLD_COMPRESSED_SIZE,
+              blocxxi::debug::ui::Fonts::ROBOTO_BOLD_COMPRESSED_DATA,
+              blocxxi::debug::ui::Fonts::ROBOTO_BOLD_COMPRESSED_SIZE,
               Font::SizeFloat(size), &fontConfig);
           break;
       }
@@ -122,14 +122,52 @@ ImFont *LoadRobotoFont(std::string const &name, Font::Weight weight,
       switch (style) {
         case Font::Style::ITALIC:
           font = io.Fonts->AddFontFromMemoryCompressedTTF(
-              blocxxi::ndagent::Fonts::ROBOTO_BLACKITALIC_COMPRESSED_DATA,
-              blocxxi::ndagent::Fonts::ROBOTO_BLACKITALIC_COMPRESSED_SIZE,
+              blocxxi::debug::ui::Fonts::ROBOTO_BLACKITALIC_COMPRESSED_DATA,
+              blocxxi::debug::ui::Fonts::ROBOTO_BLACKITALIC_COMPRESSED_SIZE,
               Font::SizeFloat(size), &fontConfig);
           break;
         case Font::Style::NORMAL:
           font = io.Fonts->AddFontFromMemoryCompressedTTF(
-              blocxxi::ndagent::Fonts::ROBOTO_BLACK_COMPRESSED_DATA,
-              blocxxi::ndagent::Fonts::ROBOTO_BLACK_COMPRESSED_SIZE,
+              blocxxi::debug::ui::Fonts::ROBOTO_BLACK_COMPRESSED_DATA,
+              blocxxi::debug::ui::Fonts::ROBOTO_BLACK_COMPRESSED_SIZE,
+              Font::SizeFloat(size), &fontConfig);
+          break;
+      }
+      break;
+  }
+  return font;
+}
+
+ImFont* LoadInconsolataFont(std::string const& name, Font::Weight weight,
+                            Font::Style style, Font::Size size) {
+  ImGuiIO& io = ImGui::GetIO();
+  ImFontConfig fontConfig;
+  fontConfig.MergeMode = false;
+  strncpy(fontConfig.Name, name.c_str(), 40);
+  ImFont* font = nullptr;
+  switch (weight) {
+    case Font::Weight::LIGHTER:
+    case Font::Weight::LIGHT:
+    case Font::Weight::REGULAR:
+    case Font::Weight::MEDIUM:
+      switch (style) {
+        case Font::Style::ITALIC:
+        case Font::Style::NORMAL:
+          font = io.Fonts->AddFontFromMemoryCompressedTTF(
+              blocxxi::debug::ui::Fonts::INCONSOLATA_REGULAR_COMPRESSED_DATA,
+              blocxxi::debug::ui::Fonts::INCONSOLATA_REGULAR_COMPRESSED_SIZE,
+              Font::SizeFloat(size), &fontConfig);
+          break;
+      }
+      break;
+    case Font::Weight::BOLD:
+    case Font::Weight::BOLDER:
+      switch (style) {
+        case Font::Style::ITALIC:
+        case Font::Style::NORMAL:
+          font = io.Fonts->AddFontFromMemoryCompressedTTF(
+              blocxxi::debug::ui::Fonts::INCONSOLATA_BOLD_COMPRESSED_DATA,
+              blocxxi::debug::ui::Fonts::INCONSOLATA_BOLD_COMPRESSED_SIZE,
               Font::SizeFloat(size), &fontConfig);
           break;
       }
@@ -148,14 +186,14 @@ void Font::InitFont() {
   name_.assign(font_->GetDebugName());
 }
 
-Font::Font(Font const &other)
+Font::Font(Font const& other)
     : font_(other.font_),
       size_(other.size_),
       style_(other.style_),
       weight_(other.weight_),
       name_(other.name_) {}
 
-Font &Font::operator=(Font const &rhs) {
+Font& Font::operator=(Font const& rhs) {
   font_ = rhs.font_;
   size_ = rhs.size_;
   style_ = rhs.style_;
@@ -163,7 +201,7 @@ Font &Font::operator=(Font const &rhs) {
   name_ = rhs.name_;
   return *this;
 }
-Font::Font(Font &&moved)
+Font::Font(Font&& moved)
     : font_(moved.font_),
       size_(moved.size_),
       style_(moved.style_),
@@ -171,12 +209,12 @@ Font::Font(Font &&moved)
       name_(std::move(moved.name_)) {
   moved.font_ = nullptr;
 }
-Font &Font::operator=(Font &&moved) {
+Font& Font::operator=(Font&& moved) {
   auto tmp = std::move(moved);
   swap(tmp);
   return *this;
 }
-void Font::swap(Font &other) {
+void Font::swap(Font& other) {
   std::swap(font_, other.font_);
   std::swap(size_, other.size_);
   std::swap(style_, other.style_);
@@ -189,59 +227,59 @@ void Font::BuildName() {
   name_ = BuildFontName(family_.c_str(), weight_, style_, size_);
 }
 
-Font &Font::SmallSize() {
+Font& Font::SmallSize() {
   size_ = Size::SMALL;
   InitFont();
   return *this;
 }
-Font &Font::MediumSize() {
+Font& Font::MediumSize() {
   size_ = Size::MEDIUM;
   InitFont();
   return *this;
 }
-Font &Font::LargeSize() {
+Font& Font::LargeSize() {
   size_ = Size::LARGE;
   InitFont();
   return *this;
 }
-Font &Font::LargerSize() {
+Font& Font::LargerSize() {
   size_ = Size::LARGER;
   InitFont();
   return *this;
 }
 
-Font &Font::Italic() {
+Font& Font::Italic() {
   style_ = Style::ITALIC;
   InitFont();
   return *this;
 }
 
-Font &Font::Lighter() {
+Font& Font::Lighter() {
   weight_ = Weight::LIGHTER;
   InitFont();
   return *this;
 }
-Font &Font::Light() {
+Font& Font::Light() {
   weight_ = Weight::LIGHT;
   InitFont();
   return *this;
 }
-Font &Font::Regular() {
+Font& Font::Regular() {
   weight_ = Weight::REGULAR;
   InitFont();
   return *this;
 }
-Font &Font::Medium() {
+Font& Font::Medium() {
   weight_ = Weight::MEDIUM;
   InitFont();
   return *this;
 }
-Font &Font::Bold() {
+Font& Font::Bold() {
   weight_ = Weight::BOLD;
   InitFont();
   return *this;
 }
-Font &Font::Bolder() {
+Font& Font::Bolder() {
   weight_ = Weight::BOLDER;
   InitFont();
   return *this;
@@ -251,36 +289,48 @@ float Font::SizeFloat(Font::Size size) {
   auto val = static_cast<typename std::underlying_type<Font::Size>::type>(size);
   return static_cast<float>(val);
 }
-char const *Font::SizeString(Font::Size size) {
+char const* Font::SizeString(Font::Size size) {
   switch (size) {
-    case Size::SMALL:return "10px";
-    case Size::MEDIUM:return "13px";
-    case Size::LARGE:return "16px";
-    case Size::LARGER:return "24px";
+    case Size::SMALL:
+      return "10px";
+    case Size::MEDIUM:
+      return "13px";
+    case Size::LARGE:
+      return "16px";
+    case Size::LARGER:
+      return "24px";
   }
   // Only needed for compilers that complain about not all control paths
   // return a value.
   return "__NEVER__";
 }
 
-char const *Font::StyleString(Font::Style style) {
+char const* Font::StyleString(Font::Style style) {
   switch (style) {
-    case Style::NORMAL:return "Normal";
-    case Style::ITALIC:return "Italic";
+    case Style::NORMAL:
+      return "Normal";
+    case Style::ITALIC:
+      return "Italic";
   }
   // Only needed for compilers that complain about not all control paths
   // return a value.
   return "__NEVER__";
 }
 
-char const *Font::WeightString(Font::Weight weight) {
+char const* Font::WeightString(Font::Weight weight) {
   switch (weight) {
-    case Weight::LIGHTER:return "Thin";
-    case Weight::LIGHT:return "Light";
-    case Weight::REGULAR:return "Regular";
-    case Weight::MEDIUM:return "Medium";
-    case Weight::BOLD:return "Bold";
-    case Weight::BOLDER:return "Bolder";
+    case Weight::LIGHTER:
+      return "Thin";
+    case Weight::LIGHT:
+      return "Light";
+    case Weight::REGULAR:
+      return "Regular";
+    case Weight::MEDIUM:
+      return "Medium";
+    case Weight::BOLD:
+      return "Bold";
+    case Weight::BOLDER:
+      return "Bolder";
   }
   // Only needed for compilers that complain about not all control paths
   // return a value.
@@ -315,14 +365,23 @@ void Theme::LoadDefaultFonts() {
       {Font::Style::NORMAL, Font::Style::ITALIC}};
   std::array<Font::Size, 4> font_sizes{{Font::Size::SMALL, Font::Size::MEDIUM,
                                         Font::Size::LARGE, Font::Size::LARGER}};
-  for (auto weight : font_weights) {
-    for (auto style : font_styles) {
-      for (auto size : font_sizes) {
+  for (auto size : font_sizes) {
+    for (auto weight : font_weights) {
+      for (auto style : font_styles) {
         auto name = BuildFontName("Roboto", weight, style, size);
         auto font = LoadRobotoFont(name, weight, style, size);
         if (font) AddFont(name, font);
       }
     }
+    auto name = BuildFontName("Inconsolata", Font::Weight::REGULAR,
+                              Font::Style::NORMAL, size);
+    auto font = LoadRobotoFont(name, Font::Weight::REGULAR, Font::Style::NORMAL, size);
+    if (font) AddFont(name, font);
+
+    name = BuildFontName("Inconsolata", Font::Weight::BOLD, Font::Style::NORMAL,
+                         size);
+    font = LoadRobotoFont(name, Font::Weight::BOLD, Font::Style::NORMAL, size);
+    if (font) AddFont(name, font);
   }
 }
 
@@ -330,7 +389,7 @@ void Theme::LoadColors() {
   ///////////////////////////////////////////////////////////
   // Style setup for ImGui. Colors copied from Stylepicker //
   ///////////////////////////////////////////////////////////
-  ImGuiStyle *style = &ImGui::GetStyle();
+  ImGuiStyle* style = &ImGui::GetStyle();
 
   style->WindowPadding = ImVec2(15, 15);
   style->WindowRounding = 5.0f;
@@ -386,10 +445,11 @@ void Theme::LoadColors() {
   style->Colors[ImGuiCol_PlotHistogramHovered] =
       ImVec4(0.25f, 1.00f, 0.00f, 1.00f);
   style->Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.25f, 1.00f, 0.00f, 0.43f);
-  style->Colors[ImGuiCol_ModalWindowDarkening] = ImVec4(1.00f, 0.98f, 0.95f, 0.73f);
+  style->Colors[ImGuiCol_ModalWindowDarkening] =
+      ImVec4(1.00f, 0.98f, 0.95f, 0.73f);
 }
 
-ImFont *Theme::GetFont(std::string const &name) {
+ImFont* Theme::GetFont(std::string const& name) {
   auto font = fonts_.find(name);
   if (font == fonts_.end()) {
     return ImGui::GetFont();
@@ -397,10 +457,10 @@ ImFont *Theme::GetFont(std::string const &name) {
   return font->second;
 }
 
-void Theme::AddFont(std::string const &name, ImFont *font) {
+void Theme::AddFont(std::string const& name, ImFont* font) {
   fonts_.insert({name, font});
 }
 
 }  // namespace ui
-}  // namespace ndagent
+}  // namespace debug
 }  // namespace blocxxi

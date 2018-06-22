@@ -1,36 +1,35 @@
 
-#if(TARGET absl::base)
-#	message(STATUS "Found Target: absl::base")
-#else()
-#	message(FATAL_ERROR "Target absl::base not found")
-#endif()
-
 list(APPEND NDAGENT_SRC
         #FONTS
-        src/ui/theme.h
-        src/ui/theme.cpp
-        src/fonts/fonts.h
-        src/fonts/Roboto-Black.cpp
-        src/fonts/Roboto-BlackItalic.cpp
-        src/fonts/Roboto-Bold.cpp
-        src/fonts/Roboto-BoldItalic.cpp
-        src/fonts/Roboto-Italic.cpp
-        src/fonts/Roboto-Light.cpp
-        src/fonts/Roboto-LightItalic.cpp
-        src/fonts/Roboto-Medium.cpp
-        src/fonts/Roboto-MediumItalic.cpp
-        src/fonts/Roboto-Regular.cpp
-        src/fonts/Roboto-Thin.cpp
-        src/fonts/Roboto-ThinItalic.cpp
+        src/ui/fonts/fonts.h
+        src/ui/fonts/Roboto-Black.cpp
+        src/ui/fonts/Roboto-BlackItalic.cpp
+        src/ui/fonts/Roboto-Bold.cpp
+        src/ui/fonts/Roboto-BoldItalic.cpp
+        src/ui/fonts/Roboto-Italic.cpp
+        src/ui/fonts/Roboto-Light.cpp
+        src/ui/fonts/Roboto-LightItalic.cpp
+        src/ui/fonts/Roboto-Medium.cpp
+        src/ui/fonts/Roboto-MediumItalic.cpp
+        src/ui/fonts/Roboto-Regular.cpp
+        src/ui/fonts/Roboto-Thin.cpp
+        src/ui/fonts/Roboto-ThinItalic.cpp
+        src/ui/fonts/Inconsolata-Regular.cpp
+        src/ui/fonts/Inconsolata-Bold.cpp
         #
-        "src/KHR/khrplatform.h"
-        "src/glad/gl.h"
-        "src/imgui_impl_opengl3.h"
-        "src/imgui_impl_opengl3.cpp"
-        "src/imgui_impl_glfw.h"
-        "src/imgui_impl_glfw.cpp"
-        "src/glad.c"
-        "src/main.cpp"
+        src/ui/style/theme.h
+        src/ui/style/theme.cpp
+        src/ui/log/sink.h
+        src/ui/log/sink.cpp
+	#
+        src/KHR/khrplatform.h
+        src/glad/gl.h
+        src/imgui_impl_opengl3.h
+        src/imgui_impl_opengl3.cpp
+        src/imgui_impl_glfw.h
+        src/imgui_impl_glfw.cpp
+        src/glad.c
+        src/main.cpp
         )
 
 # Needed for spdlog
