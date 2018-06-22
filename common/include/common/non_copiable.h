@@ -3,8 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_COMMON_NON_COPIABLE_H_
-#define BLOCXXI_COMMON_NON_COPIABLE_H_
+#pragma once
 
 namespace blocxxi {
 
@@ -38,6 +37,3 @@ class NonCopiable {
 typedef noncopyable_::NonCopiable NonCopiable;
 
 }  // namespace blocxxi
-
-
-#endif // BLOCXXI_COMMON_NON_COPIABLE_H_

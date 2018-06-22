@@ -3,8 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_COMMON_LOGGING_H_
-#define BLOCXXI_COMMON_LOGGING_H_
+#pragma once
 
 #include <stack>   // for stacking sinks
 #include <string>  // for std::string
@@ -461,5 +460,3 @@ std::string FormatFileAndLine(char const *file, char const *line);
 
 }  // namespace logging
 }  // namespace blocxxi
-
-#endif  // BLOCXXI_COMMON_LOGGING_H_

@@ -3,8 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_COMMON_CONFIG_H_
-#define BLOCXXI_COMMON_CONFIG_H_
+#pragma once
 
 #include <common/platform.h>
 
@@ -23,6 +22,3 @@
 #ifndef BLOCXXI_USE_EXECINFO
 #define BLOCXXI_USE_EXECINFO 0
 #endif
-
-
-#endif  // BLOCXXI_COMMON_CONFIG_H_

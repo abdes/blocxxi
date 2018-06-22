@@ -3,8 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_COMMON_PLATFORM_H_
-#define BLOCXXI_COMMON_PLATFORM_H_
+#pragma once
 
 // ==== Darwin/BSD ===
 #if (defined __APPLE__ && defined __MACH__) || defined __FreeBSD__ || \
@@ -102,5 +101,3 @@
 #define BLOCXXI_HAS_ARM_CRC32 0
 #endif
 #endif  // BLOCXXI_HAS_ARM_CRC32
-
-#endif  // BLOCXXI_COMMON_PLATFORM_H_
