@@ -13,21 +13,22 @@
 namespace blocxxi {
 namespace logging {
 
-// TODO: restore default logging config
-// const char *Logger::DEFAULT_LOG_FORMAT =
-//    "[%Y-%m-%d %T.%e] [%t] [%^%l%$] [%n] %v";
-const char *Logger::DEFAULT_LOG_FORMAT = "[%t] [%^%L%$] [%n] %v";
+// ---------------------------------------------------------------------------
+// Static members initialization
+// ---------------------------------------------------------------------------
 
+/// The default logging format
+const char *Logger::DEFAULT_LOG_FORMAT =
+    "[%Y-%m-%d %T.%e] [%t] [%^%l%$] [%n] %v";
+
+// Synchronization mutex for sinks
 std::mutex Registry::sinks_mutex_;
+// Synchronization mutex for the loggers collection.
 std::recursive_mutex Registry::loggers_mutex_;
 
-Logger::Logger(std::string name, spdlog::sink_ptr sink) {
-  logger_ = std::make_shared<spdlog::logger>(name, sink);
-  logger_->set_pattern(DEFAULT_LOG_FORMAT);
-  logger_->set_level(spdlog::level::trace);
-  // Ensure that critical errors, especially ASSERT/PANIC, get flushed
-  logger_->flush_on(spdlog::level::critical);
-}
+// ---------------------------------------------------------------------------
+// Helpers for dealing with Logger Id
+// ---------------------------------------------------------------------------
 
 namespace {
 
@@ -40,16 +41,16 @@ Id &operator++(Id &target) {
 inline constexpr const char *LoggerName(Id id) {
   switch (id) {
     // clang-format off
-    case Id::MISC:          return "misc    ";
-    case Id::TESTING:       return "testing ";
-    case Id::COMMON:        return "common  ";
-    case Id::CODEC:         return "codec   ";
-    case Id::CRYPTO:        return "crypto  ";
-    case Id::NAT:           return "nat     ";
-    case Id::P2P:           return "p2p     ";
-    case Id::P2P_KADEMLIA:  return "kademlia";
-    case Id::NDAGENT:       return "ndagent ";
-    case Id::INVALID_:      return "__DO_NOT_USE__";
+    case Id::MISC: return "misc    ";
+    case Id::TESTING: return "testing ";
+    case Id::COMMON: return "common  ";
+    case Id::CODEC: return "codec   ";
+    case Id::CRYPTO: return "crypto  ";
+    case Id::NAT: return "nat     ";
+    case Id::P2P: return "p2p     ";
+    case Id::P2P_KADEMLIA: return "kademlia";
+    case Id::NDAGENT: return "ndagent ";
+    case Id::INVALID_: return "__DO_NOT_USE__";
       // clang-format on
       // omit default case to trigger compiler warning for missing cases
   };
@@ -58,40 +59,53 @@ inline constexpr const char *LoggerName(Id id) {
 
 }  // namespace
 
+// ---------------------------------------------------------------------------
+// Logger
+// ---------------------------------------------------------------------------
+
+Logger::Logger(std::string name, spdlog::sink_ptr sink) {
+  logger_ = std::make_shared<spdlog::logger>(name, sink);
+  logger_->set_pattern(DEFAULT_LOG_FORMAT);
+  logger_->set_level(spdlog::level::trace);
+  // Ensure that critical errors, especially ASSERT/PANIC, get flushed
+  logger_->flush_on(spdlog::level::critical);
+}
+
 spdlog::logger &Registry::GetLogger(Id id) {
   std::lock_guard<std::recursive_mutex> lock(loggers_mutex_);
   return *(Loggers()[static_cast<int>(id)].logger_);
 }
 
+// ---------------------------------------------------------------------------
+// Registry
+// ---------------------------------------------------------------------------
+
 void Registry::PushSink(spdlog::sink_ptr sink) {
   std::lock_guard<std::mutex> lock(sinks_mutex_);
-  auto &sinks = sinks_();
+  auto &sinks = Sinks();
   // Push the current sink on the stack and use the new one
   sinks.emplace(delegating_sink()->SwapSink(sink));
 }
 
 void Registry::PopSink() {
-  auto &sinks = sinks_();
+  std::lock_guard<std::mutex> lock(sinks_mutex_);
+  auto &sinks = Sinks();
   BLOCXXI_ASSERT(
-      sinks.size() > 0 &&
+      !sinks.empty() &&
       "call to PopSink() not matching a previous call to PushSink()");
-  if (sinks.size() > 0) {
+  if (!sinks.empty()) {
     auto &sink = sinks.top();
     // Assign this previous sink to the delegating sink
     delegating_sink()->SwapSink(sink);
-	sinks.pop();
+    sinks.pop();
   }
 }
 
-std::stack<spdlog::sink_ptr> &Registry::sinks_() {
-	static std::stack<spdlog::sink_ptr> sinks;
-	return sinks;
+std::stack<spdlog::sink_ptr> &Registry::Sinks() {
+  static std::stack<spdlog::sink_ptr> sinks;
+  return sinks;
 }
 
-/**
- * Sets the minimum log severity required to print messages.
- * Messages below this loglevel will be suppressed.
- */
 void Registry::SetLogLevel(spdlog::level::level_enum log_level) {
   std::lock_guard<std::recursive_mutex> lock(loggers_mutex_);
   auto &loggers = Loggers();
@@ -101,9 +115,6 @@ void Registry::SetLogLevel(spdlog::level::level_enum log_level) {
   });
 }
 
-/**
- * Sets the log format.
- */
 void Registry::SetLogFormat(const std::string &log_format) {
   std::lock_guard<std::recursive_mutex> lock(loggers_mutex_);
   auto &loggers = Loggers();
@@ -114,9 +125,6 @@ void Registry::SetLogFormat(const std::string &log_format) {
   });
 }
 
-/**
- * @return std::vector<Logger>& the installed loggers.
- */
 std::vector<Logger> &Registry::Loggers() {
   static auto &all_loggers_static = all_loggers_();
   return all_loggers_static;
@@ -132,13 +140,12 @@ std::vector<Logger> &Registry::all_loggers_() {
 }
 
 std::shared_ptr<DelegatingSink> &Registry::delegating_sink() {
-  static auto sink_static =
-      std::shared_ptr<DelegatingSink>(delegating_sink_());
+  static auto sink_static = std::shared_ptr<DelegatingSink>(delegating_sink_());
   return sink_static;
 }
 
 DelegatingSink *Registry::delegating_sink_() {
-// Add a default console sink
+  // Add a default console sink
 #if defined _WIN32 && !defined(__cplusplus_winrt)
   auto default_sink =
       std::make_shared<spdlog::sinks::wincolor_stdout_sink_mt>();
@@ -146,9 +153,15 @@ DelegatingSink *Registry::delegating_sink_() {
   auto default_sink =
       std::make_shared<spdlog::sinks::ansicolor_stdout_sink_mt>();
 #endif
+
   static auto *sink = new DelegatingSink(default_sink);
   return sink;
 }
+
+
+// ---------------------------------------------------------------------------
+// Helper for file name and line number formatting
+// ---------------------------------------------------------------------------
 
 std::string FormatFileAndLine(char const *file, char const *line) {
   constexpr static int FILE_MAX_LENGTH = 70;
