@@ -78,7 +78,7 @@ class Logger : private blocxxi::NonCopiable {
   };
 
   /// Default trivial destructor
-  ~Logger() = default;
+  ~Logger() override = default;
 
   /*!
    * @brief Implementation of the swap operation.
