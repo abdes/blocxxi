@@ -5,18 +5,15 @@
 
 #pragma once
 
+#include <ui/style/theme.h>
+#include <ui/log/sink.h>
+
 namespace blocxxi {
-namespace ndagent {
+namespace debug {
 namespace ui {
 
-class ThemeImpl {
- public:
-  virtual void SetupStyleColors() = 0;
-  virtual void RegularFant() = 0;
-
-  virtual ~ThemeImpl(){};
-};
+extern void ShowLogSettings(char const* title, bool* open = nullptr);
 
 }  // namespace ui
-}  // namespace ndagent
+}  // namespace debug
 }  // namespace blocxxi

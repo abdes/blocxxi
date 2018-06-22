@@ -16,11 +16,11 @@ namespace blocxxi {
 namespace debug {
 namespace ui {
 
-std::map<std::string, ImFont*> Theme::fonts_;
+std::map<std::string, ImFont *> Theme::fonts_;
 
 namespace {
 
-std::string BuildFontName(char const* family, Font::Weight weight,
+std::string BuildFontName(char const *family, Font::Weight weight,
                           Font::Style style, Font::Size size) {
   std::string name(family);
   name.append(" ").append(Font::WeightString(weight));
@@ -30,13 +30,13 @@ std::string BuildFontName(char const* family, Font::Weight weight,
   return name;
 }
 
-ImFont* LoadRobotoFont(std::string const& name, Font::Weight weight,
+ImFont *LoadRobotoFont(std::string const &name, Font::Weight weight,
                        Font::Style style, Font::Size size) {
-  ImGuiIO& io = ImGui::GetIO();
+  ImGuiIO &io = ImGui::GetIO();
   ImFontConfig fontConfig;
   fontConfig.MergeMode = false;
   strncpy(fontConfig.Name, name.c_str(), 40);
-  ImFont* font = nullptr;
+  ImFont *font = nullptr;
   switch (weight) {
     case Font::Weight::LIGHTER:
       switch (style) {
@@ -138,13 +138,13 @@ ImFont* LoadRobotoFont(std::string const& name, Font::Weight weight,
   return font;
 }
 
-ImFont* LoadInconsolataFont(std::string const& name, Font::Weight weight,
+ImFont *LoadInconsolataFont(std::string const &name, Font::Weight weight,
                             Font::Style style, Font::Size size) {
-  ImGuiIO& io = ImGui::GetIO();
+  ImGuiIO &io = ImGui::GetIO();
   ImFontConfig fontConfig;
   fontConfig.MergeMode = false;
   strncpy(fontConfig.Name, name.c_str(), 40);
-  ImFont* font = nullptr;
+  ImFont *font = nullptr;
   switch (weight) {
     case Font::Weight::LIGHTER:
     case Font::Weight::LIGHT:
@@ -186,14 +186,14 @@ void Font::InitFont() {
   name_.assign(font_->GetDebugName());
 }
 
-Font::Font(Font const& other)
+Font::Font(Font const &other)
     : font_(other.font_),
       size_(other.size_),
       style_(other.style_),
       weight_(other.weight_),
       name_(other.name_) {}
 
-Font& Font::operator=(Font const& rhs) {
+Font &Font::operator=(Font const &rhs) {
   font_ = rhs.font_;
   size_ = rhs.size_;
   style_ = rhs.style_;
@@ -201,7 +201,7 @@ Font& Font::operator=(Font const& rhs) {
   name_ = rhs.name_;
   return *this;
 }
-Font::Font(Font&& moved)
+Font::Font(Font &&moved)
     : font_(moved.font_),
       size_(moved.size_),
       style_(moved.style_),
@@ -209,12 +209,12 @@ Font::Font(Font&& moved)
       name_(std::move(moved.name_)) {
   moved.font_ = nullptr;
 }
-Font& Font::operator=(Font&& moved) {
+Font &Font::operator=(Font &&moved) {
   auto tmp = std::move(moved);
   swap(tmp);
   return *this;
 }
-void Font::swap(Font& other) {
+void Font::swap(Font &other) {
   std::swap(font_, other.font_);
   std::swap(size_, other.size_);
   std::swap(style_, other.style_);
@@ -227,59 +227,59 @@ void Font::BuildName() {
   name_ = BuildFontName(family_.c_str(), weight_, style_, size_);
 }
 
-Font& Font::SmallSize() {
+Font &Font::SmallSize() {
   size_ = Size::SMALL;
   InitFont();
   return *this;
 }
-Font& Font::MediumSize() {
+Font &Font::MediumSize() {
   size_ = Size::MEDIUM;
   InitFont();
   return *this;
 }
-Font& Font::LargeSize() {
+Font &Font::LargeSize() {
   size_ = Size::LARGE;
   InitFont();
   return *this;
 }
-Font& Font::LargerSize() {
+Font &Font::LargerSize() {
   size_ = Size::LARGER;
   InitFont();
   return *this;
 }
 
-Font& Font::Italic() {
+Font &Font::Italic() {
   style_ = Style::ITALIC;
   InitFont();
   return *this;
 }
 
-Font& Font::Lighter() {
+Font &Font::Lighter() {
   weight_ = Weight::LIGHTER;
   InitFont();
   return *this;
 }
-Font& Font::Light() {
+Font &Font::Light() {
   weight_ = Weight::LIGHT;
   InitFont();
   return *this;
 }
-Font& Font::Regular() {
+Font &Font::Regular() {
   weight_ = Weight::REGULAR;
   InitFont();
   return *this;
 }
-Font& Font::Medium() {
+Font &Font::Medium() {
   weight_ = Weight::MEDIUM;
   InitFont();
   return *this;
 }
-Font& Font::Bold() {
+Font &Font::Bold() {
   weight_ = Weight::BOLD;
   InitFont();
   return *this;
 }
-Font& Font::Bolder() {
+Font &Font::Bolder() {
   weight_ = Weight::BOLDER;
   InitFont();
   return *this;
@@ -289,48 +289,36 @@ float Font::SizeFloat(Font::Size size) {
   auto val = static_cast<typename std::underlying_type<Font::Size>::type>(size);
   return static_cast<float>(val);
 }
-char const* Font::SizeString(Font::Size size) {
+char const *Font::SizeString(Font::Size size) {
   switch (size) {
-    case Size::SMALL:
-      return "10px";
-    case Size::MEDIUM:
-      return "13px";
-    case Size::LARGE:
-      return "16px";
-    case Size::LARGER:
-      return "24px";
+    case Size::SMALL:return "10px";
+    case Size::MEDIUM:return "13px";
+    case Size::LARGE:return "16px";
+    case Size::LARGER:return "24px";
   }
   // Only needed for compilers that complain about not all control paths
   // return a value.
   return "__NEVER__";
 }
 
-char const* Font::StyleString(Font::Style style) {
+char const *Font::StyleString(Font::Style style) {
   switch (style) {
-    case Style::NORMAL:
-      return "Normal";
-    case Style::ITALIC:
-      return "Italic";
+    case Style::NORMAL:return "Normal";
+    case Style::ITALIC:return "Italic";
   }
   // Only needed for compilers that complain about not all control paths
   // return a value.
   return "__NEVER__";
 }
 
-char const* Font::WeightString(Font::Weight weight) {
+char const *Font::WeightString(Font::Weight weight) {
   switch (weight) {
-    case Weight::LIGHTER:
-      return "Thin";
-    case Weight::LIGHT:
-      return "Light";
-    case Weight::REGULAR:
-      return "Regular";
-    case Weight::MEDIUM:
-      return "Medium";
-    case Weight::BOLD:
-      return "Bold";
-    case Weight::BOLDER:
-      return "Bolder";
+    case Weight::LIGHTER:return "Thin";
+    case Weight::LIGHT:return "Light";
+    case Weight::REGULAR:return "Regular";
+    case Weight::MEDIUM:return "Medium";
+    case Weight::BOLD:return "Bold";
+    case Weight::BOLDER:return "Bolder";
   }
   // Only needed for compilers that complain about not all control paths
   // return a value.
@@ -375,12 +363,18 @@ void Theme::LoadDefaultFonts() {
     }
     auto name = BuildFontName("Inconsolata", Font::Weight::REGULAR,
                               Font::Style::NORMAL, size);
-    auto font = LoadRobotoFont(name, Font::Weight::REGULAR, Font::Style::NORMAL, size);
+    auto font = LoadInconsolataFont(name,
+                                    Font::Weight::REGULAR,
+                                    Font::Style::NORMAL,
+                                    size);
     if (font) AddFont(name, font);
 
-    name = BuildFontName("Inconsolata", Font::Weight::BOLD, Font::Style::NORMAL,
-                         size);
-    font = LoadRobotoFont(name, Font::Weight::BOLD, Font::Style::NORMAL, size);
+    name = BuildFontName("Inconsolata",
+                         Font::Weight::BOLD,
+                         Font::Style::NORMAL, size);
+    font = LoadInconsolataFont(name, Font::Weight::REGULAR,
+                               Font::Style::NORMAL,
+                               size);
     if (font) AddFont(name, font);
   }
 }
@@ -389,67 +383,152 @@ void Theme::LoadColors() {
   ///////////////////////////////////////////////////////////
   // Style setup for ImGui. Colors copied from Stylepicker //
   ///////////////////////////////////////////////////////////
-  ImGuiStyle* style = &ImGui::GetStyle();
+  auto& style = ImGui::GetStyle();
 
-  style->WindowPadding = ImVec2(15, 15);
-  style->WindowRounding = 5.0f;
-  style->FramePadding = ImVec2(5, 5);
-  style->FrameRounding = 4.0f;
-  style->ItemSpacing = ImVec2(12, 8);
-  style->ItemInnerSpacing = ImVec2(8, 6);
-  style->IndentSpacing = 25.0f;
-  style->ScrollbarSize = 15.0f;
-  style->ScrollbarRounding = 9.0f;
-  style->GrabMinSize = 5.0f;
-  style->GrabRounding = 3.0f;
+  style.WindowPadding = ImVec2(5, 5);
+  style.WindowRounding = 0.0f;
+  style.FramePadding = ImVec2(5, 5);
+  style.FrameRounding = 3.0f;
+  style.ItemSpacing = ImVec2(12, 5);
+  style.ItemInnerSpacing = ImVec2(5, 5);
+  style.IndentSpacing = 25.0f;
+  style.ScrollbarSize = 15.0f;
+  style.ScrollbarRounding = 9.0f;
+  style.GrabMinSize = 5.0f;
+  style.GrabRounding = 3.0f;
 
-  style->Colors[ImGuiCol_Text] = ImVec4(0.80f, 0.80f, 0.83f, 1.00f);
-  style->Colors[ImGuiCol_TextDisabled] = ImVec4(0.24f, 0.23f, 0.29f, 1.00f);
-  style->Colors[ImGuiCol_WindowBg] = ImVec4(0.06f, 0.05f, 0.07f, 1.00f);
-  style->Colors[ImGuiCol_ChildWindowBg] = ImVec4(0.07f, 0.07f, 0.09f, 1.00f);
-  style->Colors[ImGuiCol_PopupBg] = ImVec4(0.07f, 0.07f, 0.09f, 1.00f);
-  style->Colors[ImGuiCol_Border] = ImVec4(0.80f, 0.80f, 0.83f, 0.88f);
-  style->Colors[ImGuiCol_BorderShadow] = ImVec4(0.92f, 0.91f, 0.88f, 0.00f);
-  style->Colors[ImGuiCol_FrameBg] = ImVec4(0.10f, 0.09f, 0.12f, 1.00f);
-  style->Colors[ImGuiCol_FrameBgHovered] = ImVec4(0.24f, 0.23f, 0.29f, 1.00f);
-  style->Colors[ImGuiCol_FrameBgActive] = ImVec4(0.56f, 0.56f, 0.58f, 1.00f);
-  style->Colors[ImGuiCol_TitleBg] = ImVec4(0.10f, 0.09f, 0.12f, 1.00f);
-  style->Colors[ImGuiCol_TitleBgCollapsed] = ImVec4(1.00f, 0.98f, 0.95f, 0.75f);
-  style->Colors[ImGuiCol_TitleBgActive] = ImVec4(0.07f, 0.07f, 0.09f, 1.00f);
-  style->Colors[ImGuiCol_MenuBarBg] = ImVec4(0.10f, 0.09f, 0.12f, 1.00f);
-  style->Colors[ImGuiCol_ScrollbarBg] = ImVec4(0.10f, 0.09f, 0.12f, 1.00f);
-  style->Colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.80f, 0.80f, 0.83f, 0.31f);
-  style->Colors[ImGuiCol_ScrollbarGrabHovered] =
+  /*
+  style.Colors[ImGuiCol_Text] = ImVec4(0.80f, 0.80f, 0.83f, 1.00f);
+  style.Colors[ImGuiCol_TextDisabled] = ImVec4(0.24f, 0.23f, 0.29f, 1.00f);
+  style.Colors[ImGuiCol_WindowBg] = ImVec4(0.06f, 0.05f, 0.07f, 1.00f);
+  style.Colors[ImGuiCol_ChildWindowBg] = ImVec4(0.07f, 0.07f, 0.09f, 1.00f);
+  style.Colors[ImGuiCol_PopupBg] = ImVec4(0.07f, 0.07f, 0.09f, 1.00f);
+  style.Colors[ImGuiCol_Border] = ImVec4(0.80f, 0.80f, 0.83f, 0.88f);
+  style.Colors[ImGuiCol_BorderShadow] = ImVec4(0.92f, 0.91f, 0.88f, 0.00f);
+  style.Colors[ImGuiCol_FrameBg] = ImVec4(0.10f, 0.09f, 0.12f, 1.00f);
+  style.Colors[ImGuiCol_FrameBgHovered] = ImVec4(0.24f, 0.23f, 0.29f, 1.00f);
+  style.Colors[ImGuiCol_FrameBgActive] = ImVec4(0.56f, 0.56f, 0.58f, 1.00f);
+  style.Colors[ImGuiCol_TitleBg] = ImVec4(0.10f, 0.09f, 0.12f, 1.00f);
+  style.Colors[ImGuiCol_TitleBgCollapsed] = ImVec4(1.00f, 0.98f, 0.95f, 0.75f);
+  style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.07f, 0.07f, 0.09f, 1.00f);
+  style.Colors[ImGuiCol_MenuBarBg] = ImVec4(0.10f, 0.09f, 0.12f, 1.00f);
+  style.Colors[ImGuiCol_ScrollbarBg] = ImVec4(0.10f, 0.09f, 0.12f, 1.00f);
+  style.Colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.80f, 0.80f, 0.83f, 0.31f);
+  style.Colors[ImGuiCol_ScrollbarGrabHovered] =
       ImVec4(0.56f, 0.56f, 0.58f, 1.00f);
-  style->Colors[ImGuiCol_ScrollbarGrabActive] =
+  style.Colors[ImGuiCol_ScrollbarGrabActive] =
       ImVec4(0.06f, 0.05f, 0.07f, 1.00f);
-  style->Colors[ImGuiCol_CheckMark] = ImVec4(0.80f, 0.80f, 0.83f, 0.31f);
-  style->Colors[ImGuiCol_SliderGrab] = ImVec4(0.80f, 0.80f, 0.83f, 0.31f);
-  style->Colors[ImGuiCol_SliderGrabActive] = ImVec4(0.06f, 0.05f, 0.07f, 1.00f);
-  style->Colors[ImGuiCol_Button] = ImVec4(0.10f, 0.09f, 0.12f, 1.00f);
-  style->Colors[ImGuiCol_ButtonHovered] = ImVec4(0.24f, 0.23f, 0.29f, 1.00f);
-  style->Colors[ImGuiCol_ButtonActive] = ImVec4(0.56f, 0.56f, 0.58f, 1.00f);
-  style->Colors[ImGuiCol_Header] = ImVec4(0.10f, 0.09f, 0.12f, 1.00f);
-  style->Colors[ImGuiCol_HeaderHovered] = ImVec4(0.56f, 0.56f, 0.58f, 1.00f);
-  style->Colors[ImGuiCol_HeaderActive] = ImVec4(0.06f, 0.05f, 0.07f, 1.00f);
-  style->Colors[ImGuiCol_Column] = ImVec4(0.56f, 0.56f, 0.58f, 1.00f);
-  style->Colors[ImGuiCol_ColumnHovered] = ImVec4(0.24f, 0.23f, 0.29f, 1.00f);
-  style->Colors[ImGuiCol_ColumnActive] = ImVec4(0.56f, 0.56f, 0.58f, 1.00f);
-  style->Colors[ImGuiCol_ResizeGrip] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-  style->Colors[ImGuiCol_ResizeGripHovered] =
+  style.Colors[ImGuiCol_CheckMark] = ImVec4(0.80f, 0.80f, 0.83f, 0.31f);
+  style.Colors[ImGuiCol_SliderGrab] = ImVec4(0.80f, 0.80f, 0.83f, 0.31f);
+  style.Colors[ImGuiCol_SliderGrabActive] = ImVec4(0.06f, 0.05f, 0.07f, 1.00f);
+  style.Colors[ImGuiCol_Button] = ImVec4(0.10f, 0.09f, 0.12f, 1.00f);
+  style.Colors[ImGuiCol_ButtonHovered] = ImVec4(0.24f, 0.23f, 0.29f, 1.00f);
+  style.Colors[ImGuiCol_ButtonActive] = ImVec4(0.56f, 0.56f, 0.58f, 1.00f);
+  style.Colors[ImGuiCol_Header] = ImVec4(0.10f, 0.09f, 0.12f, 1.00f);
+  style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.56f, 0.56f, 0.58f, 1.00f);
+  style.Colors[ImGuiCol_HeaderActive] = ImVec4(0.06f, 0.05f, 0.07f, 1.00f);
+  style.Colors[ImGuiCol_Column] = ImVec4(0.56f, 0.56f, 0.58f, 1.00f);
+  style.Colors[ImGuiCol_ColumnHovered] = ImVec4(0.24f, 0.23f, 0.29f, 1.00f);
+  style.Colors[ImGuiCol_ColumnActive] = ImVec4(0.56f, 0.56f, 0.58f, 1.00f);
+  style.Colors[ImGuiCol_ResizeGrip] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+  style.Colors[ImGuiCol_ResizeGripHovered] =
       ImVec4(0.56f, 0.56f, 0.58f, 1.00f);
-  style->Colors[ImGuiCol_ResizeGripActive] = ImVec4(0.06f, 0.05f, 0.07f, 1.00f);
-  style->Colors[ImGuiCol_PlotLines] = ImVec4(0.40f, 0.39f, 0.38f, 0.63f);
-  style->Colors[ImGuiCol_PlotLinesHovered] = ImVec4(0.25f, 1.00f, 0.00f, 1.00f);
-  style->Colors[ImGuiCol_PlotHistogram] = ImVec4(0.40f, 0.39f, 0.38f, 0.63f);
-  style->Colors[ImGuiCol_PlotHistogramHovered] =
+  style.Colors[ImGuiCol_ResizeGripActive] = ImVec4(0.06f, 0.05f, 0.07f, 1.00f);
+  style.Colors[ImGuiCol_PlotLines] = ImVec4(0.40f, 0.39f, 0.38f, 0.63f);
+  style.Colors[ImGuiCol_PlotLinesHovered] = ImVec4(0.25f, 1.00f, 0.00f, 1.00f);
+  style.Colors[ImGuiCol_PlotHistogram] = ImVec4(0.40f, 0.39f, 0.38f, 0.63f);
+  style.Colors[ImGuiCol_PlotHistogramHovered] =
       ImVec4(0.25f, 1.00f, 0.00f, 1.00f);
-  style->Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.25f, 1.00f, 0.00f, 0.43f);
-  style->Colors[ImGuiCol_ModalWindowDarkening] =
+  style.Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.25f, 1.00f, 0.00f, 0.43f);
+  style.Colors[ImGuiCol_ModalWindowDarkening] =
       ImVec4(1.00f, 0.98f, 0.95f, 0.73f);
+      */
+/*
+  style.Colors[ImGuiCol_Text] = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
+  style.Colors[ImGuiCol_TextDisabled] = ImVec4(0.60f, 0.60f, 0.60f, 1.00f);
+  style.Colors[ImGuiCol_WindowBg] = ImVec4(0.94f, 0.94f, 0.94f, 1.00f);
+  style.Colors[ImGuiCol_ChildBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+  style.Colors[ImGuiCol_Border] = ImVec4(0.00f, 0.00f, 0.00f, 0.39f);
+  style.Colors[ImGuiCol_BorderShadow] = ImVec4(1.00f, 1.00f, 1.00f, 0.10f);
+  style.Colors[ImGuiCol_FrameBg] = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
+  style.Colors[ImGuiCol_FrameBgHovered] = ImVec4(0.26f, 0.59f, 0.98f, 0.40f);
+  style.Colors[ImGuiCol_FrameBgActive] = ImVec4(0.26f, 0.59f, 0.98f, 0.67f);
+  style.Colors[ImGuiCol_TitleBg] = ImVec4(0.96f, 0.96f, 0.96f, 1.00f);
+  style.Colors[ImGuiCol_TitleBgCollapsed] = ImVec4(1.00f, 1.00f, 1.00f, 0.51f);
+  style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.82f, 0.82f, 0.82f, 1.00f);
+  style.Colors[ImGuiCol_MenuBarBg] = ImVec4(0.86f, 0.86f, 0.86f, 1.00f);
+  style.Colors[ImGuiCol_ScrollbarBg] = ImVec4(0.98f, 0.98f, 0.98f, 0.53f);
+  style.Colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.69f, 0.69f, 0.69f, 0.80f);
+  style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.49f, 0.49f, 0.49f, 0.80f);
+  style.Colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.49f, 0.49f, 0.49f, 1.00f);
+  style.Colors[ImGuiCol_CheckMark] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+  style.Colors[ImGuiCol_SliderGrab] = ImVec4(0.26f, 0.59f, 0.98f, 0.78f);
+  style.Colors[ImGuiCol_SliderGrabActive] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+  style.Colors[ImGuiCol_Button] = ImVec4(0.26f, 0.59f, 0.98f, 0.40f);
+  style.Colors[ImGuiCol_ButtonHovered] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+  style.Colors[ImGuiCol_ButtonActive] = ImVec4(0.06f, 0.53f, 0.98f, 1.00f);
+  style.Colors[ImGuiCol_Header] = ImVec4(0.26f, 0.59f, 0.98f, 0.31f);
+  style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.26f, 0.59f, 0.98f, 0.80f);
+  style.Colors[ImGuiCol_HeaderActive] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+  style.Colors[ImGuiCol_Separator] = ImVec4(0.39f, 0.39f, 0.39f, 1.00f);
+  style.Colors[ImGuiCol_SeparatorHovered] = ImVec4(0.26f, 0.59f, 0.98f, 0.78f);
+  style.Colors[ImGuiCol_SeparatorActive] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+  style.Colors[ImGuiCol_ResizeGrip] = ImVec4(0.82f, 0.82f, 0.82f, 1.00f);
+  style.Colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.26f, 0.59f, 0.98f, 0.67f);
+  style.Colors[ImGuiCol_ResizeGripActive] = ImVec4(0.26f, 0.59f, 0.98f, 0.95f);
+  style.Colors[ImGuiCol_PlotLines] = ImVec4(0.39f, 0.39f, 0.39f, 1.00f);
+  style.Colors[ImGuiCol_PlotLinesHovered] = ImVec4(1.00f, 0.43f, 0.35f, 1.00f);
+  style.Colors[ImGuiCol_PlotHistogram] = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
+  style.Colors[ImGuiCol_PlotHistogramHovered] = ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
+  style.Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.26f, 0.59f, 0.98f, 0.35f);
+  style.Colors[ImGuiCol_PopupBg] = ImVec4(1.00f, 1.00f, 1.00f, 0.94f);
+  style.Colors[ImGuiCol_ModalWindowDarkening] = ImVec4(0.20f, 0.20f, 0.20f, 0.35f);
+*/
+
+  style.Colors[ImGuiCol_Text] = ImVec4(0.91f, 0.91f, 0.91f, 1.00f);
+  style.Colors[ImGuiCol_TextDisabled] = ImVec4(0.40f, 0.40f, 0.40f, 1.00f);
+  style.Colors[ImGuiCol_WindowBg] = ImVec4(0.10f, 0.10f, 0.10f, 1.00f);
+  style.Colors[ImGuiCol_ChildBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+  style.Colors[ImGuiCol_Border] = ImVec4(0.00f, 0.00f, 0.00f, 0.39f);
+  style.Colors[ImGuiCol_BorderShadow] = ImVec4(1.00f, 1.00f, 1.00f, 0.10f);
+  style.Colors[ImGuiCol_FrameBg] = ImVec4(0.06f, 0.06f, 0.06f, 1.00f);
+  style.Colors[ImGuiCol_FrameBgHovered] = ImVec4(0.75f, 0.42f, 0.02f, 0.40f);
+  style.Colors[ImGuiCol_FrameBgActive] = ImVec4(0.75f, 0.42f, 0.02f, 0.67f);
+  style.Colors[ImGuiCol_TitleBg] = ImVec4(0.04f, 0.04f, 0.04f, 1.00f);
+  style.Colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.00f, 0.00f, 0.00f, 0.51f);
+  style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.18f, 0.18f, 0.18f, 1.00f);
+  style.Colors[ImGuiCol_MenuBarBg] = ImVec4(0.15f, 0.15f, 0.15f, 1.00f);
+  style.Colors[ImGuiCol_ScrollbarBg] = ImVec4(0.02f, 0.02f, 0.02f, 0.53f);
+  style.Colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.31f, 0.31f, 0.31f, 0.80f);
+  style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.49f, 0.49f, 0.49f, 0.80f);
+  style.Colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.49f, 0.49f, 0.49f, 1.00f);
+  style.Colors[ImGuiCol_CheckMark] = ImVec4(0.75f, 0.42f, 0.02f, 1.00f);
+  style.Colors[ImGuiCol_SliderGrab] = ImVec4(0.75f, 0.42f, 0.02f, 0.78f);
+  style.Colors[ImGuiCol_SliderGrabActive] = ImVec4(0.75f, 0.42f, 0.02f, 1.00f);
+  style.Colors[ImGuiCol_Button] = ImVec4(0.75f, 0.42f, 0.02f, 0.40f);
+  style.Colors[ImGuiCol_ButtonHovered] = ImVec4(0.75f, 0.42f, 0.02f, 1.00f);
+  style.Colors[ImGuiCol_ButtonActive] = ImVec4(0.94f, 0.47f, 0.02f, 1.00f);
+  style.Colors[ImGuiCol_Header] = ImVec4(0.75f, 0.42f, 0.02f, 0.31f);
+  style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.75f, 0.42f, 0.02f, 0.80f);
+  style.Colors[ImGuiCol_HeaderActive] = ImVec4(0.75f, 0.42f, 0.02f, 1.00f);
+  style.Colors[ImGuiCol_Separator] = ImVec4(0.61f, 0.61f, 0.61f, 1.00f);
+  style.Colors[ImGuiCol_SeparatorHovered] = ImVec4(0.75f, 0.42f, 0.02f, 0.78f);
+  style.Colors[ImGuiCol_SeparatorActive] = ImVec4(0.75f, 0.42f, 0.02f, 1.00f);
+  style.Colors[ImGuiCol_ResizeGrip] = ImVec4(0.22f, 0.22f, 0.22f, 1.00f);
+  style.Colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.75f, 0.42f, 0.02f, 0.67f);
+  style.Colors[ImGuiCol_ResizeGripActive] = ImVec4(0.75f, 0.42f, 0.02f, 0.95f);
+  style.Colors[ImGuiCol_PlotLines] = ImVec4(0.61f, 0.61f, 0.61f, 1.00f);
+  style.Colors[ImGuiCol_PlotLinesHovered] = ImVec4(0.00f, 0.57f, 0.65f, 1.00f);
+  style.Colors[ImGuiCol_PlotHistogram] = ImVec4(0.10f, 0.30f, 1.00f, 1.00f);
+  style.Colors[ImGuiCol_PlotHistogramHovered] = ImVec4(0.00f, 0.40f, 1.00f, 1.00f);
+  style.Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.75f, 0.42f, 0.02f, 0.35f);
+  style.Colors[ImGuiCol_PopupBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.94f);
+  style.Colors[ImGuiCol_ModalWindowDarkening] = ImVec4(0.06f, 0.06f, 0.06f, 0.35f);
+
+
 }
 
-ImFont* Theme::GetFont(std::string const& name) {
+ImFont *Theme::GetFont(std::string const &name) {
   auto font = fonts_.find(name);
   if (font == fonts_.end()) {
     return ImGui::GetFont();
@@ -457,7 +536,7 @@ ImFont* Theme::GetFont(std::string const& name) {
   return font->second;
 }
 
-void Theme::AddFont(std::string const& name, ImFont* font) {
+void Theme::AddFont(std::string const &name, ImFont *font) {
   fonts_.insert({name, font});
 }
 
