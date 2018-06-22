@@ -5,25 +5,24 @@
 
 #include <common/logging.h>
 
-#include <sstream>     // std::ostringstream
-#include <iomanip>      // std::setw
+#include <iomanip>  // std::setw
+#include <sstream>  // std::ostringstream
+
+#include <common/assert.h>
 
 namespace blocxxi {
 namespace logging {
 
-//TODO: restore default logging config
-//const char *Logger::DEFAULT_LOG_FORMAT =
+// TODO: restore default logging config
+// const char *Logger::DEFAULT_LOG_FORMAT =
 //    "[%Y-%m-%d %T.%e] [%t] [%^%l%$] [%n] %v";
-const char *Logger::DEFAULT_LOG_FORMAT =
-    "[%t] [%^%L%$] [%n] %v";
+const char *Logger::DEFAULT_LOG_FORMAT = "[%t] [%^%L%$] [%n] %v";
 
 std::mutex Registry::sinks_mutex_;
 std::recursive_mutex Registry::loggers_mutex_;
 
-Logger::Logger(const std::string &name) {
-  auto sinks = Registry::Sinks();
-  logger_ = std::make_shared<spdlog::logger>(name, std::begin(sinks),
-                                             std::end(sinks));
+Logger::Logger(std::string name, spdlog::sink_ptr sink) {
+  logger_ = std::make_shared<spdlog::logger>(name, sink);
   logger_->set_pattern(DEFAULT_LOG_FORMAT);
   logger_->set_level(spdlog::level::trace);
   // Ensure that critical errors, especially ASSERT/PANIC, get flushed
@@ -64,10 +63,29 @@ spdlog::logger &Registry::GetLogger(Id id) {
   return *(Loggers()[static_cast<int>(id)].logger_);
 }
 
-void Registry::AddSink(spdlog::sink_ptr sink) {
+void Registry::PushSink(spdlog::sink_ptr sink) {
   std::lock_guard<std::mutex> lock(sinks_mutex_);
   auto &sinks = sinks_();
-  sinks.emplace_back(sink);
+  // Push the current sink on the stack and use the new one
+  sinks.emplace(delegating_sink()->SwapSink(sink));
+}
+
+void Registry::PopSink() {
+  auto &sinks = sinks_();
+  BLOCXXI_ASSERT(
+      sinks.size() > 0 &&
+      "call to PopSink() not matching a previous call to PushSink()");
+  if (sinks.size() > 0) {
+    auto &sink = sinks.top();
+    // Assign this previous sink to the delegating sink
+    delegating_sink()->SwapSink(sink);
+	sinks.pop();
+  }
+}
+
+std::stack<spdlog::sink_ptr> &Registry::sinks_() {
+	static std::stack<spdlog::sink_ptr> sinks;
+	return sinks;
 }
 
 /**
@@ -105,35 +123,31 @@ std::vector<Logger> &Registry::Loggers() {
 }
 
 std::vector<Logger> &Registry::all_loggers_() {
-  auto sinks = Registry::Sinks();
-  if (sinks.empty()) {
-    // Add a default console sink
-#if defined _WIN32 && !defined(__cplusplus_winrt)
-    auto default_sink =
-        std::make_shared<spdlog::sinks::wincolor_stdout_sink_mt>();
-#else
-    auto default_sink =
-        std::make_shared<spdlog::sinks::ansicolor_stdout_sink_mt>();
-#endif
-    AddSink(default_sink);
-  }
-
   static auto *all_loggers = new std::vector<Logger>();
   for (auto id = Id::MISC; id < Id::INVALID_; ++id) {
     auto name = LoggerName(id);
-    all_loggers->emplace_back(Logger(name));
+    all_loggers->emplace_back(Logger(name, delegating_sink()));
   }
   return *all_loggers;
 }
 
-std::vector<spdlog::sink_ptr> Registry::Sinks() {
-  static auto &sinks_static = sinks_();
-  return sinks_static;
+std::shared_ptr<DelegatingSink> &Registry::delegating_sink() {
+  static auto sink_static =
+      std::shared_ptr<DelegatingSink>(delegating_sink_());
+  return sink_static;
 }
 
-std::vector<spdlog::sink_ptr> &Registry::sinks_() {
-  static auto *sinks = new std::vector<spdlog::sink_ptr>();
-  return *sinks;
+DelegatingSink *Registry::delegating_sink_() {
+// Add a default console sink
+#if defined _WIN32 && !defined(__cplusplus_winrt)
+  auto default_sink =
+      std::make_shared<spdlog::sinks::wincolor_stdout_sink_mt>();
+#else
+  auto default_sink =
+      std::make_shared<spdlog::sinks::ansicolor_stdout_sink_mt>();
+#endif
+  static auto *sink = new DelegatingSink(default_sink);
+  return sink;
 }
 
 std::string FormatFileAndLine(char const *file, char const *line) {

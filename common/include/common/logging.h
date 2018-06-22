@@ -7,6 +7,7 @@
 #define BLOCXXI_COMMON_LOGGING_H_
 
 #include <string>  // for std::string
+#include <stack>   // for stacking sinks
 #include <thread>  // for std::mutex
 
 #include <common/non_copiable.h>
@@ -77,12 +78,41 @@ class Logger : private blocxxi::NonCopiable {
   static const char *DEFAULT_LOG_FORMAT;
 
  private:
-  explicit Logger(const std::string &name);
+  explicit Logger(std::string name, spdlog::sink_ptr sink);
 
   std::shared_ptr<spdlog::logger> logger_;
   std::unique_ptr<std::mutex> logger_mutex_ = std::make_unique<std::mutex>();
   friend class Registry;
 };
+
+
+class DelegatingSink : public spdlog::sinks::base_sink<std::mutex>, private NonCopiable {
+public:
+	DelegatingSink(spdlog::sink_ptr delegate) : sink_delegate_(delegate) {
+	}
+	DelegatingSink(DelegatingSink &&) = default;
+	DelegatingSink& operator=(DelegatingSink &&) = default;
+	DelegatingSink() = default;
+
+	spdlog::sink_ptr SwapSink(spdlog::sink_ptr sink) {
+		auto tmp = sink_delegate_; 
+		sink_delegate_ = sink; 
+		return tmp; 
+	}
+
+protected:
+	void _sink_it(const spdlog::details::log_msg& msg) override {
+		sink_delegate_->log(msg);
+	}
+
+	void _flush() override {
+		sink_delegate_->flush();
+	}
+
+private:
+	spdlog::sink_ptr sink_delegate_;
+};
+
 
 /*!
  * @brief A registry of all named loggers. Usable for adjusting levels of each
@@ -105,9 +135,9 @@ class Registry {
 
   static spdlog::logger &GetLogger(Id id);
 
-  static void AddSink(spdlog::sink_ptr sink);
+  static void PushSink(spdlog::sink_ptr sink);
 
-  static std::vector<spdlog::sink_ptr> Sinks();
+  static void PopSink();
 
  private:
   /**
@@ -117,8 +147,12 @@ class Registry {
   static std::vector<Logger> &all_loggers_();
   static std::recursive_mutex loggers_mutex_;
 
-  static std::vector<spdlog::sink_ptr> &sinks_();
+  static std::stack<spdlog::sink_ptr> &sinks_();
   static std::mutex sinks_mutex_;
+
+  /// The deleagting sink used for all loggers.
+  static DelegatingSink *delegating_sink_();
+  static std::shared_ptr<DelegatingSink> &delegating_sink();
 };
 
 /*!
