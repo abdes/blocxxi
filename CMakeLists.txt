@@ -59,11 +59,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 
-if (CMAKE_BUILD_TYPE MATCHES Debug)
-    add_definitions(-DBLOCXXI_USE_ASSERTS)
-endif ()
-
-
 # config options
 if (MSVC)
     # /wd4005  macro-redefinition

@@ -3,9 +3,9 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_COMMON_LOGGING_H_
-#define BLOCXXI_COMMON_LOGGING_H_
+#pragma once
 
+#include <stack>   // for stacking sinks
 #include <string>  // for std::string
 #include <thread>  // for std::mutex
 
@@ -15,6 +15,10 @@
 
 namespace blocxxi {
 namespace logging {
+
+// ---------------------------------------------------------------------------
+// Looger IDs
+// ---------------------------------------------------------------------------
 
 /*!
  * @brief Exhaustive list of logger ids that can be used in declaring
@@ -35,6 +39,10 @@ enum class Id {
   NDAGENT,
   INVALID_  // MUST BE THE LAST ONE
 };
+
+// ---------------------------------------------------------------------------
+// Logger
+// ---------------------------------------------------------------------------
 
 /**
  * @brief Logger wrapper for a spdlog logger.
@@ -57,69 +65,281 @@ class Logger : private blocxxi::NonCopiable {
     off = spdlog::level::off
   };
 
+  /// Move constructor
   Logger(Logger &&other) noexcept
       : logger_(std::move(other.logger_)),
         logger_mutex_(std::move(other.logger_mutex_)){};
 
+  /// Move assignment
   Logger &operator=(Logger &&other) noexcept {
     Logger(std::move(other)).swap(*this);
     return *this;
   };
 
-  ~Logger() = default;
+  /// Default trivial destructor
+  ~Logger() override = default;
 
+  /*!
+   * @brief Implementation of the swap operation.
+   *
+   * @param other Logger object to swap with.
+   */
   void swap(Logger &other) { std::swap(logger_, other.logger_); }
 
+  /*!
+   * @brief Get this logger's name.
+   *
+   * @return the logger name.
+   */
   const std::string &Name() const { return logger_->name(); }
 
+  /*!
+   * @brief Set the logging level for this logger (e.g. debug, warning...).
+   *
+   * @param [in] level logging level.
+   */
   void setLevel(spdlog::level::level_enum level) { logger_->set_level(level); }
 
+  /// Default format for all loggers.
+  /// @see https://github.com/gabime/spdlog/wiki/3.-Custom-formatting
   static const char *DEFAULT_LOG_FORMAT;
 
  private:
-  explicit Logger(const std::string &name);
+  /*!
+   * @brief Create a Logger with the given name and make it use the given sink
+   * for its log messages.
+   *
+   * Logger objects cannot be created directly. Instead, use the Registry class
+   * to obtain a Logger for a specific ID.
+   *
+   * In spdlog, loggers get assigned a sink or several sinks only at creation
+   * and have to continue using that sink for the rest of their lifetime.
+   * The Registry class offer an extension feature that allows to dynamically
+   * switch the current sink. See Registry::PushSink() and Registry::PopSink().
+   *
+   * @param [in] name the logger name.
+   * @param [in] sink the sink to be used by this logger.
+   *
+   * @see Registry::GetLogger(Id)
+   * @see Id
+   */
+  Logger(std::string name, spdlog::sink_ptr sink);
 
+  /// The underlying spdlog::logger instance.
   std::shared_ptr<spdlog::logger> logger_;
+  /// Synchronization lock used to synchronize logging over this logger from
+  /// multiple threads.
   std::unique_ptr<std::mutex> logger_mutex_ = std::make_unique<std::mutex>();
+
+  /// Logger objects are created only by the Registry class.
   friend class Registry;
 };
 
+// ---------------------------------------------------------------------------
+// DelegatingSink
+// ---------------------------------------------------------------------------
+
 /*!
- * @brief A registry of all named loggers. Usable for adjusting levels of each
- * logger individually.
+ * @brief A logging sink implementation that delegates all its logging calls
+ * to an encapsulated delegate.
  *
- * TODO: Add Init() method with format, sinks and level
+ * This class is used to work around the limitation of spdlog that forces the
+ * same sink(s) to be used for the lifetime of a logger. Two important
+ * application scenarios require the sink to be changed after the logger object
+ * is created:
+ *   - If the application starts logging early to console and then later needs
+ *     to log to some different sink after the proper resources for that sink
+ *     have been initialized (e.g. GUI),
+ *   - If the application needs to temporarily switch logging output to a
+ *     different sink (e.g. dumping diagnostic data) and then switch back to
+ *     original sink after it's done. This requires two loggers in the current
+ *     implementation.
+ *
+ * The DelegatingSink class supports switching its delegate at any time.
+ */
+class DelegatingSink : public spdlog::sinks::base_sink<std::mutex>,
+                       private NonCopiable {
+ public:
+  /*!
+   * @brief Create a DelegatingSink which delegates all its logging to the given
+   * delegate sink.
+   *
+   * @param [in] delegate the sink to which logging calls will be delegated.
+   */
+  explicit DelegatingSink(spdlog::sink_ptr delegate)
+      : sink_delegate_(std::move(delegate)) {}
+
+  /// Move constructor
+  DelegatingSink(DelegatingSink &&) = delete;
+
+  /// Move assignment
+  DelegatingSink &operator=(DelegatingSink &&) = delete;
+
+  /// Default trivial destructor
+  DelegatingSink() = default;
+
+  /*!
+   * @brief Use the given sink as a new delegate and return the old one.
+   *
+   * @param sink the new delegate.
+   * @return the previously used delegate.
+   */
+  spdlog::sink_ptr SwapSink(spdlog::sink_ptr sink) {
+    std::lock_guard<std::mutex> lock(_mutex);
+    auto tmp = sink_delegate_;
+    sink_delegate_ = std::move(sink);
+    return tmp;
+  }
+
+ protected:
+  /// @name base_sink interface
+  //@{
+  /*!
+   * @brief Process the given log message.
+   *
+   * @param msg log message to be processed.
+   */
+  void _sink_it(const spdlog::details::log_msg &msg) override {
+    sink_delegate_->log(msg);
+  }
+
+  /// Called when this sink needs to flush any buffered log messages.
+  void _flush() override { sink_delegate_->flush(); }
+  //@}
+
+ private:
+  /// The deleagte sink.
+  spdlog::sink_ptr sink_delegate_;
+};
+
+// ---------------------------------------------------------------------------
+// Registry
+// ---------------------------------------------------------------------------
+
+/*!
+ * @brief A registry of all named loggers and the single point of access to the
+ * logging API.
+ *
+ * The logging registry creates and manages all the named loggers in the
+ * application. It can be used to:
+ *   - obtain any registered logger by its ID,
+ *   - set logging level for all registered loggers,
+ *   - change the logging format,
+ *   - manage a stack of sinks where the current sink can be temporarily
+ *     swapped with another sink, to be restored later
+ *
+ * The Registry creates a default sink at startup to be used by all registered
+ * loggers, until an explicit call to PushSink() is made. The default sink is
+ * a console logger (color).
+ *
+ * Example:
+ * ```
+ * {
+ *   auto &logger =
+ *     blocxxi::logging::Registry::GetLogger(blocxxi::logging::Id::TESTING);
+ *   BXLOG_TO_LOGGER(debug, "starting...");
+ *
+ *   // Initialize a complex GUI system
+ *   ...
+ *
+ *   // Start logging to the graphical console
+ *   auto ui_console = std::make_shared<MyCustomSink>();
+ *   blocxxi::logging::Registry::PushSink(ui_console);
+ *
+ *   ...
+ *
+ *   // Shutdown the GUI, switch back to the primitive logging sink
+ *   blocxxi::logging::Registry::PopSink()
+ * ```
+ *
+ * @todo TODO: Add Init() method with format, sinks and level
  */
 class Registry {
  public:
   /*!
    * @brief Sets the minimum log severity required to print messages.
+   *
    * Messages below this loglevel will be suppressed.
+   *
+   * @param [in] log_level the logging severity to be applied to all registered
+   * loggers.
    */
   static void SetLogLevel(spdlog::level::level_enum log_level);
 
-  /**
-   * Sets the log format.
+  /*!
+   * @brief Change the format string used by the registered loggers.
+   *
+   * @param [in] log_format new format string.
+   *
+   * @see https://github.com/gabime/spdlog/wiki/3.-Custom-formatting
    */
   static void SetLogFormat(const std::string &log_format);
 
+  /*!
+   * Get a registered logger by ID.
+   *
+   * @param [in] id the unique identifier of the logger to fetch. Logger ids are
+   * defined once as part of the Id enum class.
+   *
+   * @return The logger corresponding to the given id. It is always guaranteed
+   * to succeed as all loggers are known at compile time and are created as soon
+   * as any attempt is made to use the registry.
+   */
   static spdlog::logger &GetLogger(Id id);
 
-  static void AddSink(spdlog::sink_ptr sink);
+  /*!
+   * @brief Use the given sink for all subsequent logging operations until a
+   * call to PopSink() is made.
+   *
+   * This method, together with PopSink(), enable to switch sinks at runtime
+   * temporarily or permanently for all registered loggers.
+   *
+   * @param [in] sink new sink to replace the existing one. The existing one is
+   * pushed on top of an internally managed stack of sinks.
+   *
+   * @see PopSink()
+   */
+  static void PushSink(spdlog::sink_ptr sink);
 
-  static std::vector<spdlog::sink_ptr> Sinks();
+  /*!
+   * @brief Restore the top of sinks stack as the current sink for all
+   * registered loggers.
+   *
+   * @see PushSink(spdlog::sink_ptr)
+   */
+  static void PopSink();
 
  private:
-  /**
-   * @return std::vector<Logger>& the installed loggers.
-   */
+  // The following methods all use a simple pattern to implement static data
+  // members for this singleton class. An implementation detail method does the
+  // expensive initialization of the static data member. That detail method is
+  // never used in the rest of the class except from the second method which
+  // provides the API to access the static data member. That second method also
+  // caches the static member to optimize the call.
+
+  /// API access to the collection of registered loggers.
   static std::vector<Logger> &Loggers();
+  /// Internal initialization of the static collection of loggers.
   static std::vector<Logger> &all_loggers_();
+  /// A synchronization object for concurrent access to the collection of
+  /// loggers.
   static std::recursive_mutex loggers_mutex_;
 
-  static std::vector<spdlog::sink_ptr> &sinks_();
+  /// API access to the stack of sinks. We don't do any expensive initialization
+  /// here, so no need for a second level of access.
+  static std::stack<spdlog::sink_ptr> &Sinks();
+  /// A sunchronization object for concurrent access to the collection of sinks.
   static std::mutex sinks_mutex_;
+
+  /// API access to the delegating sink.
+  static std::shared_ptr<DelegatingSink> &delegating_sink();
+  /// Internal initialization of the static delegating sink.
+  static DelegatingSink *delegating_sink_();
 };
+
+// ---------------------------------------------------------------------------
+// Loggable
+// ---------------------------------------------------------------------------
 
 /*!
  * @brief Mixin class that allows any class to peform logging with a logger of a
@@ -151,6 +371,10 @@ std::string FormatFileAndLine(char const *file, char const *line);
 #else
 #define LOG_PREFIX " "
 #endif  // NDEBUG
+
+// ---------------------------------------------------------------------------
+// Helper macros
+// ---------------------------------------------------------------------------
 
 /// @name Logging macros
 //@{
@@ -236,5 +460,3 @@ std::string FormatFileAndLine(char const *file, char const *line);
 
 }  // namespace logging
 }  // namespace blocxxi
-
-#endif  // BLOCXXI_COMMON_LOGGING_H_

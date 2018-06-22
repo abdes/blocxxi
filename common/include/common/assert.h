@@ -3,8 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_COMMON_ASSERT_H
-#define BLOCXXI_COMMON_ASSERT_H
+#pragma once
 
 #include <common/config.h>
 
@@ -141,5 +140,3 @@ extern char const* blocxxi_assert_log;
   BLOCXXI_WHILE_0
 
 #endif  // BLOCXXI_USE_ASSERTS
-
-#endif  // BLOCXXI_COMMON_ASSERT_H
