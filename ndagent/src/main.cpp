@@ -292,7 +292,7 @@ int main(int argc, char **argv) {
     blocxxi::debug::ui::Theme::Init();
 
 	auto sink = std::make_shared<blocxxi::debug::ui::ImGuiLogSink>();
-	blocxxi::logging::Registry::AddSink(sink);
+	blocxxi::logging::Registry::PushSink(sink);
 
     bool show_demo_window = false;
     bool show_log_settings_window = true;
@@ -409,6 +409,8 @@ int main(int argc, char **argv) {
       glfwMakeContextCurrent(window);
       glfwSwapBuffers(window);
     }
+
+	blocxxi::logging::Registry::PopSink();
 
     // Shutdown
     mapper->DeleteMapping(PortMapper::Protocol::UDP, port);
