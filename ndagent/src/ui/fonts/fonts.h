@@ -2,11 +2,11 @@
 // Created by Abdessattar Sassi on 6/20/18.
 //
 
-#ifndef BLOCXXI_FONTS_H
-#define BLOCXXI_FONTS_H
+#pragma once
 
 namespace blocxxi {
-namespace ndagent {
+namespace debug {
+namespace ui {
 
 class Fonts {
  public:
@@ -58,10 +58,15 @@ class Fonts {
   static const unsigned int ROBOTO_THINITALIC_COMPRESSED_SIZE = 125327;
   static const unsigned int ROBOTO_THINITALIC_COMPRESSED_DATA[];
 
+  // Inconsolata Regular
+  static const unsigned int INCONSOLATA_REGULAR_COMPRESSED_SIZE = 64659;
+  static const unsigned int INCONSOLATA_REGULAR_COMPRESSED_DATA[];
 
+  // Inconsolata Bold
+  static const unsigned int INCONSOLATA_BOLD_COMPRESSED_SIZE = 72170;
+  static const unsigned int INCONSOLATA_BOLD_COMPRESSED_DATA[];
 };
 
-}  // namespace ndagent
+}  // namespace ui
+}  // namespace debug
 }  // namespace blocxxi
-
-#endif //BLOCXXI_FONTS_H
