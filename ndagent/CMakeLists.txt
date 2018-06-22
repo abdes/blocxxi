@@ -17,10 +17,12 @@ list(APPEND NDAGENT_SRC
         src/ui/fonts/Inconsolata-Regular.cpp
         src/ui/fonts/Inconsolata-Bold.cpp
         #
+        src/ui/debug_ui.h
         src/ui/style/theme.h
         src/ui/style/theme.cpp
         src/ui/log/sink.h
         src/ui/log/sink.cpp
+        src/ui/log/settings.cpp
 	#
         src/KHR/khrplatform.h
         src/glad/gl.h
