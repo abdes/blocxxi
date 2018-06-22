@@ -303,6 +303,7 @@ int main(int argc, char **argv) {
       bool show_demo_window = false;
       bool show_log_settings_window = true;
       bool show_log_messages_window = true;
+      bool show_kademlia_window = true;
 
       ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
@@ -366,6 +367,12 @@ int main(int argc, char **argv) {
 
         if (show_log_messages_window) {
           sink->Draw("Log Messages", &show_log_messages_window);
+        }
+
+        if (show_kademlia_window) {
+          blocxxi::debug::ui::ShowRoutingInfo(
+              "Kademlia", session.GetEngine().GetRoutingTable(),
+              &show_kademlia_window);
         }
 
         // Rendering

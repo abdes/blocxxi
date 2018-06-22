@@ -23,6 +23,7 @@ list(APPEND NDAGENT_SRC
         src/ui/log/sink.h
         src/ui/log/sink.cpp
         src/ui/log/settings.cpp
+        src/ui/kademlia/routing.cpp
 	#
         src/KHR/khrplatform.h
         src/glad/gl.h

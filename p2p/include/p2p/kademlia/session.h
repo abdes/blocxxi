@@ -43,19 +43,21 @@ class Session final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
 
   ~Session() { BXLOG(debug, "Destroy Session"); }
 
+  EngineType const &GetEngine() const { return engine_; }
+
   void Start() {
     BXLOG(debug, "Session Start");
     engine_.Start();
   }
 
-/*  void RunOne() {
-    engine_.RunOne();
-  }
+  /*  void RunOne() {
+      engine_.RunOne();
+    }
 
-  void RunAll() {
-    engine_.RunAll();
-  }
-*/
+    void RunAll() {
+      engine_.RunAll();
+    }
+  */
   void Stop() {
     BXLOG(debug, "Session Stop");
     engine_.Stop();
