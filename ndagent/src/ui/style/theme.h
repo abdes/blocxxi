@@ -50,6 +50,7 @@ class Font final {
   Font &LargeSize();
   Font &LargerSize();
 
+  Font &Normal();
   Font &Italic();
 
   Font &Light();

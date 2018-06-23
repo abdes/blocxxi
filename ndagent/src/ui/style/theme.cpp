@@ -248,6 +248,12 @@ Font &Font::LargerSize() {
   return *this;
 }
 
+Font &Font::Normal() {
+  style_ = Style::NORMAL;
+  InitFont();
+  return *this;
+}
+
 Font &Font::Italic() {
   style_ = Style::ITALIC;
   InitFont();
