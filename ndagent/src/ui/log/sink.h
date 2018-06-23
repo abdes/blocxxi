@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include <vector>        // for the records vector
 #include <shared_mutex>  // for locking the records vector
+#include <vector>        // for the records vector
 
 #include <spdlog/sinks/sink.h>
 #include <spdlog/spdlog.h>
@@ -42,7 +42,9 @@ class ImGuiLogSink : public spdlog::sinks::base_sink<std::mutex> {
   static const ImVec4 COLOR_ERROR;
 
   struct LogRecord {
-    std::string text_;
+    std::string properties_;
+    std::string source_;
+    std::string message_;
     std::size_t color_range_start_{0};
     std::size_t color_range_end_{0};
     const ImVec4& color_;
@@ -53,8 +55,8 @@ class ImGuiLogSink : public spdlog::sinks::base_sink<std::mutex> {
   ImGuiTextFilter display_filter_;
 
   bool scroll_to_bottom_;
-  bool wrap_{ false };
-  bool scroll_lock_{ false };
+  bool wrap_{false};
+  bool scroll_lock_{false};
 
   /// @name Log Format flags
   //@{
@@ -62,7 +64,6 @@ class ImGuiLogSink : public spdlog::sinks::base_sink<std::mutex> {
   bool show_thread_{true};
   bool show_level_{true};
   bool show_logger_{true};
-  bool show_source_{false};
   //@}
 };
 

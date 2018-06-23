@@ -16,8 +16,8 @@ namespace ui {
 
 class Font final {
  public:
-  char const *FAMILY_MONOSPACE = "Inconsolata";
-  char const *FAMILY_PROPORTIONAL = "Roboto";
+  static std::string const FAMILY_MONOSPACE;
+  static std::string const FAMILY_PROPORTIONAL;
 
   enum class Size {
     SMALL = 10,   // 10px
@@ -31,7 +31,7 @@ class Font final {
   enum class Style { NORMAL, ITALIC };
   static char const *StyleString(Font::Style style);
 
-  enum class Weight { LIGHTER, LIGHT, REGULAR, MEDIUM, BOLD, BOLDER };
+  enum class Weight { LIGHT, REGULAR, BOLD };
   static char const *WeightString(Font::Weight weight);
 
   Font(std::string family);
@@ -52,12 +52,9 @@ class Font final {
 
   Font &Italic();
 
-  Font &Lighter();
   Font &Light();
   Font &Regular();
-  Font &Medium();
   Font &Bold();
-  Font &Bolder();
 
  private:
   void BuildName();
@@ -67,7 +64,7 @@ class Font final {
   std::string family_;
   Font::Size size_{Font::Size::MEDIUM};
   Font::Style style_{Font::Style::NORMAL};
-  Font::Weight weight_{Font::Weight::MEDIUM};
+  Font::Weight weight_{Font::Weight::REGULAR};
   mutable std::string name_{};
 };
 
@@ -88,7 +85,7 @@ class Theme {
   static void AddFont(std::string const &name, ImFont *font);
 
   static std::map<std::string, ImFont *> fonts_;
-  static ImFont* icons_font_normal_;
+  static ImFont *icons_font_normal_;
 };
 
 }  // namespace ui
