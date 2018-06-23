@@ -19,9 +19,9 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include <glad/gl.h>
 // This example is using gl3w to access OpenGL functions. You may freely use any
 // other OpenGL loader such as: glew, glad, glLoadGen, etc.
-#include <glad/gl.h>
 #include <GLFW/glfw3.h>
 
 #include <ui/debug_ui.h>
@@ -105,6 +105,7 @@ int main(int argc, char **argv) {
   auto &logger =
       blocxxi::logging::Registry::GetLogger(blocxxi::logging::Id::NDAGENT);
 
+  boost::thread server_thread;
   std::string nat_spec;
   std::string ipv6_address;
   unsigned short port = 4242;
@@ -188,7 +189,7 @@ int main(int argc, char **argv) {
     auto session = SessionType(io_context, std::move(engine));
     session.Start();
 
-    boost::thread server_thread([&io_context]() { io_context.run(); });
+    server_thread = boost::thread([&io_context]() { io_context.run(); });
 
     if (!boot_list.empty()) {
       //
@@ -301,7 +302,6 @@ int main(int argc, char **argv) {
       blocxxi::logging::Registry::PushSink(sink);
 
       bool show_demo_window = false;
-      bool show_log_settings_window = true;
       bool show_log_messages_window = true;
       bool show_kademlia_window = true;
 
@@ -336,8 +336,6 @@ int main(int argc, char **argv) {
           ImGui::Checkbox("Demo Window",
                           &show_demo_window);  // Edit bools storing our windows
           // open/close state
-          ImGui::Checkbox("Log Settings Window", &show_log_settings_window);
-          // open/close state
           ImGui::Checkbox("Log Messages Window", &show_log_messages_window);
 
           ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
@@ -358,11 +356,6 @@ int main(int argc, char **argv) {
           // to make the demo initial state a bit
           // more friendly!
           ImGui::ShowDemoWindow(&show_demo_window);
-        }
-
-        if (show_log_settings_window) {
-          blocxxi::debug::ui::ShowLogSettings("Log Settings",
-                                              &show_log_settings_window);
         }
 
         if (show_log_messages_window) {
@@ -389,9 +382,6 @@ int main(int argc, char **argv) {
         glfwMakeContextCurrent(window);
         glfwSwapBuffers(window);
       }
-
-      // Restore the original log sink
-      blocxxi::logging::Registry::PopSink();
     }
     // Cleanup ImGui
     if (show_debug_gui) {
@@ -409,12 +399,19 @@ int main(int argc, char **argv) {
     server_thread.join();
 
   } catch (std::exception &e) {
+    // Restore the original log sink
+    blocxxi::logging::Registry::PopSink();
     BXLOG_TO_LOGGER(logger, error, "Error: {}", e.what());
     return -1;
   } catch (...) {
+    // Restore the original log sink
+    blocxxi::logging::Registry::PopSink();
     BXLOG_TO_LOGGER(logger, error, "Unknown error!");
     return -1;
   }
+
+  // Restore the original log sink
+  blocxxi::logging::Registry::PopSink();
 
   return 0;
 }
