@@ -16,6 +16,8 @@ list(APPEND NDAGENT_SRC
         src/ui/fonts/Roboto-ThinItalic.cpp
         src/ui/fonts/Inconsolata-Regular.cpp
         src/ui/fonts/Inconsolata-Bold.cpp
+        src/ui/fonts/material_design_icons.cpp
+        src/ui/fonts/material_design_icons.h
         #
         src/ui/debug_ui.h
         src/ui/style/theme.h
@@ -42,6 +44,7 @@ set(NDAGENT_LIBRARIES
         bloxi::p2p
         bloxi::nat
         spdlog
+		date_interface
         Boost::program_options
         Boost::thread
         imgui
