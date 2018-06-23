@@ -125,8 +125,8 @@ int main(int argc, char **argv) {
       ("port,p", bpo::value<unsigned short>(&port)->default_value(9000),
         "port number")
       ("bootstrap,b",bpo::value<std::vector<std::string>>(&boot_list))
-      ("debug-gui,d", bpo::value<bool>(&show_debug_gui)->default_value(false),
-        "show the debug GUI");
+      ("debug-ui,d", bpo::value<bool>(&show_debug_gui)->default_value(false),
+        "show the debug UI");
     // clang-format on
 
     bpo::variables_map bpo_vm;

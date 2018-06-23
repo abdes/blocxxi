@@ -1,5 +1,10 @@
-// File: 'Roboto-Bold.ttf' (170760 bytes)
+// File: 'Inconsolata-Bold.ttf' (72170 bytes)
 // Exported using binary_to_compressed_c.cpp
+
+// Designed by: Raph Levien
+// Copyright 2006 The Inconsolata Project Authors
+// This Font Software is licensed under the SIL Open Font License, Version 1.1.
+// http://scripts.sil.org/OFL
 
 #include "fonts.h"
 

@@ -1,6 +1,11 @@
 // File: 'Roboto-Black.ttf' (171480 bytes)
 // Exported using binary_to_compressed_c.cpp
 
+// Designed by: Christian Robertson
+// Copyright Google Inc.
+// Licensed under the Apache License, Version 2.0 (the "License");
+// http://www.apache.org/licenses/LICENSE-2.0
+
 #include "fonts.h"
 
 namespace blocxxi {

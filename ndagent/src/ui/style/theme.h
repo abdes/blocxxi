@@ -16,6 +16,9 @@ namespace ui {
 
 class Font final {
  public:
+  char const *FAMILY_MONOSPACE = "Inconsolata";
+  char const *FAMILY_PROPORTIONAL = "Roboto";
+
   enum class Size {
     SMALL = 10,   // 10px
     MEDIUM = 13,  // 13px
@@ -74,6 +77,8 @@ class Theme {
 
   static ImFont *GetFont(std::string const &name);
 
+  static ImFont *GetIconsFont() { return icons_font_normal_; }
+
  private:
   Theme() {}
 
@@ -83,6 +88,7 @@ class Theme {
   static void AddFont(std::string const &name, ImFont *font);
 
   static std::map<std::string, ImFont *> fonts_;
+  static ImFont* icons_font_normal_;
 };
 
 }  // namespace ui

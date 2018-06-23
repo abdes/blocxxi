@@ -10,6 +10,7 @@
 #include <imgui.h>
 
 #include <ui/fonts/fonts.h>
+#include <ui/fonts/material_design_icons.h>
 #include <ui/style/theme.h>
 
 namespace blocxxi {
@@ -17,6 +18,7 @@ namespace debug {
 namespace ui {
 
 std::map<std::string, ImFont *> Theme::fonts_;
+ImFont *Theme::icons_font_normal_{nullptr};
 
 namespace {
 
@@ -28,6 +30,25 @@ std::string BuildFontName(char const *family, Font::Weight weight,
     name.append(" ").append(Font::StyleString(style));
   name.append(" ").append(Font::SizeString(size));
   return name;
+}
+
+/// Merge in icons from Font Material Design Icons font.
+ImFont *MergeIcons(float size) {
+  ImGuiIO &io = ImGui::GetIO();
+  // The ranges array is not copied by the AddFont* functions and is used lazily
+  // so ensure it is available for duration of font usage
+  static const ImWchar icons_ranges[] = {ICON_MIN_MDI, ICON_MAX_MDI, 0};
+
+  ImFontConfig icons_config;
+  icons_config.MergeMode = true;
+  icons_config.PixelSnapH = true;
+  auto font = io.Fonts->AddFontFromMemoryCompressedTTF(
+      blocxxi::debug::ui::Fonts::MATERIAL_DESIGN_ICONS_COMPRESSED_DATA,
+      blocxxi::debug::ui::Fonts::MATERIAL_DESIGN_ICONS_COMPRESSED_SIZE, size,
+      &icons_config, icons_ranges);
+  // use FONT_ICON_FILE_NAME_FAR if you want regular instead of solid
+
+  return font;
 }
 
 ImFont *LoadRobotoFont(std::string const &name, Font::Weight weight,
@@ -45,12 +66,14 @@ ImFont *LoadRobotoFont(std::string const &name, Font::Weight weight,
               blocxxi::debug::ui::Fonts::ROBOTO_THINITALIC_COMPRESSED_DATA,
               blocxxi::debug::ui::Fonts::ROBOTO_THINITALIC_COMPRESSED_SIZE,
               Font::SizeFloat(size), &fontConfig);
+          font = MergeIcons(Font::SizeFloat(size));
           break;
         case Font::Style::NORMAL:
           font = io.Fonts->AddFontFromMemoryCompressedTTF(
               blocxxi::debug::ui::Fonts::ROBOTO_THIN_COMPRESSED_DATA,
               blocxxi::debug::ui::Fonts::ROBOTO_THIN_COMPRESSED_SIZE,
               Font::SizeFloat(size), &fontConfig);
+          font = MergeIcons(Font::SizeFloat(size));
           break;
       }
       break;
@@ -61,12 +84,14 @@ ImFont *LoadRobotoFont(std::string const &name, Font::Weight weight,
               blocxxi::debug::ui::Fonts::ROBOTO_LIGHTITALIC_COMPRESSED_DATA,
               blocxxi::debug::ui::Fonts::ROBOTO_LIGHTITALIC_COMPRESSED_SIZE,
               Font::SizeFloat(size), &fontConfig);
+          font = MergeIcons(Font::SizeFloat(size));
           break;
         case Font::Style::NORMAL:
           font = io.Fonts->AddFontFromMemoryCompressedTTF(
               blocxxi::debug::ui::Fonts::ROBOTO_LIGHT_COMPRESSED_DATA,
               blocxxi::debug::ui::Fonts::ROBOTO_LIGHT_COMPRESSED_SIZE,
               Font::SizeFloat(size), &fontConfig);
+          font = MergeIcons(Font::SizeFloat(size));
           break;
       }
       break;
@@ -77,12 +102,14 @@ ImFont *LoadRobotoFont(std::string const &name, Font::Weight weight,
               blocxxi::debug::ui::Fonts::ROBOTO_ITALIC_COMPRESSED_DATA,
               blocxxi::debug::ui::Fonts::ROBOTO_ITALIC_COMPRESSED_SIZE,
               Font::SizeFloat(size), &fontConfig);
+          font = MergeIcons(Font::SizeFloat(size));
           break;
         case Font::Style::NORMAL:
           font = io.Fonts->AddFontFromMemoryCompressedTTF(
               blocxxi::debug::ui::Fonts::ROBOTO_REGULAR_COMPRESSED_DATA,
               blocxxi::debug::ui::Fonts::ROBOTO_REGULAR_COMPRESSED_SIZE,
               Font::SizeFloat(size), &fontConfig);
+          font = MergeIcons(Font::SizeFloat(size));
           break;
       }
       break;
@@ -93,12 +120,14 @@ ImFont *LoadRobotoFont(std::string const &name, Font::Weight weight,
               blocxxi::debug::ui::Fonts::ROBOTO_MEDIUMITALIC_COMPRESSED_DATA,
               blocxxi::debug::ui::Fonts::ROBOTO_MEDIUMITALIC_COMPRESSED_SIZE,
               Font::SizeFloat(size), &fontConfig);
+          font = MergeIcons(Font::SizeFloat(size));
           break;
         case Font::Style::NORMAL:
           font = io.Fonts->AddFontFromMemoryCompressedTTF(
               blocxxi::debug::ui::Fonts::ROBOTO_MEDIUM_COMPRESSED_DATA,
               blocxxi::debug::ui::Fonts::ROBOTO_MEDIUM_COMPRESSED_SIZE,
               Font::SizeFloat(size), &fontConfig);
+          font = MergeIcons(Font::SizeFloat(size));
           break;
       }
       break;
@@ -109,12 +138,14 @@ ImFont *LoadRobotoFont(std::string const &name, Font::Weight weight,
               blocxxi::debug::ui::Fonts::ROBOTO_BOLDITALIC_COMPRESSED_DATA,
               blocxxi::debug::ui::Fonts::ROBOTO_BOLDITALIC_COMPRESSED_SIZE,
               Font::SizeFloat(size), &fontConfig);
+          font = MergeIcons(Font::SizeFloat(size));
           break;
         case Font::Style::NORMAL:
           font = io.Fonts->AddFontFromMemoryCompressedTTF(
               blocxxi::debug::ui::Fonts::ROBOTO_BOLD_COMPRESSED_DATA,
               blocxxi::debug::ui::Fonts::ROBOTO_BOLD_COMPRESSED_SIZE,
               Font::SizeFloat(size), &fontConfig);
+          font = MergeIcons(Font::SizeFloat(size));
           break;
       }
       break;
@@ -125,12 +156,14 @@ ImFont *LoadRobotoFont(std::string const &name, Font::Weight weight,
               blocxxi::debug::ui::Fonts::ROBOTO_BLACKITALIC_COMPRESSED_DATA,
               blocxxi::debug::ui::Fonts::ROBOTO_BLACKITALIC_COMPRESSED_SIZE,
               Font::SizeFloat(size), &fontConfig);
+          font = MergeIcons(Font::SizeFloat(size));
           break;
         case Font::Style::NORMAL:
           font = io.Fonts->AddFontFromMemoryCompressedTTF(
               blocxxi::debug::ui::Fonts::ROBOTO_BLACK_COMPRESSED_DATA,
               blocxxi::debug::ui::Fonts::ROBOTO_BLACK_COMPRESSED_SIZE,
               Font::SizeFloat(size), &fontConfig);
+          font = MergeIcons(Font::SizeFloat(size));
           break;
       }
       break;
@@ -157,6 +190,7 @@ ImFont *LoadInconsolataFont(std::string const &name, Font::Weight weight,
               blocxxi::debug::ui::Fonts::INCONSOLATA_REGULAR_COMPRESSED_DATA,
               blocxxi::debug::ui::Fonts::INCONSOLATA_REGULAR_COMPRESSED_SIZE,
               Font::SizeFloat(size), &fontConfig);
+          font = MergeIcons(Font::SizeFloat(size));
           break;
       }
       break;
@@ -169,10 +203,24 @@ ImFont *LoadInconsolataFont(std::string const &name, Font::Weight weight,
               blocxxi::debug::ui::Fonts::INCONSOLATA_BOLD_COMPRESSED_DATA,
               blocxxi::debug::ui::Fonts::INCONSOLATA_BOLD_COMPRESSED_SIZE,
               Font::SizeFloat(size), &fontConfig);
+          font = MergeIcons(Font::SizeFloat(size));
           break;
       }
       break;
   }
+  return font;
+}
+
+ImFont *LoadIconsFont(float size) {
+  ImGuiIO &io = ImGui::GetIO();
+  ImFontConfig fontConfig;
+  fontConfig.MergeMode = false;
+  strncpy(fontConfig.Name, "Material Design Icons", 40);
+  ImFont *font = nullptr;
+  font = io.Fonts->AddFontFromMemoryCompressedTTF(
+      blocxxi::debug::ui::Fonts::MATERIAL_DESIGN_ICONS_COMPRESSED_DATA,
+      blocxxi::debug::ui::Fonts::MATERIAL_DESIGN_ICONS_COMPRESSED_SIZE, size,
+      &fontConfig);
   return font;
 }
 
@@ -291,10 +339,14 @@ float Font::SizeFloat(Font::Size size) {
 }
 char const *Font::SizeString(Font::Size size) {
   switch (size) {
-    case Size::SMALL:return "10px";
-    case Size::MEDIUM:return "13px";
-    case Size::LARGE:return "16px";
-    case Size::LARGER:return "24px";
+    case Size::SMALL:
+      return "10px";
+    case Size::MEDIUM:
+      return "13px";
+    case Size::LARGE:
+      return "16px";
+    case Size::LARGER:
+      return "24px";
   }
   // Only needed for compilers that complain about not all control paths
   // return a value.
@@ -303,8 +355,10 @@ char const *Font::SizeString(Font::Size size) {
 
 char const *Font::StyleString(Font::Style style) {
   switch (style) {
-    case Style::NORMAL:return "Normal";
-    case Style::ITALIC:return "Italic";
+    case Style::NORMAL:
+      return "Normal";
+    case Style::ITALIC:
+      return "Italic";
   }
   // Only needed for compilers that complain about not all control paths
   // return a value.
@@ -313,12 +367,18 @@ char const *Font::StyleString(Font::Style style) {
 
 char const *Font::WeightString(Font::Weight weight) {
   switch (weight) {
-    case Weight::LIGHTER:return "Thin";
-    case Weight::LIGHT:return "Light";
-    case Weight::REGULAR:return "Regular";
-    case Weight::MEDIUM:return "Medium";
-    case Weight::BOLD:return "Bold";
-    case Weight::BOLDER:return "Bolder";
+    case Weight::LIGHTER:
+      return "Thin";
+    case Weight::LIGHT:
+      return "Light";
+    case Weight::REGULAR:
+      return "Regular";
+    case Weight::MEDIUM:
+      return "Medium";
+    case Weight::BOLD:
+      return "Bold";
+    case Weight::BOLDER:
+      return "Bolder";
   }
   // Only needed for compilers that complain about not all control paths
   // return a value.
@@ -361,29 +421,30 @@ void Theme::LoadDefaultFonts() {
         if (font) AddFont(name, font);
       }
     }
+
+    // Monospaced
     auto name = BuildFontName("Inconsolata", Font::Weight::REGULAR,
                               Font::Style::NORMAL, size);
-    auto font = LoadInconsolataFont(name,
-                                    Font::Weight::REGULAR,
-                                    Font::Style::NORMAL,
-                                    size);
+    auto font = LoadInconsolataFont(name, Font::Weight::REGULAR,
+                                    Font::Style::NORMAL, size);
     if (font) AddFont(name, font);
 
-    name = BuildFontName("Inconsolata",
-                         Font::Weight::BOLD,
-                         Font::Style::NORMAL, size);
-    font = LoadInconsolataFont(name, Font::Weight::REGULAR,
-                               Font::Style::NORMAL,
+    name = BuildFontName("Inconsolata", Font::Weight::BOLD, Font::Style::NORMAL,
+                         size);
+    font = LoadInconsolataFont(name, Font::Weight::BOLD, Font::Style::NORMAL,
                                size);
     if (font) AddFont(name, font);
   }
+
+  // The Icons font
+  icons_font_normal_ = LoadIconsFont(32.0f);
 }
 
 void Theme::LoadColors() {
   ///////////////////////////////////////////////////////////
   // Style setup for ImGui. Colors copied from Stylepicker //
   ///////////////////////////////////////////////////////////
-  auto& style = ImGui::GetStyle();
+  auto &style = ImGui::GetStyle();
 
   style.WindowPadding = ImVec2(5, 5);
   style.WindowRounding = 0.0f;
@@ -443,47 +504,50 @@ void Theme::LoadColors() {
   style.Colors[ImGuiCol_ModalWindowDarkening] =
       ImVec4(1.00f, 0.98f, 0.95f, 0.73f);
       */
-/*
-  style.Colors[ImGuiCol_Text] = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
-  style.Colors[ImGuiCol_TextDisabled] = ImVec4(0.60f, 0.60f, 0.60f, 1.00f);
-  style.Colors[ImGuiCol_WindowBg] = ImVec4(0.94f, 0.94f, 0.94f, 1.00f);
-  style.Colors[ImGuiCol_ChildBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-  style.Colors[ImGuiCol_Border] = ImVec4(0.00f, 0.00f, 0.00f, 0.39f);
-  style.Colors[ImGuiCol_BorderShadow] = ImVec4(1.00f, 1.00f, 1.00f, 0.10f);
-  style.Colors[ImGuiCol_FrameBg] = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
-  style.Colors[ImGuiCol_FrameBgHovered] = ImVec4(0.26f, 0.59f, 0.98f, 0.40f);
-  style.Colors[ImGuiCol_FrameBgActive] = ImVec4(0.26f, 0.59f, 0.98f, 0.67f);
-  style.Colors[ImGuiCol_TitleBg] = ImVec4(0.96f, 0.96f, 0.96f, 1.00f);
-  style.Colors[ImGuiCol_TitleBgCollapsed] = ImVec4(1.00f, 1.00f, 1.00f, 0.51f);
-  style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.82f, 0.82f, 0.82f, 1.00f);
-  style.Colors[ImGuiCol_MenuBarBg] = ImVec4(0.86f, 0.86f, 0.86f, 1.00f);
-  style.Colors[ImGuiCol_ScrollbarBg] = ImVec4(0.98f, 0.98f, 0.98f, 0.53f);
-  style.Colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.69f, 0.69f, 0.69f, 0.80f);
-  style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.49f, 0.49f, 0.49f, 0.80f);
-  style.Colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.49f, 0.49f, 0.49f, 1.00f);
-  style.Colors[ImGuiCol_CheckMark] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
-  style.Colors[ImGuiCol_SliderGrab] = ImVec4(0.26f, 0.59f, 0.98f, 0.78f);
-  style.Colors[ImGuiCol_SliderGrabActive] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
-  style.Colors[ImGuiCol_Button] = ImVec4(0.26f, 0.59f, 0.98f, 0.40f);
-  style.Colors[ImGuiCol_ButtonHovered] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
-  style.Colors[ImGuiCol_ButtonActive] = ImVec4(0.06f, 0.53f, 0.98f, 1.00f);
-  style.Colors[ImGuiCol_Header] = ImVec4(0.26f, 0.59f, 0.98f, 0.31f);
-  style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.26f, 0.59f, 0.98f, 0.80f);
-  style.Colors[ImGuiCol_HeaderActive] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
-  style.Colors[ImGuiCol_Separator] = ImVec4(0.39f, 0.39f, 0.39f, 1.00f);
-  style.Colors[ImGuiCol_SeparatorHovered] = ImVec4(0.26f, 0.59f, 0.98f, 0.78f);
-  style.Colors[ImGuiCol_SeparatorActive] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
-  style.Colors[ImGuiCol_ResizeGrip] = ImVec4(0.82f, 0.82f, 0.82f, 1.00f);
-  style.Colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.26f, 0.59f, 0.98f, 0.67f);
-  style.Colors[ImGuiCol_ResizeGripActive] = ImVec4(0.26f, 0.59f, 0.98f, 0.95f);
-  style.Colors[ImGuiCol_PlotLines] = ImVec4(0.39f, 0.39f, 0.39f, 1.00f);
-  style.Colors[ImGuiCol_PlotLinesHovered] = ImVec4(1.00f, 0.43f, 0.35f, 1.00f);
-  style.Colors[ImGuiCol_PlotHistogram] = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
-  style.Colors[ImGuiCol_PlotHistogramHovered] = ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
-  style.Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.26f, 0.59f, 0.98f, 0.35f);
-  style.Colors[ImGuiCol_PopupBg] = ImVec4(1.00f, 1.00f, 1.00f, 0.94f);
-  style.Colors[ImGuiCol_ModalWindowDarkening] = ImVec4(0.20f, 0.20f, 0.20f, 0.35f);
-*/
+  /*
+    style.Colors[ImGuiCol_Text] = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
+    style.Colors[ImGuiCol_TextDisabled] = ImVec4(0.60f, 0.60f, 0.60f, 1.00f);
+    style.Colors[ImGuiCol_WindowBg] = ImVec4(0.94f, 0.94f, 0.94f, 1.00f);
+    style.Colors[ImGuiCol_ChildBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+    style.Colors[ImGuiCol_Border] = ImVec4(0.00f, 0.00f, 0.00f, 0.39f);
+    style.Colors[ImGuiCol_BorderShadow] = ImVec4(1.00f, 1.00f, 1.00f, 0.10f);
+    style.Colors[ImGuiCol_FrameBg] = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
+    style.Colors[ImGuiCol_FrameBgHovered] = ImVec4(0.26f, 0.59f, 0.98f, 0.40f);
+    style.Colors[ImGuiCol_FrameBgActive] = ImVec4(0.26f, 0.59f, 0.98f, 0.67f);
+    style.Colors[ImGuiCol_TitleBg] = ImVec4(0.96f, 0.96f, 0.96f, 1.00f);
+    style.Colors[ImGuiCol_TitleBgCollapsed] = ImVec4(1.00f, 1.00f, 1.00f,
+    0.51f); style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.82f, 0.82f,
+    0.82f, 1.00f); style.Colors[ImGuiCol_MenuBarBg] = ImVec4(0.86f, 0.86f,
+    0.86f, 1.00f); style.Colors[ImGuiCol_ScrollbarBg] = ImVec4(0.98f, 0.98f,
+    0.98f, 0.53f); style.Colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.69f, 0.69f,
+    0.69f, 0.80f); style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.49f,
+    0.49f, 0.49f, 0.80f); style.Colors[ImGuiCol_ScrollbarGrabActive] =
+    ImVec4(0.49f, 0.49f, 0.49f, 1.00f); style.Colors[ImGuiCol_CheckMark] =
+    ImVec4(0.26f, 0.59f, 0.98f, 1.00f); style.Colors[ImGuiCol_SliderGrab] =
+    ImVec4(0.26f, 0.59f, 0.98f, 0.78f); style.Colors[ImGuiCol_SliderGrabActive]
+    = ImVec4(0.26f, 0.59f, 0.98f, 1.00f); style.Colors[ImGuiCol_Button] =
+    ImVec4(0.26f, 0.59f, 0.98f, 0.40f); style.Colors[ImGuiCol_ButtonHovered] =
+    ImVec4(0.26f, 0.59f, 0.98f, 1.00f); style.Colors[ImGuiCol_ButtonActive] =
+    ImVec4(0.06f, 0.53f, 0.98f, 1.00f); style.Colors[ImGuiCol_Header] =
+    ImVec4(0.26f, 0.59f, 0.98f, 0.31f); style.Colors[ImGuiCol_HeaderHovered] =
+    ImVec4(0.26f, 0.59f, 0.98f, 0.80f); style.Colors[ImGuiCol_HeaderActive] =
+    ImVec4(0.26f, 0.59f, 0.98f, 1.00f); style.Colors[ImGuiCol_Separator] =
+    ImVec4(0.39f, 0.39f, 0.39f, 1.00f); style.Colors[ImGuiCol_SeparatorHovered]
+    = ImVec4(0.26f, 0.59f, 0.98f, 0.78f); style.Colors[ImGuiCol_SeparatorActive]
+    = ImVec4(0.26f, 0.59f, 0.98f, 1.00f); style.Colors[ImGuiCol_ResizeGrip] =
+    ImVec4(0.82f, 0.82f, 0.82f, 1.00f); style.Colors[ImGuiCol_ResizeGripHovered]
+    = ImVec4(0.26f, 0.59f, 0.98f, 0.67f);
+    style.Colors[ImGuiCol_ResizeGripActive] = ImVec4(0.26f, 0.59f, 0.98f,
+    0.95f); style.Colors[ImGuiCol_PlotLines] = ImVec4(0.39f, 0.39f,
+    0.39f, 1.00f); style.Colors[ImGuiCol_PlotLinesHovered] = ImVec4(1.00f,
+    0.43f, 0.35f, 1.00f); style.Colors[ImGuiCol_PlotHistogram] = ImVec4(0.90f,
+    0.70f, 0.00f, 1.00f); style.Colors[ImGuiCol_PlotHistogramHovered] =
+    ImVec4(1.00f, 0.60f, 0.00f, 1.00f); style.Colors[ImGuiCol_TextSelectedBg] =
+    ImVec4(0.26f, 0.59f, 0.98f, 0.35f); style.Colors[ImGuiCol_PopupBg] =
+    ImVec4(1.00f, 1.00f, 1.00f, 0.94f);
+    style.Colors[ImGuiCol_ModalWindowDarkening] = ImVec4(0.20f, 0.20f, 0.20f,
+    0.35f);
+  */
 
   style.Colors[ImGuiCol_Text] = ImVec4(0.91f, 0.91f, 0.91f, 1.00f);
   style.Colors[ImGuiCol_TextDisabled] = ImVec4(0.40f, 0.40f, 0.40f, 1.00f);
@@ -500,8 +564,10 @@ void Theme::LoadColors() {
   style.Colors[ImGuiCol_MenuBarBg] = ImVec4(0.15f, 0.15f, 0.15f, 1.00f);
   style.Colors[ImGuiCol_ScrollbarBg] = ImVec4(0.02f, 0.02f, 0.02f, 0.53f);
   style.Colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.31f, 0.31f, 0.31f, 0.80f);
-  style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.49f, 0.49f, 0.49f, 0.80f);
-  style.Colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.49f, 0.49f, 0.49f, 1.00f);
+  style.Colors[ImGuiCol_ScrollbarGrabHovered] =
+      ImVec4(0.49f, 0.49f, 0.49f, 0.80f);
+  style.Colors[ImGuiCol_ScrollbarGrabActive] =
+      ImVec4(0.49f, 0.49f, 0.49f, 1.00f);
   style.Colors[ImGuiCol_CheckMark] = ImVec4(0.75f, 0.42f, 0.02f, 1.00f);
   style.Colors[ImGuiCol_SliderGrab] = ImVec4(0.75f, 0.42f, 0.02f, 0.78f);
   style.Colors[ImGuiCol_SliderGrabActive] = ImVec4(0.75f, 0.42f, 0.02f, 1.00f);
@@ -520,12 +586,12 @@ void Theme::LoadColors() {
   style.Colors[ImGuiCol_PlotLines] = ImVec4(0.61f, 0.61f, 0.61f, 1.00f);
   style.Colors[ImGuiCol_PlotLinesHovered] = ImVec4(0.00f, 0.57f, 0.65f, 1.00f);
   style.Colors[ImGuiCol_PlotHistogram] = ImVec4(0.10f, 0.30f, 1.00f, 1.00f);
-  style.Colors[ImGuiCol_PlotHistogramHovered] = ImVec4(0.00f, 0.40f, 1.00f, 1.00f);
+  style.Colors[ImGuiCol_PlotHistogramHovered] =
+      ImVec4(0.00f, 0.40f, 1.00f, 1.00f);
   style.Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.75f, 0.42f, 0.02f, 0.35f);
   style.Colors[ImGuiCol_PopupBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.94f);
-  style.Colors[ImGuiCol_ModalWindowDarkening] = ImVec4(0.06f, 0.06f, 0.06f, 0.35f);
-
-
+  style.Colors[ImGuiCol_ModalWindowDarkening] =
+      ImVec4(0.06f, 0.06f, 0.06f, 0.35f);
 }
 
 ImFont *Theme::GetFont(std::string const &name) {
