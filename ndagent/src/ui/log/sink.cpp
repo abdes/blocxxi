@@ -3,9 +3,10 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#include <date/date.h>
 #include <array>
-#include <strstream>  // for log record formatting
+#include <sstream>      // for log record formatting
+
+#include <date/date.h>  // for time formatting
 
 #include <ui/fonts/material_design_icons.h>
 #include <ui/log/sink.h>
