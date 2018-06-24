@@ -154,6 +154,11 @@ class KBucket
   /// Check if this bucket's range can hold the given node, i.e. the node's id
   /// has the same prefix than this bucket.
   bool CanHoldNode(const Node::IdType &node) const;
+
+  /// Get the shared prefix (bits) with the router node
+  std::string SharedPrefix() const {
+	  return prefix_.to_string().substr(0, prefix_size_);
+  }
   //@}
 
   /// @name Node accessors and manipulators
