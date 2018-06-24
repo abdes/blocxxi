@@ -16,10 +16,10 @@
 #include <p2p/kademlia/engine.h>
 #include <p2p/kademlia/session.h>
 
+#include <glad/gl.h>
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
-#include <glad/gl.h>
 // This example is using gl3w to access OpenGL functions. You may freely use any
 // other OpenGL loader such as: glew, glad, glLoadGen, etc.
 #include <GLFW/glfw3.h>
@@ -391,27 +391,28 @@ int main(int argc, char **argv) {
 
       glfwDestroyWindow(window);
       glfwTerminate();
+
+      // Restore the original log sink
+      blocxxi::logging::Registry::PopSink();
     }
 
     // Shutdown
-    mapper->DeleteMapping(PortMapper::Protocol::UDP, port);
+	BXLOG_TO_LOGGER(logger, info, "Shutting down...");
+	mapper->DeleteMapping(PortMapper::Protocol::UDP, port);
     io_context.stop();
     server_thread.join();
 
   } catch (std::exception &e) {
     // Restore the original log sink
-    blocxxi::logging::Registry::PopSink();
+    if (show_debug_gui) blocxxi::logging::Registry::PopSink();
     BXLOG_TO_LOGGER(logger, error, "Error: {}", e.what());
     return -1;
   } catch (...) {
     // Restore the original log sink
-    blocxxi::logging::Registry::PopSink();
+    if (show_debug_gui) blocxxi::logging::Registry::PopSink();
     BXLOG_TO_LOGGER(logger, error, "Unknown error!");
     return -1;
   }
-
-  // Restore the original log sink
-  blocxxi::logging::Registry::PopSink();
 
   return 0;
 }
