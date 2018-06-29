@@ -29,9 +29,6 @@ list(APPEND NDAGENT_SRC
   src/ui/log/sink.h
   src/ui/log/sink.cpp
   #
-  src/ui/kademlia/debug_ui.h
-  src/ui/kademlia/routing.cpp
-  #
   src/imgui/imgui_dock.h
   src/imgui/imgui_dock.cpp
   #
