@@ -100,4 +100,3 @@ TEST(AssertTests, TestAssertFailVal) {
   ASSERT_DEATH(ASAP_ASSERT_FAIL_VAL(str), regex);
 }
 #endif // 0
-
