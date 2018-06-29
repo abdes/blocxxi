@@ -3,8 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_P2P_KADEMLIA_TIMER_H_
-#define BLOCXXI_P2P_KADEMLIA_TIMER_H_
+#pragma once
 
 #include <chrono>      // for std:: time related types
 #include <functional>  // for std::function (callbacks)
@@ -176,5 +175,3 @@ void Timer::ExpiresFromNow(DurationType const &timeout,
 }  // namespace kademlia
 }  // namespace p2p
 }  // namespace blocxxi
-
-#endif  // BLOCXXI_P2P_KADEMLIA_TIMER_H_

@@ -3,8 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_P2P_KADEMLIA_CHANNEL_H_
-#define BLOCXXI_P2P_KADEMLIA_CHANNEL_H_
+#pragma once
 
 #include <memory>
 
@@ -368,5 +367,3 @@ using AsyncUdpChannel = Channel<boost::asio::ip::udp::socket>;
 }  // namespace kademlia
 }  // namespace p2p
 }  // namespace blocxxi
-
-#endif  // BLOCXXI_P2P_KADEMLIA_CHANNEL_H_

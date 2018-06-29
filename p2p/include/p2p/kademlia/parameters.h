@@ -3,8 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_P2P_KADEMLIA_PARAMETERS_H_
-#define BLOCXXI_P2P_KADEMLIA_PARAMETERS_H_
+#pragma once
 
 #include <chrono>   // for timeout value
 #include <cstddef>  // for std::size_t
@@ -29,5 +28,3 @@ constexpr auto REQUEST_TIMEOUT = std::chrono::seconds(2);
 }  // namespace kademlia
 }  // namespace p2p
 }  // namespace blocxxi
-
-#endif  // BLOCXXI_P2P_KADEMLIA_PARAMETERS_H_

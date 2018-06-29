@@ -3,8 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_P2P_KADEMLIA_PING_NODE_TASK_H
-#define BLOCXXI_P2P_KADEMLIA_PING_NODE_TASK_H
+#pragma once
 
 namespace blocxxi {
 namespace p2p {
@@ -124,5 +123,3 @@ void StartPingNodeTask(
 }  // namespace kademlia
 }  // namespace p2p
 }  // namespace blocxxi
-
-#endif  // BLOCXXI_P2P_KADEMLIA_PING_NODE_TASK_H

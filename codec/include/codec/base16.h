@@ -3,8 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_CODEC_BASE16_H_
-#define BLOCXXI_CODEC_BASE16_H_
+#pragma once
 
 #include <cstdint>   // for uint8_t
 #include <gsl/gsl>  // for gsl::span
@@ -23,5 +22,3 @@ void Decode(gsl::span<const char> src, gsl::span<uint8_t> dest,
 }  // namespace hex
 }  // namespace codec
 }  // namespace blocxxi
-
-#endif  // BLOCXXI_CODEC_BASE16_H_

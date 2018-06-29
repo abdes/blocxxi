@@ -3,8 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_P2P_KADEMLIA_ROUTING_H_
-#define BLOCXXI_P2P_KADEMLIA_ROUTING_H_
+#pragma once
 
 #include <chrono>
 #include <deque>
@@ -243,5 +242,3 @@ std::ostream &operator<<(std::ostream &out, RoutingTable const &rt);
 }  // namespace kademlia
 }  // namespace p2p
 }  // namespace blocxxi
-
-#endif  // BLOCXXI_P2P_KADEMLIA_ROUTING_H_

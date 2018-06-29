@@ -3,8 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_P2P_KADEMLIA_ERROR_H_
-#define BLOCXXI_P2P_KADEMLIA_ERROR_H_
+#pragma once
 
 #include <system_error>
 
@@ -48,5 +47,3 @@ struct is_error_condition_enum<blocxxi::p2p::kademlia::error_type> : true_type {
 };
 
 }  // namespace std
-
-#endif  // BLOCXXI_P2P_KADEMLIA_ERROR_H_

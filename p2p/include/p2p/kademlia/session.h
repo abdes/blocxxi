@@ -3,8 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_P2P_KADEMLIA_SESSION_H_
-#define BLOCXXI_P2P_KADEMLIA_SESSION_H_
+#pragma once
 
 #include <system_error>
 
@@ -82,5 +81,3 @@ class Session final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
 }  // namespace kademlia
 }  // namespace p2p
 }  // namespace blocxxi
-
-#endif  // BLOCXXI_P2P_KADEMLIA_SESSION_H_
