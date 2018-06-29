@@ -16,7 +16,7 @@ function(set_common_compiler_flags ASAP_TARGET)
       target_compile_options(${ASAP_TARGET} PUBLIC -Wall -pedantic -Wextra)
   endif ()
   # Enable asserts all the time
-  target_compile_definitions(${ASAP_TARGET} PRIVATE -DBLOCXXI_USE_ASSERTS)
+  target_compile_definitions(${ASAP_TARGET} PRIVATE -DASAP_USE_ASSERTS)
 
 endfunction()
 
