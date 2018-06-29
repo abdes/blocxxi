@@ -1,20 +1,48 @@
-//    Copyright The Blocxxi Project Authors 2018.
+//    Copyright The asap Project Authors 2018.
 //    Distributed under the 3-Clause BSD License.
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
 #include <array>
-#include <sstream>      // for log record formatting
+#include <fstream>
+#include <sstream>  // for log record formatting
+#include <type_traits>
 
 #include <date/date.h>  // for time formatting
+#include <yaml-cpp/yaml.h>
 
 #include <ui/fonts/material_design_icons.h>
 #include <ui/log/sink.h>
+#include <ui/style/theme.h>
 
 #include <common/assert.h>
 #include <common/logging.h>
+#include <fsl.h>
 
-namespace blocxxi {
+namespace bfs = boost::filesystem;
+
+namespace YAML {
+
+YAML::Emitter &operator<<(YAML::Emitter &out,
+                          const asap::logging::Logger &log) {
+  out << YAML::Flow;
+  out << YAML::BeginMap;
+  {
+    out << YAML::Key << "name";
+    out << YAML::Value << log.Name();
+    out << YAML::Key << "id";
+    out << YAML::Value
+        << static_cast<typename std::underlying_type<asap::logging::Id>::type>(
+               log.Id());
+    out << YAML::Key << "level";
+    out << YAML::Value << log.Level();
+  }
+  out << YAML::EndMap;
+  return out;
+}
+}  // namespace YAML
+
+namespace asap {
 namespace debug {
 namespace ui {
 
@@ -27,30 +55,17 @@ void ImGuiLogSink::Clear() {
 }
 
 void ImGuiLogSink::ShowLogLevelsPopup() {
-  static constexpr int IDS_COUNT = 9;
-  static std::array<blocxxi::logging::Id, IDS_COUNT> logger_ids{
-      {blocxxi::logging::Id::MISC, blocxxi::logging::Id::TESTING,
-       blocxxi::logging::Id::COMMON, blocxxi::logging::Id::CODEC,
-       blocxxi::logging::Id::CRYPTO, blocxxi::logging::Id::NAT,
-       blocxxi::logging::Id::P2P, blocxxi::logging::Id::P2P_KADEMLIA,
-       blocxxi::logging::Id::NDAGENT}};
-
   ImGui::MenuItem("Logging Levels", nullptr, false, false);
 
-  for (auto id : logger_ids) {
-    auto &the_logger = blocxxi::logging::Registry::GetLogger(id);
-    static int levels[IDS_COUNT];
-    auto id_value =
-        static_cast<typename std::underlying_type<blocxxi::logging::Id>::type>(
-            id);
-    levels[id_value] = the_logger.level();
+  std::vector<int> levels;
+  for (auto &a_logger : asap::logging::Registry::Loggers()) {
+    levels.push_back(a_logger.Level());
     auto format = std::string("%u (")
-                      .append(spdlog::level::to_str(
-                          spdlog::level::level_enum(levels[id_value])))
+                      .append(spdlog::level::to_str(a_logger.Level()))
                       .append(")");
-    if (ImGui::SliderInt(the_logger.name().c_str(), &levels[id_value], 0, 6,
+    if (ImGui::SliderInt(a_logger.Name().c_str(), &levels.back(), 0, 6,
                          format.c_str())) {
-      the_logger.set_level(spdlog::level::level_enum(levels[id_value]));
+      a_logger.Level(spdlog::level::level_enum(levels.back()));
     }
   }
 }
@@ -69,7 +84,12 @@ void ImGuiLogSink::ShowLogFormatPopup() {
 void ImGuiLogSink::Draw(const char *title, bool *open) {
   ImGui::SetNextWindowSize(ImVec2(500, 400), ImGuiCond_FirstUseEver);
 
-  ImGui::Begin(title, open);
+  // This is the case when the log viewer is supposed to open in its own ImGui
+  // window (not docked).
+  if (open) {
+    ASAP_ASSERT(title != nullptr);
+    ImGui::Begin(title, open);
+  }
 
   /*
   if (ImGui::Button("Log something...")) {
@@ -200,11 +220,11 @@ void ImGuiLogSink::Draw(const char *title, bool *open) {
         if (record.color_range_start_ > 0) {
           auto props_len = record.properties_.size();
 
-          BLOCXXI_ASSERT_VAL(record.color_range_start_ < props_len,
-                             record.color_range_start_);
-          BLOCXXI_ASSERT(record.color_range_end_ > record.color_range_start_);
-          BLOCXXI_ASSERT_VAL(record.color_range_end_ < props_len,
-                             record.color_range_end_);
+          ASAP_ASSERT_VAL(record.color_range_start_ < props_len,
+                          record.color_range_start_);
+          ASAP_ASSERT(record.color_range_end_ > record.color_range_start_);
+          ASAP_ASSERT_VAL(record.color_range_end_ < props_len,
+                          record.color_range_end_);
 
           std::string part =
               record.properties_.substr(0, record.color_range_start_);
@@ -254,7 +274,11 @@ void ImGuiLogSink::Draw(const char *title, bool *open) {
   if (!scroll_lock_ && scroll_to_bottom_) ImGui::SetScrollHere(1.0f);
   scroll_to_bottom_ = false;
   ImGui::EndChild();
-  ImGui::End();
+
+  // The case of the log viewer in its own ImGui window (not docked)
+  if (open) {
+    ImGui::End();
+  }
 }
 
 void ImGuiLogSink::_sink_it(const spdlog::details::log_msg &msg) {
@@ -364,6 +388,147 @@ void ImGuiLogSink::_flush() {
   // Your code here
 }
 
+namespace {
+void ConfigSanityChecks(YAML::Node &config) {
+  auto &logger = asap::logging::Registry::GetLogger(asap::logging::Id::NDAGENT);
+
+  auto logging = config["logging"];
+  if (!logging) {
+    ASLOG_TO_LOGGER(logger, warn, "missing 'logging' in config");
+  }
+  if (!logging["loggers"]) {
+    ASLOG_TO_LOGGER(logger, warn, "missing 'logging/loggers' in config");
+  }
+  if (!logging["format"]) {
+    ASLOG_TO_LOGGER(logger, warn, "missing 'logging/format' in config");
+  } else {
+    auto format = logging["format"];
+    if (!format["show-time"]) {
+      ASLOG_TO_LOGGER(logger, warn,
+                      "missing 'logging/format/show-time' in config");
+    }
+    if (!format["show-thread"]) {
+      ASLOG_TO_LOGGER(logger, warn,
+                      "missing 'logging/format/show-thread' in config");
+    }
+    if (!format["show-logger"]) {
+      ASLOG_TO_LOGGER(logger, warn,
+                      "missing 'logging/format/show-logger' in config");
+    }
+    if (!format["show-level"]) {
+      ASLOG_TO_LOGGER(logger, warn,
+                      "missing 'logging/format/show-level' in config");
+    }
+  }
+  if (!logging["scroll-lock"]) {
+    ASLOG_TO_LOGGER(logger, warn, "missing 'logging/scroll-lock' in config");
+  }
+  if (!logging["soft-wrap"]) {
+    ASLOG_TO_LOGGER(logger, warn, "missing 'logging/soft-wrap' in config");
+  }
+}
+}  // namespace
+
+void ImGuiLogSink::LoadSettings() {
+  YAML::Node config;
+  auto log_settings = asap::fs::GetPathFor(asap::fs::Location::F_LOG_SETTINGS);
+  auto has_config = false;
+  if (bfs::exists(log_settings)) {
+    try {
+      config = YAML::LoadFile(log_settings.string());
+      ASLOG(info, "settings loaded from {}", log_settings);
+      has_config = true;
+    } catch (std::exception const &ex) {
+      ASLOG(error, "error () while loading settings from {}", ex.what(),
+            log_settings);
+    }
+  } else {
+    ASLOG(info, "file {} does not exist", log_settings);
+  }
+
+  if (has_config) {
+    ConfigSanityChecks(config);
+
+    auto logging = config["logging"];
+
+    if (logging["loggers"]) {
+      for (auto const &logger_settings : logging["loggers"]) {
+        ASLOG(debug, "logger '{}' with id '{}' will have level '{}'",
+              logger_settings["name"].as<std::string>(),
+              logger_settings["id"].as<int>(),
+              logger_settings["level"].as<int>());
+        auto &logger = asap::logging::Registry::GetLogger(
+            static_cast<asap::logging::Id>(logger_settings["id"].as<int>()));
+        logger.set_level(static_cast<spdlog::level::level_enum>(
+            logger_settings["level"].as<int>()));
+      }
+    }
+
+    if (logging["format"]) {
+      auto format = logging["format"];
+      if (format["show-time"]) {
+        show_time_ = format["show-time"].as<bool>();
+      }
+      if (format["show-thread"]) {
+        show_thread_ = format["show-thread"].as<bool>();
+      }
+      if (format["show-logger"]) {
+        show_logger_ = format["show-logger"].as<bool>();
+      }
+      if (format["show-level"]) {
+        show_level_ = format["show-level"].as<bool>();
+      }
+    }
+
+    if (logging["scroll-lock"]) {
+      scroll_lock_ = logging["scroll-lock"].as<bool>();
+    }
+    if (logging["soft-wrap"]) {
+      wrap_ = logging["soft-wrap"].as<bool>();
+    }
+  }
+}
+
+void ImGuiLogSink::SaveSettings() {
+  YAML::Emitter out;
+  out << YAML::BeginMap;
+  {
+    out << YAML::Key << "logging";
+    out << YAML::BeginMap;
+    {
+      out << YAML::Key << "loggers";
+      out << logging::Registry::Loggers();
+      out << YAML::Key << "format";
+      out << YAML::BeginMap;
+      {
+        out << YAML::Key << "show-time";
+        out << YAML::Value << show_time_;
+        out << YAML::Key << "show-thread";
+        out << YAML::Value << show_thread_;
+        out << YAML::Key << "show-level";
+        out << YAML::Value << show_level_;
+        out << YAML::Key << "show-logger";
+        out << YAML::Value << show_logger_;
+      }
+      out << YAML::EndMap;
+
+      out << YAML::Key << "scroll-lock";
+      out << YAML::Value << scroll_lock_;
+      out << YAML::Key << "soft-wrap";
+      out << YAML::Value << wrap_;
+    }
+    out << YAML::EndMap;
+  }
+  out << YAML::EndMap;
+
+  auto display_settings =
+      asap::fs::GetPathFor(asap::fs::Location::F_LOG_SETTINGS);
+  auto ofs = std::ofstream();
+  ofs.open(display_settings.string());
+  ofs << out.c_str() << std::endl;
+  ofs.close();
+}
+
 }  // namespace ui
 }  // namespace debug
-}  // namespace blocxxi
+}  // namespace asap

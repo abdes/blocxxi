@@ -13,9 +13,9 @@ list(APPEND P2P_SIM_SRC
   simulation.cpp
 )
 
-set(P2P_LIBRARIES bloxi::p2p)
+set(P2P_LIBRARIES asap::p2p gtest_main gtest gmock)
 
-bloxi_test(
+asap_test(
   TARGET
   p2p_test
   SOURCES
@@ -28,9 +28,9 @@ set_tidy_target_properties(p2p_test_bin)
 #Needed for spdlog
 find_package(Threads REQUIRED)
 
-set(P2P_SIM_LIBRARIES bloxi::p2p spdlog Boost::program_options)
+set(P2P_SIM_LIBRARIES asap::p2p spdlog Boost::program_options)
 
-bloxi_executable(TARGET
+asap_executable(TARGET
   p2psim
   SOURCES
   ${P2P_SIM_SRC}

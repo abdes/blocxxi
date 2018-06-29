@@ -29,7 +29,7 @@ namespace kademlia {
  * @tparam TUnderlyingSocket the underlying socket type.
  */
 template <typename TUnderlyingSocket>
-class Channel final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
+class Channel final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
  public:
   /// @name Type shortcuts
   ///@{
@@ -56,7 +56,7 @@ class Channel final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
       : reception_buffer_(SAFE_PAYLOAD_SIZE),
         current_message_sender_(),
         socket_(CreateUnderlyingSocket(io_context, ep)) {
-    BXLOG(debug, "Creating channel {} DONE", ep);
+    ASLOG(debug, "Creating channel {} DONE", ep);
   }
 
   /*!
@@ -64,12 +64,12 @@ class Channel final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
    * are ignored.
    */
   ~Channel() {
-    BXLOG(debug, "Destroy channel {}", LocalEndpoint());
+    ASLOG(debug, "Destroy channel {}", LocalEndpoint());
     try {
       socket_.close();
     } catch (std::exception const &ex) {
       // Ignore all errors. The underlying descriptor will be closed anyway.
-      BXLOG(debug, "an error reported on socket closure: {}", ex.what());
+      ASLOG(debug, "an error reported on socket closure: {}", ex.what());
     }
   }
 
@@ -113,7 +113,7 @@ class Channel final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
       throw std::system_error{detail::make_error_code(INVALID_IPV4_ADDRESS)};
     }
 
-    BXLOG(error, "({} / {}) did not resolve to a valid IPv4 endpoint", host,
+    ASLOG(error, "({} / {}) did not resolve to a valid IPv4 endpoint", host,
           service);
     throw std::system_error{detail::make_error_code(INVALID_IPV4_ADDRESS)};
   }
@@ -148,7 +148,7 @@ class Channel final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
       throw std::system_error{detail::make_error_code(INVALID_IPV4_ADDRESS)};
     }
 
-    BXLOG(error, "({} / {}) did not resolve to a valid IPv6 endpoint", host,
+    ASLOG(error, "({} / {}) did not resolve to a valid IPv6 endpoint", host,
           service);
     throw std::system_error{detail::make_error_code(INVALID_IPV6_ADDRESS)};
   }
@@ -193,7 +193,7 @@ class Channel final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
                BufferReader(reception_buffer_.data(), bytes_received));
     };
 
-    BLOCXXI_ASSERT(reception_buffer_.size() == SAFE_PAYLOAD_SIZE);
+    ASAP_ASSERT(reception_buffer_.size() == SAFE_PAYLOAD_SIZE);
     socket_.async_receive_from(boost::asio::buffer(reception_buffer_),
                                current_message_sender_, on_completion);
   }
@@ -230,7 +230,7 @@ class Channel final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
       auto on_completion = [callback, message_copy](
           boost::system::error_code const &failure,
           std::size_t /* bytes_sent */) {
-        if (failure) BXLOG(error, "{}", failure.message());
+        if (failure) ASLOG(error, "{}", failure.message());
         callback(detail::BoostToStdError(failure));
       };
 
@@ -283,7 +283,7 @@ class Channel final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
       }
       return endpoints;
     } catch (boost::system::system_error const &failure) {
-      BXLOG(error, "{}", failure.what());
+      ASLOG(error, "{}", failure.what());
       throw(std::system_error(detail::BoostToStdError(failure.code())));
     }
   }
@@ -328,7 +328,7 @@ class Channel final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
 
       return std::move(new_socket);
     } catch (boost::system::system_error const &failure) {
-      BXLOG(error, "{}", failure.what());
+      ASLOG(error, "{}", failure.what());
       throw(std::system_error(detail::BoostToStdError(failure.code())));
     }
   }

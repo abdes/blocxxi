@@ -45,7 +45,7 @@ namespace detail {
  */
 template <typename TNetwork, typename TRoutingTable>
 class BootstrapProcedure final
-    : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
+    : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
  public:
   ///
   using NetworkType = TNetwork;
@@ -69,7 +69,7 @@ class BootstrapProcedure final
    */
   BootstrapProcedure(NetworkType &network, RoutingTableType &routing_table)
       : network_(network), routing_table_(routing_table) {
-    BXLOG(debug, "create bootstrap procedure instance");
+    ASLOG(debug, "create bootstrap procedure instance");
   }
 
   /**
@@ -78,7 +78,7 @@ class BootstrapProcedure final
   static void NodeLookupSelf(std::shared_ptr<BootstrapProcedure> task) {
     auto my_id = task->routing_table_.ThisNode().Id();
     auto on_complete = [task]() {
-      BXLOG(debug, "find node on self completed");
+      ASLOG(debug, "find node on self completed");
       task->routing_table_.DumpToLog();
       RefreshBuckets(task);
     };
@@ -99,20 +99,20 @@ class BootstrapProcedure final
       if (!bucket.Empty()) {
         auto const &node = bucket.SelectRandomNode();
 
-        BXLOG(debug,
+        ASLOG(debug,
               "[BOOT/REFRESH] bucket -> lookup for random peer with id {}",
               node.Id().ToHex());
 
         StartFindNodeTask(node.Id(), task->network_, task->routing_table_,
                           [task]() {
-                            BXLOG(debug,
+                            ASLOG(debug,
                                   "[BOOT/REFRESH] bucket refresh completed");
                             task->routing_table_.DumpToLog();
                           },
                           "BOOT/REFRESH/FIND_NODE");
       }
     }
-    BXLOG(debug, "[BOOT/REFRESH] all buckets refresh completed");
+    ASLOG(debug, "[BOOT/REFRESH] all buckets refresh completed");
   }
 
  private:

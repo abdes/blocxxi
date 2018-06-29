@@ -24,7 +24,7 @@ namespace nat {
  * Implements port mapping following the UPNP method.
  */
 class UpnpPortMapper final : protected PortMapper,
-                             blocxxi::logging::Loggable<logging::Id::NAT> {
+                             asap::logging::Loggable<asap::logging::Id::NAT> {
  public:
   static std::unique_ptr<PortMapper> Discover(
       std::chrono::milliseconds timeout);

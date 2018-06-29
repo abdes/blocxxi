@@ -8,7 +8,7 @@
 
 #include "fonts.h"
 
-namespace blocxxi {
+namespace asap {
 namespace debug {
 namespace ui {
 
@@ -2712,4 +2712,4 @@ const unsigned int Fonts::INCONSOLATA_REGULAR_COMPRESSED_DATA[64660 / 4] = {
 
 }  // namespace ui
 }  // namespace debug
-}  // namespace blocxxi
+}  // namespace asap

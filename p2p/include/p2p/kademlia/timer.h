@@ -21,7 +21,7 @@ namespace kademlia {
 
 /// Timer management class using a single asynchronous timer to run a list of
 /// timeouts associated with callback handlers.
-class Timer final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
+class Timer final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
  public:
   /// Clock type for timer duration, we are using a steady_clock, most suitable
   /// for measuring intervals.
@@ -45,12 +45,12 @@ class Timer final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
    */
   explicit Timer(boost::asio::io_context &io_context)
       : timer_{io_context}, timeouts_{} {
-    BXLOG(debug, "Creating Timer DONE");
+    ASLOG(debug, "Creating Timer DONE");
   }
 
   /// Destructor cancels any pending asynchronous wait opration for the timers.
   ~Timer() {
-    BXLOG(debug, "Destroy Timer");
+    ASLOG(debug, "Destroy Timer");
     timer_.cancel();
   }
 
@@ -161,7 +161,7 @@ template <typename Callback>
 void Timer::ExpiresFromNow(DurationType const &timeout,
                            Callback const &on_timer_expired) {
   auto expiration_time = ClockType::now() + timeout;
-  BXLOG(debug, "adding timer expiring at {}",
+  ASLOG(debug, "adding timer expiring at {}",
         expiration_time.time_since_epoch().count());
 
   // If the current expiration time will be the sooner to expires
