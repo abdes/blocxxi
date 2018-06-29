@@ -63,14 +63,14 @@ int CountLeadingZeroBits_HW(gsl::span<std::uint32_t const> buf) {
     if (ptr[i] == 0) continue;
     std::uint32_t v = NetworkToHost(ptr[i]);
 
-#if BLOCXXI_HAS_BUILTIN_CLZ
+#if ASAP_HAS_BUILTIN_CLZ
     return i * 32 + __builtin_clz(v);
 #elif defined _MSC_VER
     unsigned long pos;
     _BitScanReverse(&pos, v);
     return i * 32 + 31 - pos;
 #else
-    BLOCXXI_ASSERT_FAIL();
+    ASAP_ASSERT_FAIL();
     return -1;
 #endif
   }
@@ -79,7 +79,7 @@ int CountLeadingZeroBits_HW(gsl::span<std::uint32_t const> buf) {
 }
 
 int CountLeadingZeroBits(gsl::span<std::uint32_t const> buf) {
-#if BLOCXXI_HAS_BUILTIN_CLZ || defined _MSC_VER
+#if ASAP_HAS_BUILTIN_CLZ || defined _MSC_VER
   return CountLeadingZeroBits_HW(buf);
 #else
   return CountLeadingZeroBits_SW(buf);

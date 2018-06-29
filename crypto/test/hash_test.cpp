@@ -84,7 +84,7 @@ TEST(HashTest, AssignContentFromSpan) {
 
   // Assign with buffer size bigger than hash size will assert fail
   h.Clear();
-#if BLOCXXI_USE_ASSERTS
+#if ASAP_USE_ASSERTS
   ASSERT_DEATH(h.Assign(gsl::make_span<uint8_t>(source), h.begin()),
                "A precondition.*");
 #else
@@ -115,7 +115,7 @@ TEST(HashTest, ConstructFromSpan) {
   ASSERT_TRUE(std::equal(&source[0], &source[4], pos, h2.end()));
 
   // source size > hash size : fatal assertion
-#if BLOCXXI_USE_ASSERTS
+#if ASAP_USE_ASSERTS
   ASSERT_DEATH(Hash<64> h3(gsl::make_span(source)), "A precondition.*");
 #else
   ASSERT_NO_FATAL_FAILURE(Hash<64> h3(gsl::make_span(source)));
