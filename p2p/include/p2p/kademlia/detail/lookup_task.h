@@ -3,8 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_P2P_KADEMLIA_LOOKUP_TASK_H_
-#define BLOCXXI_P2P_KADEMLIA_LOOKUP_TASK_H_
+#pragma once
 
 #include <map>
 #include <ostream>
@@ -196,5 +195,3 @@ inline std::ostream &operator<<(std::ostream &out, BaseLookupTask const &task) {
 }  // namespace kademlia
 }  // namespace p2p
 }  // namespace blocxxi
-
-#endif  // BLOCXXI_P2P_KADEMLIA_LOOKUP_TASK_H_

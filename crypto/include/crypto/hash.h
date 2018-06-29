@@ -3,8 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_CRYPTO_HASH_H_
-#define BLOCXXI_CRYPTO_HASH_H_
+#pragma once
 
 #include <array>     // for std::array
 #include <bitset>    // for std::bitset
@@ -409,5 +408,3 @@ using Hash160 = Hash<160>;  // 20 bytes
 
 }  // namespace crypto
 }  // namespace blocxxi
-
-#endif  // BLOCXXI_CRYPTO_HASH_H_

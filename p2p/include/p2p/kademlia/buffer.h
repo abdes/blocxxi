@@ -3,8 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_P2P_KADEMLIA_BUFFER_H_
-#define BLOCXXI_P2P_KADEMLIA_BUFFER_H_
+#pragma once
 
 #include <cstdint>  // for std::uint8_t
 #include <gsl/gsl>  // for gsl::span<std::uint8_t>
@@ -25,5 +24,3 @@ using BufferReader = gsl::span<std::uint8_t>;
 }  // namespace kademlia
 }  // namespace p2p
 }  // namespace blocxxi
-
-#endif  // BLOCXXI_P2P_KADEMLIA_BUFFER_H_

@@ -3,8 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_P2P_KADEMLIA_BOOTSTRAP_PROCEDURE_H_
-#define BLOCXXI_P2P_KADEMLIA_BOOTSTRAP_PROCEDURE_H_
+#pragma once
 
 #include <memory>
 #include <system_error>
@@ -137,5 +136,3 @@ inline void StartBootstrapProcedure(TNetwork &network,
 }  // namespace kademlia
 }  // namespace p2p
 }  // namespace blocxxi
-
-#endif  // BLOCXXI_P2P_KADEMLIA_BOOTSTRAP_PROCEDURE_H_

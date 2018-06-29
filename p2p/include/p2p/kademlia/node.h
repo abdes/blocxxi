@@ -3,8 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_P2P_KADEMLIA_NODE_H_
-#define BLOCXXI_P2P_KADEMLIA_NODE_H_
+#pragma once
 
 #include <chrono>
 #include <string>
@@ -241,5 +240,3 @@ inline std::ostream &operator<<(std::ostream &out, Node const &node) {
 }  // namespace kademlia
 }  // namespace p2p
 }  // namespace blocxxi
-
-#endif  // BLOCXXI_P2P_KADEMLIA_NODE_H_

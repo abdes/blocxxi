@@ -3,8 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_CRYPTO_KEYPAIR_H_
-#define BLOCXXI_CRYPTO_KEYPAIR_H_
+#pragma once
 
 #include <crypto/hash.h>
 
@@ -43,5 +42,3 @@ class KeyPair {
 
 }  // namespace crypto
 }  // namespace blocxxi
-
-#endif  // BLOCXXI_CRYPTO_KEYPAIR_H_

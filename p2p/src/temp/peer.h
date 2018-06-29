@@ -3,8 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_P2P_KADEMLIA_PEER_H_
-#define BLOCXXI_P2P_KADEMLIA_PEER_H_
+#pragma once
 
 #include <iosfwd>
 
@@ -49,6 +48,3 @@ operator!=
 } // namespace kademlia
 }
 }
-
-#endif // BLOCXXI_P2P_KADEMLIA_PEER_H_
-

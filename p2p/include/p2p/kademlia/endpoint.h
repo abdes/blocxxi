@@ -3,8 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_P2P_KADEMLIA_ENDPOINT_H_
-#define BLOCXXI_P2P_KADEMLIA_ENDPOINT_H_
+#pragma once
 
 #include <iostream>
 
@@ -63,5 +62,3 @@ inline std::ostream &operator<<(std::ostream &os, IpEndpoint const &ep) {
 }  // namespace kademlia
 }  // namespace p2p
 }  // namespace blocxxi
-
-#endif  // BLOCXXI_P2P_KADEMLIA_ENDPOINT_H_
