@@ -65,7 +65,7 @@ class StoreValueTask final : public BaseLookupTask {
         routing_table_(routing_table),
         data_(data),
         save_handler_(std::forward<HandlerType>(save_handler)) {
-    BXLOG(debug, "{} create store value task for '{}'", this->Name(),
+    ASLOG(debug, "{} create store value task for '{}'", this->Name(),
           key.ToHex());
   }
 
@@ -79,7 +79,7 @@ class StoreValueTask final : public BaseLookupTask {
   static void TryToStoreValue(
       std::shared_ptr<StoreValueTask> task,
       std::size_t concurrent_requests_count = PARALLELISM_ALPHA) {
-    BXLOG(debug, "{} trying to find closer peer to store '{}' value",
+    ASLOG(debug, "{} trying to find closer peer to store '{}' value",
           task->Name(), task->Key());
 
     FindNodeRequestBody const request{task->Key()};
@@ -95,7 +95,7 @@ class StoreValueTask final : public BaseLookupTask {
     // we know the closest peers hence ask
     // them to store the value.
     if (task->AllRequestsCompleted()) {
-      BXLOG(debug, "{} task completed -> notify caller", task->Name());
+      ASLOG(debug, "{} task completed -> notify caller", task->Name());
       SendStoreRequests(task);
     }
   }
@@ -106,7 +106,7 @@ class StoreValueTask final : public BaseLookupTask {
   static void SendFindPeerRequest(FindNodeRequestBody const &request,
                                   Node const &current_candidate,
                                   std::shared_ptr<StoreValueTask> task) {
-    BXLOG(debug, "{} sending find peer request to store '{}' to '{}'",
+    ASLOG(debug, "{} sending find peer request to store '{}' to '{}'",
           task->Name(), task->Key(), current_candidate);
 
     // On message received, process it.
@@ -118,7 +118,7 @@ class StoreValueTask final : public BaseLookupTask {
 
     // On error, retry with another endpoint.
     auto on_error = [task, current_candidate](std::error_code const &) {
-      BXLOG(debug, "{} peer {} timed out on find peer request for store value",
+      ASLOG(debug, "{} peer {} timed out on find peer request for store value",
             task->Name(), current_candidate);
       // Invalidate the candidate
       task->MarkCandidateAsInvalid(current_candidate.Id());
@@ -140,11 +140,11 @@ class StoreValueTask final : public BaseLookupTask {
                                      Header const &header,
                                      BufferReader const &buffer,
                                      std::shared_ptr<StoreValueTask> task) {
-    BXLOG(debug, "{} handle response from '{}@{}'", task->Name(),
+    ASLOG(debug, "{} handle response from '{}@{}'", task->Name(),
           header.source_id_, sender);
 
     if (header.type_ != Header::MessageType::FIND_NODE_RESPONSE) {
-      BXLOG(debug, "{} unexpected find peer response (type={})", task->Name(),
+      ASLOG(debug, "{} unexpected find peer response (type={})", task->Name(),
             int(header.type_));
 
       task->MarkCandidateAsInvalid(header.source_id_);
@@ -167,7 +167,7 @@ class StoreValueTask final : public BaseLookupTask {
           response.peers_.end());
       task->AddCandidates(response.peers_);
     } catch (std::exception const &ex) {
-      BXLOG(debug, "{} failed to deserialize find peer response ({})",
+      ASLOG(debug, "{} failed to deserialize find peer response ({})",
             task->Name(), ex.what());
       task->MarkCandidateAsInvalid(header.source_id_);
     }
@@ -195,7 +195,7 @@ class StoreValueTask final : public BaseLookupTask {
    */
   static void SendStoreRequest(Node const &current_candidate,
                                std::shared_ptr<StoreValueTask> task) {
-    BXLOG(debug, "{} send store request of '{}' to '{}'", task->Name(),
+    ASLOG(debug, "{} send store request of '{}' to '{}'", task->Name(),
           task->Key(), current_candidate);
 
     StoreValueRequestBody const request{task->Key(), task->GetData()};

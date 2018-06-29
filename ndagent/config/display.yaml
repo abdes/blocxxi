@@ -1,0 +1,8 @@
+display:
+  title: ASAP Application
+  mode: Windowed
+  size:
+    width: 1632
+    height: 974
+  multi-sampling: -1
+  vsync: true

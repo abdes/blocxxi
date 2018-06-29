@@ -49,29 +49,29 @@ std::size_t RoutingTable::GetBucketIndexFor(const Node::IdType &id) const {
   // When we get here, the routing table should have been properly initialized
   // and thus has at least the initial bucket.
   auto num_buckets = buckets_.size();
-  BLOCXXI_ASSERT(num_buckets > 0);
+  ASAP_ASSERT(num_buckets > 0);
 
   auto bucket = buckets_.begin();
   while (bucket != buckets_.end()) {
     if (bucket->CanHoldNode(id)) {
       std::size_t bucket_index =
           static_cast<std::size_t>(std::distance(buckets_.begin(), bucket));
-      BXLOG(trace, "{} belongs to bucket index={}", id.ToBitStringShort(),
+      ASLOG(trace, "{} belongs to bucket index={}", id.ToBitStringShort(),
             bucket_index);
       return bucket_index;
     }
     ++bucket;
   }
-  BLOCXXI_ASSERT_FAIL();
+  ASAP_ASSERT_FAIL();
   return num_buckets - 1;
 }
 
 bool RoutingTable::AddPeer(Node &&node) {
-  BXLOG(trace, "ADD CONTACT [ {} ]: {} / logdist: {}", this->ToString(),
+  ASLOG(trace, "ADD CONTACT [ {} ]: {} / logdist: {}", this->ToString(),
         node.Id().ToBitStringShort(), my_node_.LogDistanceTo(node));
   // Don't add our node
   if (my_node_ == node) {
-    BXLOG(debug, "Unexpected attempt to add our node to the routing table.");
+    ASLOG(debug, "Unexpected attempt to add our node to the routing table.");
     return true;
   }
   auto bucket_index = GetBucketIndexFor(node.Id());
@@ -81,7 +81,7 @@ bool RoutingTable::AddPeer(Node &&node) {
 
   // This will return true unless the bucket is full
   if (bucket->AddNode(std::move(node))) {
-    BXLOG(trace, "Buckets [ {}]", this->ToString());
+    ASLOG(trace, "Buckets [ {}]", this->ToString());
     return true;
   }
 
@@ -99,19 +99,19 @@ bool RoutingTable::AddPeer(Node &&node) {
   // Only the last bucket has in range the routing node (my_node_)
   auto bucket_has_in_range_my_node = (bucket_index == (buckets_.size() - 1));
   can_split |= bucket_has_in_range_my_node;
-  BXLOG(trace, "|| bucket has in range my node? {} --> split={}",
+  ASLOG(trace, "|| bucket has in range my node? {} --> split={}",
         bucket_has_in_range_my_node, can_split);
   can_split |= shared_prefix_test;
-  BXLOG(trace, "|| shared prefix size % {} != 0? {} --> split={}", DEPTH_B,
+  ASLOG(trace, "|| shared prefix size % {} != 0? {} --> split={}", DEPTH_B,
         shared_prefix_test, can_split);
   can_split &= (buckets_.size() < 160);
-  BXLOG(trace, "&& we have {} less than 160 buckets? {} --> split={}",
+  ASLOG(trace, "&& we have {} less than 160 buckets? {} --> split={}",
         buckets_.size(), buckets_.size() < 160, can_split);
 
   // Should we split?
   // Don't split the first bucket unles it's the first split ever
   can_split &= !(buckets_.size() > 1 && bucket_index == 0);
-  BXLOG(trace, "&& not the first bucket? {} --> split={}",
+  ASLOG(trace, "&& not the first bucket? {} --> split={}",
         !(buckets_.size() > 1 && bucket_index == 0), can_split);
 
   if (can_split) {
@@ -140,7 +140,7 @@ bool RoutingTable::PeerTimedOut(Node const &peer) {
     for (auto bn = bucket->begin(); bn != bucket->end(); ++bn) {
       if (bn->Id() == peer.Id()) {
         bn->IncFailuresCount();
-        BXLOG(debug, "node {} failed to respond for {} times", bn->ToString(),
+        ASLOG(debug, "node {} failed to respond for {} times", bn->ToString(),
               bn->FailuresCount());
         if (bn->IsStale()) {
           bucket->RemoveNode(bn);
@@ -156,7 +156,7 @@ bool RoutingTable::PeerTimedOut(Node const &peer) {
 
 std::vector<Node> RoutingTable::FindNeighbors(Node::IdType const &id,
                                               std::size_t k) const {
-  BXLOG(trace, "try to find up to {} neighbors for {}", k,
+  ASLOG(trace, "try to find up to {} neighbors for {}", k,
         id.ToBitStringShort());
   auto cmp = [&id](Node const &a, Node const &b) {
     return a.DistanceTo(id) < b.DistanceTo(id);
@@ -180,12 +180,12 @@ std::vector<Node> RoutingTable::FindNeighbors(Node::IdType const &id,
       // Exclude the node
       if (neighbor.Id() != id) {
         ++count;
-        BXLOG(debug, "found neighbor(count={}) {}", count,
+        ASLOG(debug, "found neighbor(count={}) {}", count,
               neighbor.Id().ToBitStringShort());
         neighbors.insert(neighbor);
         if (count == k) goto Done;
       } else {
-        BXLOG(debug, "skip caller node from neighbors list");
+        ASLOG(debug, "skip caller node from neighbors list");
       }
     }
 
@@ -209,7 +209,7 @@ std::vector<Node> RoutingTable::FindNeighbors(Node::IdType const &id,
     use_left = true;
   }
 Done:
-  BXLOG(debug, "found {} neighbors out of {} non-replacement nodes I know",
+  ASLOG(debug, "found {} neighbors out of {} non-replacement nodes I know",
         neighbors.size(), this->NodesCount());
   return std::vector<Node>(neighbors.begin(), neighbors.end());
 }
@@ -223,11 +223,11 @@ std::string RoutingTable::ToString() const {
 }
 
 void RoutingTable::DumpToLog() const {
-  BXLOG(trace, "START----------------------------------------------------");
+  ASLOG(trace, "START----------------------------------------------------");
   for (auto &b : buckets_) {
     b.DumpBucketToLog();
   }
-  BXLOG(trace, "END------------------------------------------------------");
+  ASLOG(trace, "END------------------------------------------------------");
 }
 
 std::ostream &operator<<(std::ostream &out, RoutingTable const &rt) {

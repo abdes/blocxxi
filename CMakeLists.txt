@@ -23,6 +23,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 # List of directories specifying a search path for CMake modules to be loaded by
 # the the include() or find_package() commands before checking the default modules
 # that come with CMake.
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/common/cmake)
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 include(ExternalProject)
@@ -113,6 +114,7 @@ SET(CRYPTOPP_BUILD_SHARED OFF CACHE BOOL "Build shared library")
 SET(CRYPTOPP_BUILD_TESTING OFF CACHE BOOL "Build library tests")
 include(External_cryptopp)
 
+add_subdirectory(third_party)
 
 # ------------------------------------------------------------------------------
 # Clang Tidy
@@ -270,7 +272,6 @@ endif ()
 
 
 # Project modules
-add_subdirectory(third_party)
 add_subdirectory(common)
 add_subdirectory(codec)
 add_subdirectory(crypto)

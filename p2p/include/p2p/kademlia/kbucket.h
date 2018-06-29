@@ -33,7 +33,7 @@ namespace kademlia {
  * @see https://pdos.csail.mit.edu/~petar/papers/maymounkov-kademlia-lncs.pdf
  */
 class KBucket
-    : public blocxxi::logging::Loggable<blocxxi::logging::Id::P2P_KADEMLIA> {
+    : public asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
  public:
   /*!
    * Represents an iterator over the nodes in a bucket.

@@ -22,9 +22,9 @@ inline void SerializeInteger(IntegerType value, Buffer &b) {
   // Cast the integer as unsigned for right shifting.
   using unsigned_integer_type = typename std::make_unsigned<IntegerType>::type;
 
-  // BXLOG_MISC(debug, "serialize integer {}", value);
+  // ASLOG_MISC(debug, "serialize integer {}", value);
   for (auto i = 0u; i < sizeof(value); ++i) {
-    // BXLOG_MISC(debug, "  write one byte: {}", Buffer::value_type(value));
+    // ASLOG_MISC(debug, "  write one byte: {}", Buffer::value_type(value));
     b.push_back(Buffer::value_type(value));
     static_cast<unsigned_integer_type &>(value) >>= 8;
   }
@@ -33,14 +33,14 @@ inline void SerializeInteger(IntegerType value, Buffer &b) {
 template <typename IntegerType>
 std::size_t DeserializeInteger(BufferReader const &buffer, IntegerType &value) {
   value = 0;
-  // BXLOG_MISC(debug, "deserialize integer");
+  // ASLOG_MISC(debug, "deserialize integer");
 
   if (buffer.size_bytes() < sizeof(value)) {
     throw std::range_error("insufficient data in input buffer");
   }
   auto data = buffer.cbegin();
   for (auto ii = 0u; ii < sizeof(value); ++ii) {
-    // BXLOG_MISC(debug, "  read one byte: {}", *data);
+    // ASLOG_MISC(debug, "  read one byte: {}", *data);
     value |= IntegerType{*data++} << 8 * ii;
   }
 
@@ -66,7 +66,7 @@ inline std::size_t Deserialize(BufferReader const &buffer,
 }
 
 inline void Serialize(blocxxi::crypto::Hash160 const &i, Buffer &b) {
-  // BXLOG_MISC(debug, "serialize hash 160");
+  // ASLOG_MISC(debug, "serialize hash 160");
   b.insert(b.end(), i.begin(), i.end());
 }
 
@@ -75,7 +75,7 @@ inline std::size_t Deserialize(BufferReader const &buffer,
   if (buffer.size_bytes() < blocxxi::crypto::Hash160::Size()) {
     throw std::range_error("insufficient data in input buffer");
   }
-  // BXLOG_MISC(debug, "deserialize hash 160");
+  // ASLOG_MISC(debug, "deserialize hash 160");
   std::copy_n(buffer.begin(), blocxxi::crypto::Hash160::Size(), new_id.begin());
 
   return blocxxi::crypto::Hash160::Size();
@@ -88,7 +88,7 @@ inline std::size_t Deserialize(BufferReader const &buffer,
     throw std::range_error("insufficient data in input buffer");
   }
   auto first_byte = *buffer.cbegin();
-  // BXLOG_MISC(debug, "deserialize header version/type {}", first_byte);
+  // ASLOG_MISC(debug, "deserialize header version/type {}", first_byte);
   version = static_cast<Header::Version>(first_byte >> 4);
   message_type = static_cast<Header::MessageType>(first_byte & 0xf);
 
@@ -106,14 +106,14 @@ enum {
 };
 
 inline void Derialize(boost::asio::ip::address const &address, Buffer &b) {
-  // BXLOG_MISC(debug, "serialize address {} is_v4={}", address.to_string(),
+  // ASLOG_MISC(debug, "serialize address {} is_v4={}", address.to_string(),
   //           address.is_v4());
   if (address.is_v4()) {
     b.push_back(KADEMLIA_ENDPOINT_SERIALIZATION_IPV4);
     auto const &a = address.to_v4().to_bytes();
     b.insert(b.end(), a.begin(), a.end());
   } else {
-    BLOCXXI_ASSERT(address.is_v6() && "unknown IP version");
+    ASAP_ASSERT(address.is_v6() && "unknown IP version");
     b.push_back(KADEMLIA_ENDPOINT_SERIALIZATION_IPV6);
     auto const &a = address.to_v6().to_bytes();
     b.insert(b.end(), a.begin(), a.end());
@@ -146,14 +146,14 @@ inline std::size_t Deserialize(BufferReader const &buffer,
 
   auto const protocol = buffer[0];
   std::size_t consumed = 1;
-  // BXLOG_MISC(debug, "deserialize address protocol={}", protocol);
+  // ASLOG_MISC(debug, "deserialize address protocol={}", protocol);
   if (protocol == KADEMLIA_ENDPOINT_SERIALIZATION_IPV4) {
     boost::asio::ip::address_v4 a;
     consumed += DeserializeAddress(buffer.subspan(consumed), a);
 
     address = a;
   } else {
-    BLOCXXI_ASSERT_VAL((protocol == KADEMLIA_ENDPOINT_SERIALIZATION_IPV6 &&
+    ASAP_ASSERT_VAL((protocol == KADEMLIA_ENDPOINT_SERIALIZATION_IPV6 &&
                         "unknown IP version"),
                        (int)protocol);
 
@@ -212,14 +212,14 @@ std::ostream &operator<<(std::ostream &out, Header const &header) {
 }
 
 void Serialize(Header const &h, Buffer &b) {
-  // BXLOG_MISC(debug, "serialize header version/type");
+  // ASLOG_MISC(debug, "serialize header version/type");
   b.push_back(ToUnderlying(h.version_) << 4 | ToUnderlying(h.type_));
   Serialize(h.source_id_, b);
   Serialize(h.random_token_, b);
 }
 
 std::size_t Deserialize(BufferReader const &buffer, Header &header) {
-  // BXLOG_MISC(debug, "deserialize header");
+  // ASLOG_MISC(debug, "deserialize header");
   auto consumed = Deserialize(buffer, header.version_, header.type_);
   consumed += Deserialize(buffer.subspan(consumed), header.source_id_);
   consumed += Deserialize(buffer.subspan(consumed), header.random_token_);

@@ -37,7 +37,7 @@ namespace kademlia {
  * is simply discarded.
  */
 class ResponseDispatcher final
-    : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
+    : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
  public:
   /// @name Type shortcuts
   //@{
@@ -54,7 +54,7 @@ class ResponseDispatcher final
   //@{
   explicit ResponseDispatcher(boost::asio::io_context &io_context)
       : callbacks_(), timer_(io_context) {
-    BXLOG(debug, "Creating ResponseDispatcher DONE");
+    ASLOG(debug, "Creating ResponseDispatcher DONE");
   }
 
   ResponseDispatcher(ResponseDispatcher const &) = delete;
@@ -63,7 +63,7 @@ class ResponseDispatcher final
   ResponseDispatcher(ResponseDispatcher &&) = default;
   ResponseDispatcher &operator=(ResponseDispatcher &&) = default;
 
-  ~ResponseDispatcher() { BXLOG(debug, "Destroy ResponseDispatcher"); }
+  ~ResponseDispatcher() { ASLOG(debug, "Destroy ResponseDispatcher"); }
   //@}
 
   /*!
@@ -83,7 +83,7 @@ class ResponseDispatcher final
     auto failure = DispatchResponse(sender, header, buffer);
     if (failure == UNASSOCIATED_MESSAGE_ID) {
       // Discard responses for which we have no registered callback
-      BXLOG(debug, "dropping response with no registered callback");
+      ASLOG(debug, "dropping response with no registered callback");
     }
   }
 
@@ -113,7 +113,7 @@ class ResponseDispatcher final
       KeyType const &response_id, Timer::DurationType const &callback_ttl,
       OnResponseCallbackType const &on_response_received,
       OnErrorCallbackType const &on_error) {
-    BXLOG(trace, "  register response callback with timeout");
+    ASLOG(trace, "  register response callback with timeout");
     // Associate the response id with the on_response_received callback.
     AddCallback(response_id, on_response_received);
 
@@ -123,8 +123,8 @@ class ResponseDispatcher final
       // actually be removed by the next call to RemoveCallback indicating that
       // a response has never been received.
       if (RemoveCallback(response_id)) {
-        BXLOG(trace, "  removed timed out response callback");
-        BXLOG(trace, "  invoking error handler");
+        ASLOG(trace, "  removed timed out response callback");
+        ASLOG(trace, "  invoking error handler");
         on_error(make_error_code(std::errc::timed_out));
       }
     });
@@ -144,7 +144,7 @@ class ResponseDispatcher final
     // auto i = callbacks_.emplace(response_id, on_response_received);
     //(void)i;
     // assert(i.second && "an id can't be registered twice");
-    BXLOG(debug, "  add callback to map {}", callbacks_.size());
+    ASLOG(debug, "  add callback to map {}", callbacks_.size());
     callbacks_.emplace(response_id, on_response_received);
   }
 
@@ -185,7 +185,7 @@ class ResponseDispatcher final
     callback->second(sender, header, buffer);
     // It's always a one time call, so remove the callback after invoking it.
     callbacks_.erase(callback);
-    BXLOG(debug, "  removed response callback");
+    ASLOG(debug, "  removed response callback");
 
     return std::error_code{};
   }

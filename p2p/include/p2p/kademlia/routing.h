@@ -44,7 +44,7 @@ namespace kademlia {
  * @see https://en.wikipedia.org/wiki/Kademlia
  * @see https://pdos.csail.mit.edu/~petar/papers/maymounkov-kademlia-lncs.pdf
  */
-class RoutingTable : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
+class RoutingTable : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
  public:
   /*!
    * Represents an iterator over the buckets in the routing table.

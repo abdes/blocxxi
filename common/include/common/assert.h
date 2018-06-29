@@ -8,135 +8,135 @@
 #include <common/config.h>
 
 #if defined __GNUC__ || defined __clang__
-#define BLOCXXI_FORMAT(fmt, ellipsis) \
+#define ASAP_FORMAT(fmt, ellipsis) \
   __attribute__((__format__(__printf__, fmt, ellipsis)))
 #else
-#define BLOCXXI_FORMAT(fmt, ellipsis)
+#define ASAP_FORMAT(fmt, ellipsis)
 #endif
 
 
-#if BLOCXXI_USE_ASSERTS
+#if ASAP_USE_ASSERTS
 
 
 #include <string>
-namespace blocxxi {
+namespace asap {
 void print_backtrace(char* out, int len, int max_depth = 0,
                      void* ctx = nullptr);
-}  // namespace blocxxi
+}  // namespace asap
 #endif
 
 // This is to disable the warning of conditional expressions
 // being constant in msvc
 // clang-format off
 #ifdef _MSC_VER
-#define BLOCXXI_WHILE_0  \
+#define ASAP_WHILE_0  \
 	__pragma( warning(push) ) \
 	__pragma( warning(disable:4127) ) \
 	while (false) \
 	__pragma( warning(pop) )
 #else
-#define BLOCXXI_WHILE_0 while (false)
+#define ASAP_WHILE_0 while (false)
 #endif
 // clang-format on
 
-namespace blocxxi {
+namespace asap {
 // declarations of the two functions
 
 // internal
-void assert_print(char const* fmt, ...) BLOCXXI_FORMAT(1, 2);
+void assert_print(char const* fmt, ...) ASAP_FORMAT(1, 2);
 
 // internal
 void assert_fail(const char* expr, int line, char const* file,
                  char const* function, char const* val, int kind = 0);
 
-}  // namespace blocxxi
+}  // namespace asap
 
-#if BLOCXXI_USE_ASSERTS
+#if ASAP_USE_ASSERTS
 
-#ifdef BLOCXXI_PRODUCTION_ASSERTS
-extern char const* blocxxi_assert_log;
+#ifdef ASAP_PRODUCTION_ASSERTS
+extern char const* asap_assert_log;
 #endif
 
-#if BLOCXXI_USE_IOSTREAM
+#if ASAP_USE_IOSTREAM
 #include <sstream>
 #endif
 
-#ifndef BLOCXXI_USE_SYSTEM_ASSERTS
+#ifndef ASAP_USE_SYSTEM_ASSERTS
 
-#define BLOCXXI_ASSERT_PRECOND(x)                                             \
+#define ASAP_ASSERT_PRECOND(x)                                             \
   do {                                                                        \
     if (x) {                                                                  \
     } else                                                                    \
-      blocxxi::assert_fail(#x, __LINE__, __FILE__, BLOCXXI_FUNCTION, nullptr, \
+      asap::assert_fail(#x, __LINE__, __FILE__, ASAP_FUNCTION, nullptr, \
                            1);                                                \
   }                                                                           \
-  BLOCXXI_WHILE_0
+  ASAP_WHILE_0
 
-#define BLOCXXI_ASSERT(x)                                                     \
+#define ASAP_ASSERT(x)                                                     \
   do {                                                                        \
     if (x) {                                                                  \
     } else                                                                    \
-      blocxxi::assert_fail(#x, __LINE__, __FILE__, BLOCXXI_FUNCTION, nullptr, \
+      asap::assert_fail(#x, __LINE__, __FILE__, ASAP_FUNCTION, nullptr, \
                            0);                                                \
   }                                                                           \
-  BLOCXXI_WHILE_0
+  ASAP_WHILE_0
 
-#define BLOCXXI_ASSERT_VAL(x, y)                                     \
+#define ASAP_ASSERT_VAL(x, y)                                     \
   do {                                                               \
     if (x) {                                                         \
     } else {                                                         \
       std::stringstream __s__;                                       \
       __s__ << #y ": " << y;                                         \
-      blocxxi::assert_fail(#x, __LINE__, __FILE__, BLOCXXI_FUNCTION, \
+      asap::assert_fail(#x, __LINE__, __FILE__, ASAP_FUNCTION, \
                            __s__.str().c_str(), 0);                  \
     }                                                                \
   }                                                                  \
-  BLOCXXI_WHILE_0
+  ASAP_WHILE_0
 
-#define BLOCXXI_ASSERT_FAIL_VAL(y)                                  \
+#define ASAP_ASSERT_FAIL_VAL(y)                                  \
   do {                                                              \
     std::stringstream __s__;                                        \
     __s__ << #y ": " << y;                                          \
-    blocxxi::assert_fail("<unconditional>", __LINE__, __FILE__,     \
-                         BLOCXXI_FUNCTION, __s__.str().c_str(), 0); \
+    asap::assert_fail("<unconditional>", __LINE__, __FILE__,     \
+                         ASAP_FUNCTION, __s__.str().c_str(), 0); \
   }                                                                 \
-  BLOCXXI_WHILE_0
+  ASAP_WHILE_0
 
 
-#define BLOCXXI_ASSERT_FAIL()                                 \
-  blocxxi::assert_fail("<unconditional>", __LINE__, __FILE__, \
-                       BLOCXXI_FUNCTION, nullptr, 0)
+#define ASAP_ASSERT_FAIL()                                 \
+  asap::assert_fail("<unconditional>", __LINE__, __FILE__, \
+                       ASAP_FUNCTION, nullptr, 0)
 
 #else
 #include <cassert>
-#define BLOCXXI_ASSERT_PRECOND(x) assert(x)
-#define BLOCXXI_ASSERT(x) assert(x)
-#define BLOCXXI_ASSERT_VAL(x, y) assert(x)
-#define BLOCXXI_ASSERT_FAIL_VAL(x) assert(false)
-#define BLOCXXI_ASSERT_FAIL() assert(false)
+#define ASAP_ASSERT_PRECOND(x) assert(x)
+#define ASAP_ASSERT(x) assert(x)
+#define ASAP_ASSERT_VAL(x, y) assert(x)
+#define ASAP_ASSERT_FAIL_VAL(x) assert(false)
+#define ASAP_ASSERT_FAIL() assert(false)
 #endif
 
-#else  // BLOCXXI_USE_ASSERTS
+#else  // ASAP_USE_ASSERTS
 
-#define BLOCXXI_ASSERT_PRECOND(a) \
+#define ASAP_ASSERT_PRECOND(a) \
   do {                            \
   }                               \
-  BLOCXXI_WHILE_0
-#define BLOCXXI_ASSERT(a) \
+  ASAP_WHILE_0
+#define ASAP_ASSERT(a) \
   do {                    \
   }                       \
-  BLOCXXI_WHILE_0
-#define BLOCXXI_ASSERT_VAL(a, b) \
+  ASAP_WHILE_0
+#define ASAP_ASSERT_VAL(a, b) \
   do {                           \
   }                              \
-  BLOCXXI_WHILE_0
-#define BLOCXXI_ASSERT_FAIL_VAL(a) \
+  ASAP_WHILE_0
+#define ASAP_ASSERT_FAIL_VAL(a) \
   do {                             \
   }                                \
-  BLOCXXI_WHILE_0
-#define BLOCXXI_ASSERT_FAIL() \
+  ASAP_WHILE_0
+#define ASAP_ASSERT_FAIL() \
   do {                        \
   }                           \
-  BLOCXXI_WHILE_0
+  ASAP_WHILE_0
 
-#endif  // BLOCXXI_USE_ASSERTS
+#endif  // ASAP_USE_ASSERTS

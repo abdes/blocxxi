@@ -32,20 +32,20 @@ bool KBucket::AddNode(Node &&node) {
       [&node](Node const &bucket_node) { return (bucket_node == node); });
   if (found != nodes_.end()) {
     nodes_.erase(found);
-    BXLOG(trace, "replacing existing node");
+    ASLOG(trace, "replacing existing node");
     // Section 2.2: Most recently seen node always at the tail of the list
     nodes_.emplace_back(std::move(node));
   } else if (!Full()) {
     // If this is a new node and we still have space available in the bucket,
     // push to tail (Most recently seen node)
     nodes_.emplace_back(std::move(node));
-    BXLOG(trace, "previously unseen node added to the bucket");
+    ASLOG(trace, "previously unseen node added to the bucket");
   } else {
     // If no space available, store as a replacement node, at the tail (Most
     // recently seen node)
     // TODO: Do we need to limit the size of replacement nodes list
     replacement_nodes_.emplace_back(std::move(node));
-    BXLOG(trace, "bucket is full, node added to replacements");
+    ASLOG(trace, "bucket is full, node added to replacements");
     return false;
   }
   TouchLastUpdated();
@@ -63,7 +63,7 @@ void KBucket::RemoveNode(Node const &node) {
   if (node_found != end()) {
     RemoveNode(node_found);
   } else {
-    BXLOG(trace,
+    ASLOG(trace,
           "node being removed is not in the bucket, perhaps replacement");
     // Maybe it's a replacement node..
     auto replacement_found =
@@ -73,9 +73,9 @@ void KBucket::RemoveNode(Node const &node) {
                      });
     if (replacement_found != replacement_nodes_.end()) {
       replacement_nodes_.erase(replacement_found);
-      BXLOG(trace, "node is a replacement and it has been removed");
+      ASLOG(trace, "node is a replacement and it has been removed");
     } else {
-      BXLOG(warn,
+      ASLOG(warn,
             "Node requested to be removed is not in the bucket and is not a "
             "replacement url={}",
             node.ToString());
@@ -87,9 +87,9 @@ void KBucket::RemoveNode(KBucket::iterator &node_iter) {
   TouchLastUpdated();
 
   nodes_.erase(node_iter.base());
-  BXLOG(trace, "node removed from bucket");
+  ASLOG(trace, "node removed from bucket");
   if (!replacement_nodes_.empty()) {
-    BXLOG(trace, "moving one replacement node to the bucket");
+    ASLOG(trace, "moving one replacement node to the bucket");
     nodes_.emplace_back(std::move(replacement_nodes_.back()));
     replacement_nodes_.pop_back();
   }
@@ -106,7 +106,7 @@ bool KBucket::CanHoldNode(const Node::IdType &id) const {
 }
 
 std::pair<KBucket, KBucket> KBucket::Split() {
-  BXLOG(trace,
+  ASLOG(trace,
         "Splitting bucket prefix= {} depth={} entries={} replacements={}",
         prefix_.to_string().substr(0, prefix_size_), depth_, nodes_.size(),
         replacement_nodes_.size());
@@ -126,7 +126,7 @@ std::pair<KBucket, KBucket> KBucket::Split() {
   one.prefix_size_ = prefix_size_ + 1;
   two.prefix_size_ = prefix_size_ + 1;
 
-  BXLOG(trace, "distributing {} nodes over the two new buckets", nodes_.size());
+  ASLOG(trace, "distributing {} nodes over the two new buckets", nodes_.size());
   // Distribute nodes among the two buckets based on their ID prefix.
   // After completed, ensure that most recently seen nodes from the bucket being
   // split (tail) are placed at the tail of the destination bucket.
@@ -142,7 +142,7 @@ std::pair<KBucket, KBucket> KBucket::Split() {
   // need to put replacements into the buckets now. This would make a clean
   // split and avoid interfering with the replacements processing.
   if (HasReplacements()) {
-    BXLOG(trace, "distributing {} replacement nodes over the two new buckets",
+    ASLOG(trace, "distributing {} replacement nodes over the two new buckets",
           replacement_nodes_.size());
     for (Node &node : replacement_nodes_) {
       KBucket &bucket = one.CanHoldNode(node.Id()) ? one : two;
@@ -151,7 +151,7 @@ std::pair<KBucket, KBucket> KBucket::Split() {
     // Clear the the bucket that was just split
     replacement_nodes_.clear();
   } else {
-    BXLOG(trace, "No replacement nodes to distribute");
+    ASLOG(trace, "No replacement nodes to distribute");
   }
 
   return std::make_pair<KBucket, KBucket>(std::move(one), std::move(two));
@@ -167,24 +167,24 @@ struct NodeDistanceComparator {
 };
 
 void KBucket::DumpBucketToLog() const {
-  BXLOG(trace,
+  ASLOG(trace,
         "depth: {} / prefix: {} / entries: {} / replacements: {} / ksize: {}",
         depth_, prefix_.to_string().substr(0, prefix_size_), nodes_.size(),
         replacement_nodes_.size(), ksize_);
-  BXLOG(trace, "my node : {}...",
+  ASLOG(trace, "my node : {}...",
         my_node_.Id().ToBitSet().to_string().substr(0, 32));
   // Sort node Ids by distance from my_node_
   std::set<Node, NodeDistanceComparator> sorted(
       nodes_.begin(), nodes_.end(), NodeDistanceComparator(my_node_));
   for (auto const &node : sorted) {
-    BXLOG(trace, "          {} / logdist: {} / fails: {}",
+    ASLOG(trace, "          {} / logdist: {} / fails: {}",
           node.Id().ToBitStringShort(), my_node_.LogDistanceTo(node),
           node.FailuresCount());
   }
 }
 
 Node const &KBucket::SelectRandomNode() const {
-  BLOCXXI_ASSERT(!nodes_.empty());
+  ASAP_ASSERT(!nodes_.empty());
 
   auto node_iter = nodes_.cbegin();
   std::random_device rd;  // only used once to initialise (seed) engine

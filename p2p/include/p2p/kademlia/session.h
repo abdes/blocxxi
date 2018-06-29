@@ -18,7 +18,7 @@ namespace p2p {
 namespace kademlia {
 
 template <typename TEngine>
-class Session final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
+class Session final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
  public:
   using EngineType = TEngine;
   ///
@@ -32,7 +32,7 @@ class Session final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
  public:
   explicit Session(boost::asio::io_context &io_context, EngineType &&engine)
       : io_context_(io_context), engine_(std::move(engine)) {
-    BXLOG(debug, "Creating Session DONE");
+    ASLOG(debug, "Creating Session DONE");
   }
 
   Session(Session const &) = delete;
@@ -41,12 +41,12 @@ class Session final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
   Session(Session &&) = default;
   Session &operator=(Session &&) = default;
 
-  ~Session() { BXLOG(debug, "Destroy Session"); }
+  ~Session() { ASLOG(debug, "Destroy Session"); }
 
   EngineType const &GetEngine() const { return engine_; }
 
   void Start() {
-    BXLOG(debug, "Session Start");
+    ASLOG(debug, "Session Start");
     engine_.Start();
   }
 
@@ -59,7 +59,7 @@ class Session final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
     }
   */
   void Stop() {
-    BXLOG(debug, "Session Stop");
+    ASLOG(debug, "Session Stop");
     engine_.Stop();
   }
 

@@ -1,4 +1,4 @@
-//    Copyright The Blocxxi Project Authors 2018.
+//    Copyright The asap Project Authors 2018.
 //    Distributed under the 3-Clause BSD License.
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
@@ -10,7 +10,7 @@
 
 struct ImFont;
 
-namespace blocxxi {
+namespace asap {
 namespace debug {
 namespace ui {
 
@@ -20,7 +20,7 @@ class Font final {
   static std::string const FAMILY_PROPORTIONAL;
 
   enum class Size {
-    SMALL = 10,   // 10px
+    SMALL = 11,   // 11px
     MEDIUM = 13,  // 13px
     LARGE = 16,   // 16px
     LARGER = 24,  // 20px
@@ -34,13 +34,13 @@ class Font final {
   enum class Weight { LIGHT, REGULAR, BOLD };
   static char const *WeightString(Font::Weight weight);
 
-  Font(std::string family);
+  explicit Font(std::string family);
   Font(Font const &other);
   Font &operator=(Font const &rhs);
-  Font(Font &&moved);
-  Font &operator=(Font &&moved);
+  Font(Font &&moved) noexcept;
+  Font &operator=(Font &&moved) noexcept;
   void swap(Font &other);
-  ~Font();
+  ~Font() = default;
 
   std::string const &Name() const { return name_; }
   ImFont *ImGuiFont() { return font_; }
@@ -77,11 +77,15 @@ class Theme {
 
   static ImFont *GetIconsFont() { return icons_font_normal_; }
 
+  static void SaveStyle();
+  static void LoadStyle();
+
+  static void LoadDefaultStyle();
+
  private:
-  Theme() {}
+  Theme() = default;
 
   static void LoadDefaultFonts();
-  static void LoadColors();
 
   static void AddFont(std::string const &name, ImFont *font);
 
@@ -91,4 +95,4 @@ class Theme {
 
 }  // namespace ui
 }  // namespace debug
-}  // namespace blocxxi
+}  // namespace asap

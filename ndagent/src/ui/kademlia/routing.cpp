@@ -14,6 +14,8 @@
 #include <ui/fonts/material_design_icons.h>
 #include <ui/style/theme.h>
 
+using asap::debug::ui::Font;
+
 namespace blocxxi {
 namespace debug {
 namespace ui {
@@ -22,8 +24,6 @@ void ShowRoutingInfo(char const* title,
                      p2p::kademlia::RoutingTable const& router,
                      bool* open = nullptr) {
   ImGui::SetNextWindowPos(ImVec2(600, 0), ImGuiCond_Once);
-
-  ImGui::Begin(title, open);
 
   ImGui::BeginChild("left pane", ImVec2(300, 0), true);
   {
@@ -51,12 +51,12 @@ void ShowRoutingInfo(char const* title,
       font.LargeSize().Regular().Normal();
       ImGui::PushFont(font.ImGuiFont());
 
-	  static auto selected_bucket = -1;
-	  static auto selected_node = -1;
+      static auto selected_bucket = -1;
+      static auto selected_node = -1;
 
       if (ImGui::TreeNode(
-              ("Buckets (" + std::to_string(router.BucketsCount()) + ")")
-                  .c_str())) {
+          ("Buckets (" + std::to_string(router.BucketsCount()) + ")")
+              .c_str())) {
         auto index = 0;
         for (auto const& bucket : router) {
           std::ostringstream ostr;
@@ -66,7 +66,7 @@ void ShowRoutingInfo(char const* title,
           ImGui::PushFont(font.ImGuiFont());
           if (ImGui::Selectable(ostr.str().c_str(), selected_bucket == index)) {
             selected_bucket = index;
-			selected_node = -1;
+            selected_node = -1;
           }
           ImGui::PopFont();
           ++index;
@@ -75,8 +75,8 @@ void ShowRoutingInfo(char const* title,
       }
 
       if (ImGui::TreeNode(
-              ("Nodes (" + std::to_string(router.NodesCount()) + ")")
-                  .c_str())) {
+          ("Nodes (" + std::to_string(router.NodesCount()) + ")")
+              .c_str())) {
         auto index = 0;
         for (auto const& bucket : router) {
           for (auto const& node : bucket) {
@@ -86,8 +86,8 @@ void ShowRoutingInfo(char const* title,
             ImGui::PushFont(font.ImGuiFont());
             if (ImGui::Selectable(ostr.str().c_str(), selected_node == index)) {
               selected_node = index;
-			  selected_bucket = -1;
-			}
+              selected_bucket = -1;
+            }
             ImGui::PopFont();
             ++index;
           }
@@ -106,8 +106,6 @@ void ShowRoutingInfo(char const* title,
         "This will contain the details...");
   }
   ImGui::EndChild();
-
-  ImGui::End();
 }
 
 }  // namespace ui

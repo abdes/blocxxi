@@ -13,7 +13,7 @@
 #include <spdlog/fmt/ostr.h>  // for user defined objects logging
 #include <spdlog/spdlog.h>
 
-namespace blocxxi {
+namespace asap {
 namespace logging {
 
 // ---------------------------------------------------------------------------
@@ -47,7 +47,7 @@ enum class Id {
 /**
  * @brief Logger wrapper for a spdlog logger.
  */
-class Logger : private blocxxi::NonCopiable {
+class Logger : private asap::NonCopiable {
  public:
   /* This is simple mapping between Logger severity levels and spdlog severity
    * levels. The only reason for this mapping is to go around the fact that
@@ -67,7 +67,7 @@ class Logger : private blocxxi::NonCopiable {
 
   /// Move constructor
   Logger(Logger &&other) noexcept
-      : logger_(std::move(other.logger_)),
+      : id_(other.id_), logger_(std::move(other.logger_)),
         logger_mutex_(std::move(other.logger_mutex_)){};
 
   /// Move assignment
@@ -94,11 +94,21 @@ class Logger : private blocxxi::NonCopiable {
   const std::string &Name() const { return logger_->name(); }
 
   /*!
+   * @brief Get this logger's id.
+   *
+   * @return the logger id.
+   * @see Id
+   */
+  logging::Id Id() const { return id_; }
+
+  /*!
    * @brief Set the logging level for this logger (e.g. debug, warning...).
    *
    * @param [in] level logging level.
    */
-  void setLevel(spdlog::level::level_enum level) { logger_->set_level(level); }
+  void Level(spdlog::level::level_enum level) { logger_->set_level(level); }
+
+  spdlog::level::level_enum Level() const { return logger_->level(); }
 
   /// Default format for all loggers.
   /// @see https://github.com/gabime/spdlog/wiki/3.-Custom-formatting
@@ -123,8 +133,10 @@ class Logger : private blocxxi::NonCopiable {
    * @see Registry::GetLogger(Id)
    * @see Id
    */
-  Logger(std::string name, spdlog::sink_ptr sink);
+  Logger(std::string name, logging::Id id, spdlog::sink_ptr sink);
 
+  /// The logger id
+  logging::Id id_;
   /// The underlying spdlog::logger instance.
   std::shared_ptr<spdlog::logger> logger_;
   /// Synchronization lock used to synchronize logging over this logger from
@@ -236,20 +248,20 @@ class DelegatingSink : public spdlog::sinks::base_sink<std::mutex>,
  * ```
  * {
  *   auto &logger =
- *     blocxxi::logging::Registry::GetLogger(blocxxi::logging::Id::TESTING);
- *   BXLOG_TO_LOGGER(debug, "starting...");
+ *     asap::logging::Registry::GetLogger(asap::logging::Id::TESTING);
+ *   ASLOG_TO_LOGGER(debug, "starting...");
  *
  *   // Initialize a complex GUI system
  *   ...
  *
  *   // Start logging to the graphical console
  *   auto ui_console = std::make_shared<MyCustomSink>();
- *   blocxxi::logging::Registry::PushSink(ui_console);
+ *   asap::logging::Registry::PushSink(ui_console);
  *
  *   ...
  *
  *   // Shutdown the GUI, switch back to the primitive logging sink
- *   blocxxi::logging::Registry::PopSink()
+ *   asap::logging::Registry::PopSink()
  * ```
  *
  * @todo TODO: Add Init() method with format, sinks and level
@@ -287,6 +299,9 @@ class Registry {
    */
   static spdlog::logger &GetLogger(Id id);
 
+  /// API access to the collection of registered loggers.
+  static std::vector<Logger> &Loggers();
+
   /*!
    * @brief Use the given sink for all subsequent logging operations until a
    * call to PopSink() is made.
@@ -317,8 +332,6 @@ class Registry {
   // provides the API to access the static data member. That second method also
   // caches the static member to optimize the call.
 
-  /// API access to the collection of registered loggers.
-  static std::vector<Logger> &Loggers();
   /// Internal initialization of the static collection of loggers.
   static std::vector<Logger> &all_loggers_();
   /// A synchronization object for concurrent access to the collection of
@@ -367,7 +380,7 @@ class Loggable {
 std::string FormatFileAndLine(char const *file, char const *line);
 //#define LOG_PREFIX "[" __FILE__ ":" LINE_STRING "] "
 //#define LOG_PREFIX " "
-#define LOG_PREFIX blocxxi::logging::FormatFileAndLine(__FILE__, LINE_STRING)
+#define LOG_PREFIX asap::logging::FormatFileAndLine(__FILE__, LINE_STRING)
 #else
 #define LOG_PREFIX " "
 #endif  // NDEBUG
@@ -383,9 +396,9 @@ std::string FormatFileAndLine(char const *file, char const *line);
  * convenience macros below rather than invoke these directly.
  */
 
-#define BXLOG_COMP_LEVEL(LOGGER, LEVEL)    \
+#define ASLOG_COMP_LEVEL(LOGGER, LEVEL)    \
   (static_cast<spdlog::level::level_enum>( \
-       blocxxi::logging::Logger::Level::LEVEL) >= LOGGER.level())
+       asap::logging::Logger::Level::LEVEL) >= LOGGER.level())
 
 // Compare levels before invoking logger. This is an optimization to avoid
 // executing expressions computing log contents when they would be suppressed.
@@ -395,68 +408,68 @@ std::string FormatFileAndLine(char const *file, char const *line);
                 _1, SUFFIX, ...)                                            \
   PREFIX##_##SUFFIX
 #define _SELECT_IMPL(args) _SELECT args
-#define BX_DO_LOG(...)                                                       \
-  _SELECT_IMPL((_BXLOG, __VA_ARGS__, N, N, N, N, N, N, N, N, N, N, 3, 2, 1)) \
+#define AS_DO_LOG(...)                                                       \
+  _SELECT_IMPL((_ASLOG, __VA_ARGS__, N, N, N, N, N, N, N, N, N, N, 3, 2, 1)) \
   (__VA_ARGS__)
 
-#define _BXLOG_1(LOGGER) LOGGER.debug("no logger level - no message")
-#define _BXLOG_2(LOGGER, LEVEL) LOGGER.LEVEL("no message")
-#define _BXLOG_3(LOGGER, LEVEL, MSG) LOGGER.LEVEL("{}" MSG, LOG_PREFIX)
-#define _BXLOG_N(LOGGER, LEVEL, MSG, ...) \
+#define _ASLOG_1(LOGGER) LOGGER.debug("no logger level - no message")
+#define _ASLOG_2(LOGGER, LEVEL) LOGGER.LEVEL("no message")
+#define _ASLOG_3(LOGGER, LEVEL, MSG) LOGGER.LEVEL("{}" MSG, LOG_PREFIX)
+#define _ASLOG_N(LOGGER, LEVEL, MSG, ...) \
   LOGGER.LEVEL("{}" MSG, LOG_PREFIX, __VA_ARGS__)
 
 #ifndef NDEBUG
-#define BXLOG_COMP_AND_LOG(LOGGER, LEVEL, ...) \
+#define ASLOG_COMP_AND_LOG(LOGGER, LEVEL, ...) \
   do {                                         \
-    if (BXLOG_COMP_LEVEL(LOGGER, LEVEL)) {     \
-      BX_DO_LOG(LOGGER, LEVEL, __VA_ARGS__);   \
+    if (ASLOG_COMP_LEVEL(LOGGER, LEVEL)) {     \
+      AS_DO_LOG(LOGGER, LEVEL, __VA_ARGS__);   \
     }                                          \
   } while (0)
 #else  // NDEBUG
-#define BXLOG_COMP_AND_LOG(LOGGER, LEVEL, ...) \
+#define ASLOG_COMP_AND_LOG(LOGGER, LEVEL, ...) \
   do {                                         \
-    if (BXLOG_COMP_LEVEL(LOGGER, LEVEL)) {     \
+    if (ASLOG_COMP_LEVEL(LOGGER, LEVEL)) {     \
       LOGGER.LEVEL(__VA_ARGS__);               \
     }                                          \
   } while (0)
 #endif  // NDEBUG
 
-#define BXLOG_CHECK_LEVEL(LEVEL) BXLOG_COMP_LEVEL(BXLOGGER(), LEVEL)
+#define ASLOG_CHECK_LEVEL(LEVEL) ASLOG_COMP_LEVEL(ASLOGGER(), LEVEL)
 
 /**
  * Convenience macro to log to a user-specified logger.
- * Maps directly to BXLOG_COMP_AND_LOG - it could contain macro logic itself,
+ * Maps directly to ASLOG_COMP_AND_LOG - it could contain macro logic itself,
  * without redirection, but left in case various implementations are required in
  * the future (based on log level for example).
  */
-#define BXLOG_TO_LOGGER(LOGGER, LEVEL, ...) \
-  BXLOG_COMP_AND_LOG(LOGGER, LEVEL, __VA_ARGS__)
+#define ASLOG_TO_LOGGER(LOGGER, LEVEL, ...) \
+  ASLOG_COMP_AND_LOG(LOGGER, LEVEL, __VA_ARGS__)
 
 /**
  * Convenience macro to get logger.
  */
-#define BXLOGGER() __log_do_not_use_read_comment()
+#define ASLOGGER() __log_do_not_use_read_comment()
 
 /**
  * Convenience macro to flush logger.
  */
-#define BXFLUSH_LOG() BXLOGGER().flush()
+#define ASFLUSH_LOG() ASLOGGER().flush()
 
 /**
  * Convenience macro to log to the class' logger.
  */
-#define BXLOG(LEVEL, ...) BXLOG_TO_LOGGER(BXLOGGER(), LEVEL, __VA_ARGS__)
+#define ASLOG(LEVEL, ...) ASLOG_TO_LOGGER(ASLOGGER(), LEVEL, __VA_ARGS__)
 
 /**
  * Convenience macro to log to the misc logger, which allows for logging without
  * of direct access to a logger.
  */
 #define GET_MISC_LOGGER() \
-  blocxxi::logging::Registry::GetLogger(blocxxi::logging::Id::MISC)
-#define BXLOG_MISC(LEVEL, ...) \
-  BXLOG_TO_LOGGER(GET_MISC_LOGGER(), LEVEL, __VA_ARGS__)
+  asap::logging::Registry::GetLogger(asap::logging::Id::MISC)
+#define ASLOG_MISC(LEVEL, ...) \
+  ASLOG_TO_LOGGER(GET_MISC_LOGGER(), LEVEL, __VA_ARGS__)
 
 //@}
 
 }  // namespace logging
-}  // namespace blocxxi
+}  // namespace asap

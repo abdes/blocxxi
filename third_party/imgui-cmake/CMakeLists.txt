@@ -28,7 +28,7 @@ list(APPEND IMGUI_PUBLIC_INCLUDE_DIRS
 
 list(APPEND IMGUI_PUBLIC_LIBRARIES)
 
-bloxi_library(
+asap_library(
         TARGET
         imgui
         SOURCES

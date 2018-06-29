@@ -49,10 +49,10 @@ std::error_condition UpnpPortMapper::AddMapping(
     PortMapper::Protocol protocol, unsigned short external_port,
     unsigned short internal_port, std::string const &name,
     std::chrono::seconds lease_time) {
-  BXLOG(debug, "UPNP add mapping ({}/{}) -> ({}, {})", protocol, external_port,
+  ASLOG(debug, "UPNP add mapping ({}/{}) -> ({}, {})", protocol, external_port,
         internal_ip_, internal_port);
   if (urls_->controlURL[0] == '\0') {
-    BXLOG(error, "UPNP discovery was not done!");
+    ASLOG(error, "UPNP discovery was not done!");
     return make_error_condition(DISCOVERY_NOT_DONE);
   }
 
@@ -67,7 +67,7 @@ std::error_condition UpnpPortMapper::AddMapping(
   if (failure) {
     // TODO: test for error code especially when IGD only supports permanent
     // lease
-    BXLOG(error, "UPNP add mapping ({}, {}, {}) failed, code {}",
+    ASLOG(error, "UPNP add mapping ({}, {}, {}) failed, code {}",
           external_port_str, external_port_str, internal_ip_, failure);
     return make_error_condition(UPNP_COMMAND_ERROR);
   }
@@ -76,9 +76,9 @@ std::error_condition UpnpPortMapper::AddMapping(
 }
 std::error_condition UpnpPortMapper::DeleteMapping(
     PortMapper::Protocol protocol, unsigned short external_port) {
-  BXLOG(info, "UPNP delete mapping ({}/{})", protocol, external_port);
+  ASLOG(info, "UPNP delete mapping ({}/{})", protocol, external_port);
   if (urls_->controlURL[0] == '\0') {
-    BXLOG(error, "UPNP discovery was not done!");
+    ASLOG(error, "UPNP discovery was not done!");
     return make_error_condition(DISCOVERY_NOT_DONE);
   }
 
@@ -92,13 +92,13 @@ std::error_condition UpnpPortMapper::DeleteMapping(
 
 std::unique_ptr<PortMapper> UpnpPortMapper::Discover(
     std::chrono::milliseconds timeout) {
-  BXLOG(debug, "starting discovery for UPNP port mapper");
+  ASLOG(debug, "starting discovery for UPNP port mapper");
 
 #ifdef WIN32
   WSADATA wsaData;
   int nResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
   if (nResult != NO_ERROR) {
-    BXLOG(error, "WSAStartup() failed.");
+    ASLOG(error, "WSAStartup() failed.");
     return false;
   }
 #endif
@@ -121,7 +121,7 @@ std::unique_ptr<PortMapper> UpnpPortMapper::Discover(
     int idg_was_found = UPNP_GetValidIGD(devlist, mapper->urls_, mapper->data_,
                                          (char *)&lanaddr, 16);
     if (idg_was_found) {
-      BXLOG(debug, "UPNP found valid IGD device (status: {}) desc: {}",
+      ASLOG(debug, "UPNP found valid IGD device (status: {}) desc: {}",
             idg_was_found, mapper->urls_->rootdescURL);
 
       mapper->internal_ip_ = std::string(lanaddr);
@@ -135,10 +135,10 @@ std::unique_ptr<PortMapper> UpnpPortMapper::Discover(
         freeUPNPDevlist(devlist);
         return std::unique_ptr<PortMapper>(mapper);
       } else {
-        BXLOG(error, "UPNP failed to obtain external IP");
+        ASLOG(error, "UPNP failed to obtain external IP");
       }
     } else {
-      BXLOG(error, "UPNP no valid IGD was found");
+      ASLOG(error, "UPNP no valid IGD was found");
     }
   }
   // An error happened and we don't have a valid mapper
