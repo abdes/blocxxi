@@ -93,8 +93,8 @@ endif()
 
 
 # CryptoPP integration
-SET(CRYPTOPP_BUILD_SHARED OFF CACHE BOOL "Build shared library")
-SET(CRYPTOPP_BUILD_TESTING OFF CACHE BOOL "Build library tests")
+SET(BUILD_SHARED OFF)
+SET(BUILD_TESTING OFF)
 include(External_cryptopp)
 
 add_subdirectory(third_party)
@@ -255,6 +255,7 @@ endif ()
 
 
 # Project modules
+SET(BUILD_TESTING ON)
 add_subdirectory(common)
 add_subdirectory(codec)
 add_subdirectory(crypto)

@@ -70,7 +70,6 @@ class Fonts {
   // Material Design Icons
   static const unsigned int MATERIAL_DESIGN_ICONS_COMPRESSED_SIZE = 248964;
   static const unsigned int MATERIAL_DESIGN_ICONS_COMPRESSED_DATA[];
- 
 };
 
 }  // namespace ui
