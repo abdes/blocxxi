@@ -12,7 +12,7 @@ if(ENABLE_CPPCHECK)
 else()
     cmake_minimum_required(VERSION 3.6)
 endif()
-project(blocxxi VERSION 0.9.4 LANGUAGES CXX)
+project(blocxxi VERSION 0.9.4 LANGUAGES CXX C)
 
 # The folder that will be used when generating project files for IDEs
 # For example, Visual Studio supports folders.
@@ -23,6 +23,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 # List of directories specifying a search path for CMake modules to be loaded by
 # the the include() or find_package() commands before checking the default modules
 # that come with CMake.
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/common/cmake)
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 include(ExternalProject)
@@ -36,6 +37,7 @@ include(FindDoxygen)
 message(STATUS "== We are on a ${CMAKE_SYSTEM_NAME} system")
 message(STATUS "== The host processor is ${CMAKE_HOST_SYSTEM_PROCESSOR}")
 message(STATUS "== CMAKE_CXX_COMPILER_ID is ${CMAKE_CXX_COMPILER_ID}")
+message(STATUS "== CMAKE_C_COMPILER_ID is ${CMAKE_C_COMPILER_ID}")
 
 # The default build type provided by CMake is to include no compiler flags for
 # optimization. For some projects you may want to set a default build type so
@@ -58,27 +60,9 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-
-# config options
-if (MSVC)
-    # /wd4005  macro-redefinition
-    # /wd4068  unknown pragma
-    # /wd4244  conversion from 'type1' to 'type2'
-    # /wd4267  conversion from 'size_t' to 'type2'
-    # /wd4800  force value to bool 'true' or 'false' (performance warning)
-    add_compile_options(/W3 /WX /wd4005 /wd4068 /wd4244 /wd4267 /wd4800)
-    add_definitions(/DNOMINMAX /DWIN32_LEAN_AND_MEAN=1 /D_CRT_SECURE_NO_WARNINGS /D_SCL_SECURE_NO_WARNINGS /D_WIN32_WINNT=0x0501)
-else ()
-    add_compile_options(-Wall -pedantic -Wextra)
-    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-depth=1024" CACHE STRING "" FORCE)
-    endif()
-endif ()
-
 # Include our own module path. This makes #include "x.h"
 # work in project subfolders to include the main directory headers.
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-
 
 
 # This defines the basic input (src) and output (lib & include) directories.
@@ -113,6 +97,7 @@ SET(CRYPTOPP_BUILD_SHARED OFF CACHE BOOL "Build shared library")
 SET(CRYPTOPP_BUILD_TESTING OFF CACHE BOOL "Build library tests")
 include(External_cryptopp)
 
+add_subdirectory(third_party)
 
 # ------------------------------------------------------------------------------
 # Clang Tidy
@@ -199,28 +184,28 @@ endif()
 # ------------------------------------------------------------------------------
 
 if(ENABLE_ASAN)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fuse-ld=gold")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=leak")
+    set(ASAN_COMPILER_FLAGS "-g -O1 -fuse-ld=gold -fno-omit-frame-pointer -fsanitize=address -fsanitize=leak")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ASAN_COMPILER_FLAGS}")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${ASAN_COMPILER_FLAGS}")
 endif()
 
 if(ENABLE_USAN)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fuse-ld=gold")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
+    set(USAN_COMPILER_FLAGS "-fuse-ld=gold -fsanitize=undefined")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${USAN_COMPILER_FLAGS}")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${USAN_COMPILER_FLAGS}")
 endif()
 
 if(ENABLE_TSAN)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fuse-ld=gold")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
+    set(TSAN_COMPILER_FLAGS "-fuse-ld=gold -fsanitize=thread")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TSAN_COMPILER_FLAGS}")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${TSAN_COMPILER_FLAGS}")
 endif()
 
 # ------------------------------------------------------------------------------
 # Valgrind
 # ------------------------------------------------------------------------------
 
+find_program( MEMORYCHECK_COMMAND valgrind )
 set(MEMORYCHECK_COMMAND_OPTIONS "${MEMORYCHECK_COMMAND_OPTIONS} --leak-check=full")
 set(MEMORYCHECK_COMMAND_OPTIONS "${MEMORYCHECK_COMMAND_OPTIONS} --track-fds=yes")
 set(MEMORYCHECK_COMMAND_OPTIONS "${MEMORYCHECK_COMMAND_OPTIONS} --trace-children=yes")
@@ -231,8 +216,6 @@ set(MEMORYCHECK_COMMAND_OPTIONS "${MEMORYCHECK_COMMAND_OPTIONS} --error-exitcode
 set(DOXROOT "${CMAKE_BINARY_DIR}/dox")
 
 macro(configure_doxyfile TARGET_NAME TARGET_TITLE TARGET_BRIEF TARGET_INPUT_PATH)
-    message(STATUS "Configuring Doxygen: do we have '${CMAKE_SOURCE_DIR}/Doxyfile.in'?")
-
     if (EXISTS "${CMAKE_SOURCE_DIR}/Doxyfile.in")
         set(DOXY_TARGET_OUTPUT_DIR "${TARGET_NAME}")
         set(DOXY_TARGET_ROOT_DIR "") # ${DOXTOSRCDIR} - set(DOXTOSRCDIR "../src")
@@ -245,7 +228,7 @@ macro(configure_doxyfile TARGET_NAME TARGET_TITLE TARGET_BRIEF TARGET_INPUT_PATH
             file(MAKE_DIRECTORY "${DOXROOT}/${DOXY_TARGET_OUTPUT_DIR}")
         endif ()
         configure_file("${CMAKE_SOURCE_DIR}/Doxyfile.in" "${DOXROOT}/${TARGET_NAME}_Doxyfile" @ONLY)
-        message(STATUS "Configured Doxyfile: '${CMAKE_SOURCE_DIR}/Doxyfile.in' --> '${DOXROOT}/${TARGET_NAME}_Doxyfile'.")
+        message(STATUS "== Copy Doxyfile.in --> '${DOXROOT}/${TARGET_NAME}_Doxyfile'")
     else ()
         message(STATUS "WARNING : The '${CMAKE_SOURCE_DIR}/Doxyfile.in' file does not exist!")
     endif ()
@@ -272,7 +255,6 @@ endif ()
 
 
 # Project modules
-add_subdirectory(third_party)
 add_subdirectory(common)
 add_subdirectory(codec)
 add_subdirectory(crypto)

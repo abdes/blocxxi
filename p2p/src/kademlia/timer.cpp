@@ -28,7 +28,7 @@ void Timer::ScheduleNextTick(TimePointType const &expiration_time) {
     auto begin = timeouts_.begin();
     auto end = timeouts_.upper_bound(ClockType::now());
     for (auto entry = begin; entry != end; ++entry) {
-      BXLOG(trace, "invoke callback for timer expiring at {}",
+      ASLOG(trace, "invoke callback for timer expiring at {}",
             entry->first.time_since_epoch().count());
       entry->second();
     }
@@ -37,14 +37,14 @@ void Timer::ScheduleNextTick(TimePointType const &expiration_time) {
     auto count = std::distance(begin, end);
     timeouts_.erase(begin, end);
 
-    BXLOG(debug, "remove {} expired timer(s), remaining {}", count,
+    ASLOG(debug, "remove {} expired timer(s), remaining {}", count,
           timeouts_.size());
 
     // If there is a remaining timeout, schedule it.
     if (!timeouts_.empty()) {
       ScheduleNextTick(timeouts_.begin()->first);
     } else {
-      BXLOG(debug, "no more timers to schedule");
+      ASLOG(debug, "no more timers to schedule");
     }
   });
 }

@@ -3,8 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_P2P_KADEMLIA_KBUCKET_H_
-#define BLOCXXI_P2P_KADEMLIA_KBUCKET_H_
+#pragma once
 
 #include <chrono>
 #include <deque>
@@ -33,7 +32,7 @@ namespace kademlia {
  * @see https://pdos.csail.mit.edu/~petar/papers/maymounkov-kademlia-lncs.pdf
  */
 class KBucket
-    : public blocxxi::logging::Loggable<blocxxi::logging::Id::P2P_KADEMLIA> {
+    : public asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
  public:
   /*!
    * Represents an iterator over the nodes in a bucket.
@@ -154,6 +153,11 @@ class KBucket
   /// Check if this bucket's range can hold the given node, i.e. the node's id
   /// has the same prefix than this bucket.
   bool CanHoldNode(const Node::IdType &node) const;
+
+  /// Get the shared prefix (bits) with the router node
+  std::string SharedPrefix() const {
+	  return prefix_.to_string().substr(0, prefix_size_);
+  }
   //@}
 
   /// @name Node accessors and manipulators
@@ -263,5 +267,3 @@ std::ostream &operator<<(std::ostream &out, KBucket const &kb);
 }  // namespace kademlia
 }  // namespace p2p
 }  // namespace blocxxi
-
-#endif  // BLOCXXI_P2P_KADEMLIA_KBUCKET_H_

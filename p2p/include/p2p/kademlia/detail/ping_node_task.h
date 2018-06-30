@@ -3,8 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_P2P_KADEMLIA_PING_NODE_TASK_H
-#define BLOCXXI_P2P_KADEMLIA_PING_NODE_TASK_H
+#pragma once
 
 namespace blocxxi {
 namespace p2p {
@@ -15,7 +14,7 @@ namespace detail {
 template <typename TNetwork, typename TRoutingTable,
           typename TOnCompleteCallback>
 class PingNodeTask final
-    : protected blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
+    : protected asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
  public:
   ///
   using NetworkType = TNetwork;
@@ -34,7 +33,7 @@ class PingNodeTask final
                     RoutingTableType &routing_table,
                     OnCompleteCallbackType on_complete,
                     std::string const &task_name) {
-    BXLOG(debug, "[{}] starting a new task", task_name);
+    ASLOG(debug, "[{}] starting a new task", task_name);
 
     std::shared_ptr<PingNodeTask> task;
     task.reset(
@@ -62,7 +61,7 @@ class PingNodeTask final
         network_(network),
         routing_table_(routing_table),
         on_complete_(on_complete) {
-    BXLOG(debug, "{} ping node task peer={}", this->Name(), node);
+    ASLOG(debug, "{} ping node task peer={}", this->Name(), node);
   }
 
   /**
@@ -73,12 +72,12 @@ class PingNodeTask final
                                       Header const & /*header*/,
                                       BufferReader const & /*buffer*/) {
       // Nothing special to do - the peer is alive
-      BXLOG(debug, "{} received ping response peer={}", task->Name(), sender);
+      ASLOG(debug, "{} received ping response peer={}", task->Name(), sender);
       task->on_complete_();
     };
 
     auto on_error = [task](std::error_code const &) {
-      BXLOG(debug, "{} ping failed {}", task->Name(), task->peer_);
+      ASLOG(debug, "{} ping failed {}", task->Name(), task->peer_);
       // Also increment the number of failed requests in the routing table node
       auto evicted = task->routing_table_.PeerTimedOut(task->peer_);
       if (!evicted) {
@@ -124,5 +123,3 @@ void StartPingNodeTask(
 }  // namespace kademlia
 }  // namespace p2p
 }  // namespace blocxxi
-
-#endif  // BLOCXXI_P2P_KADEMLIA_PING_NODE_TASK_H

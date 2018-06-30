@@ -3,8 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_P2P_KADEMLIA_FIND_NODE_TASK_H_
-#define BLOCXXI_P2P_KADEMLIA_FIND_NODE_TASK_H_
+#pragma once
 
 #include <memory>
 #include <system_error>
@@ -43,7 +42,7 @@ class FindNodeTask final : public BaseLookupTask {
                     RoutingTableType &routing_table,
                     OnCompleteCallbackType on_complete,
                     std::string const &task_name) {
-    BXLOG(debug, "[{}] starting a new task", task_name);
+    ASLOG(debug, "[{}] starting a new task", task_name);
 
     std::shared_ptr<FindNodeTask> task;
     task.reset(
@@ -66,7 +65,7 @@ class FindNodeTask final : public BaseLookupTask {
         network_(network),
         routing_table_(routing_table),
         on_complete_(on_complete) {
-    BXLOG(debug, "{} find node task on key={}", this->Name(), key);
+    ASLOG(debug, "{} find node task on key={}", this->Name(), key);
   }
 
   /**
@@ -82,7 +81,7 @@ class FindNodeTask final : public BaseLookupTask {
     }
 
     if (task->AllRequestsCompleted()) {
-      BXLOG(debug, "{} find node procedure completed.", task->Name());
+      ASLOG(debug, "{} find node procedure completed.", task->Name());
       task->on_complete_();
     }
   }
@@ -120,14 +119,14 @@ class FindNodeTask final : public BaseLookupTask {
                                      Header const & /*header*/,
                                      BufferReader const &buffer,
                                      std::shared_ptr<FindNodeTask> task) {
-    BXLOG(debug, "{} handle find peer response from '{}'", task->Name(),
+    ASLOG(debug, "{} handle find peer response from '{}'", task->Name(),
           sender);
     FindNodeResponseBody response;
 
     try {
       Deserialize(buffer, response);
     } catch (std::exception const &ex) {
-      BXLOG(debug, "{} failed to deserialize find peer response ({})",
+      ASLOG(debug, "{} failed to deserialize find peer response ({})",
             task->Name(), ex.what());
       return;
     }
@@ -173,5 +172,3 @@ void StartFindNodeTask(
 }  // namespace kademlia
 }  // namespace p2p
 }  // namespace blocxxi
-
-#endif  // BLOCXXI_P2P_KADEMLIA_FIND_NODE_TASK_H_

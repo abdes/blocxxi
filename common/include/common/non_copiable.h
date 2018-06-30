@@ -5,7 +5,7 @@
 
 #pragma once
 
-namespace blocxxi {
+namespace asap {
 
 //  Private copy constructor and copy assignment ensure classes derived from
 //  class noncopyable cannot be copied.
@@ -36,4 +36,4 @@ class NonCopiable {
  */
 typedef noncopyable_::NonCopiable NonCopiable;
 
-}  // namespace blocxxi
+}  // namespace asap

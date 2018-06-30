@@ -3,8 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_P2P_KADEMLIA_ROUTING_H_
-#define BLOCXXI_P2P_KADEMLIA_ROUTING_H_
+#pragma once
 
 #include <chrono>
 #include <deque>
@@ -44,7 +43,7 @@ namespace kademlia {
  * @see https://en.wikipedia.org/wiki/Kademlia
  * @see https://pdos.csail.mit.edu/~petar/papers/maymounkov-kademlia-lncs.pdf
  */
-class RoutingTable : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
+class RoutingTable : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
  public:
   /*!
    * Represents an iterator over the buckets in the routing table.
@@ -243,5 +242,3 @@ std::ostream &operator<<(std::ostream &out, RoutingTable const &rt);
 }  // namespace kademlia
 }  // namespace p2p
 }  // namespace blocxxi
-
-#endif  // BLOCXXI_P2P_KADEMLIA_ROUTING_H_

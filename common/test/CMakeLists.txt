@@ -2,11 +2,12 @@
 list(APPEND COMMON_TEST_SRC
   assert_test.cpp
   logging_test.cpp
+  main.cpp
 )
 
-set(COMMON_TEST_LIBRARIES bloxi::common)
+set(COMMON_TEST_LIBRARIES asap::common Catch2)
 
-bloxi_test(
+asap_test(
   TARGET
     common_test
   SOURCES

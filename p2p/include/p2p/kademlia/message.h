@@ -3,8 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_P2P_KADEMLIA_MESSAGE_H_
-#define BLOCXXI_P2P_KADEMLIA_MESSAGE_H_
+#pragma once
 
 #include <cstdint>      // for std::uint8_t etc.
 #include <type_traits>  // for std::underlying_type_t<>
@@ -270,5 +269,3 @@ std::size_t Deserialize(BufferReader const &buffer,
 }  // namespace kademlia
 }  // namespace p2p
 }  // namespace blocxxi
-
-#endif  // BLOCXXI_P2P_KADEMLIA_MESSAGE_H_

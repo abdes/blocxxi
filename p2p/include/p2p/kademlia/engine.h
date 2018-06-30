@@ -3,8 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_P2P_KADEMLIA_ENGINE_H_
-#define BLOCXXI_P2P_KADEMLIA_ENGINE_H_
+#pragma once
 
 #include <vector>
 
@@ -31,7 +30,7 @@ namespace kademlia {
 // id is closer to the key than are the IDs of other nodes)
 
 template <typename TRoutingTable, typename TNetwork>
-class Engine final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
+class Engine final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
  public:
   ///
   using DataType = std::vector<std::uint8_t>;
@@ -52,7 +51,7 @@ class Engine final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
         network_(std::move(network)),
         value_store_(),
         refresh_timer_(io_context) {
-    BXLOG(debug, "Creating Engine DONE");
+    ASLOG(debug, "Creating Engine DONE");
   }
 
   Engine(Engine const &) = delete;
@@ -61,19 +60,21 @@ class Engine final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
   Engine(Engine &&) = default;
   Engine &operator=(Engine &&) = default;
 
-  ~Engine() { BXLOG(debug, "Destroy Engine"); }
+  ~Engine() { ASLOG(debug, "Destroy Engine"); }
+
+  RoutingTable const &GetRoutingTable() const { return routing_table_; }
 
   void AddBootstrapNode(const std::string &bnode_url) {
     AddBootstrapNode(Node::FromUrlString(bnode_url));
   }
 
   void AddBootstrapNode(Node &&bnode) {
-    BXLOG(debug, "adding bootstrap node at {}", bnode.Endpoint());
+    ASLOG(debug, "adding bootstrap node at {}", bnode.Endpoint());
     routing_table_.AddPeer(std::move(bnode));
   }
 
   void Start() {
-    BXLOG(debug, "Engine Start: {}", routing_table_.ThisNode().ToString());
+    ASLOG(debug, "Engine Start: {}", routing_table_.ThisNode().ToString());
     network_.OnMessageReceived(std::bind(&Engine::HandleNewMessage, this,
                                          std::placeholders::_1,
                                          std::placeholders::_2));
@@ -84,7 +85,7 @@ class Engine final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
       // Queue the bootstrapping as a delayed task
       io_context_.post([this]() { DiscoverNeighbors(); });
     } else {
-      BXLOG(info, "engine started as a bootstrap node - empty routing table");
+      ASLOG(info, "engine started as a bootstrap node - empty routing table");
     }
 
     ScheduleBucketRefreshTimer();
@@ -92,7 +93,7 @@ class Engine final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
 
   void ScheduleBucketRefreshTimer() {
     // Start the buckets refresh period timer
-    BXLOG(debug, "[REFRESH] periodic bucket refresh timer started ({}s)",
+    ASLOG(debug, "[REFRESH] periodic bucket refresh timer started ({}s)",
           PERIODIC_REFRESH_TIMER.count());
     refresh_timer_.expires_at(std::chrono::steady_clock::now() +
                               PERIODIC_REFRESH_TIMER);
@@ -103,7 +104,7 @@ class Engine final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
       if (failure)
         throw std::system_error{detail::make_error_code(TIMER_MALFUNCTION)};
 
-      BXLOG(debug, "[REFRESH] periodic bucket refresh timer expired");
+      ASLOG(debug, "[REFRESH] periodic bucket refresh timer expired");
 
       // Select the next bucket, ping its least recently seen node
       static auto bucket_index = 0U;
@@ -137,7 +138,7 @@ class Engine final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
   template <typename THandler>
   void AsyncFindValue(KeyType const &key, THandler &handler) {
     io_context_.post([this, key, handler]() {
-      BXLOG(debug, "executing async load of key '{}'", key);
+      ASLOG(debug, "executing async load of key '{}'", key);
       detail::StartFindValueTask<DataType>(key, network_, routing_table_,
                                            handler);
     });
@@ -148,11 +149,11 @@ class Engine final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
                        THandler &handler) {
     io_context_.post([this, key, data, handler]() {
       // Put in the value store
-      BXLOG(debug, "saving key '{}' in my own store", key);
+      ASLOG(debug, "saving key '{}' in my own store", key);
       value_store_[key] = data;
 
       // Publish the key/value
-      BXLOG(debug, "publishing key '{}' and its value", key);
+      ASLOG(debug, "publishing key '{}' and its value", key);
       detail::StartStoreValueTask(key, data, network_, routing_table_, handler);
     });
   }
@@ -186,7 +187,7 @@ class Engine final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
    *
    */
   void HandlePingRequest(EndpointType const &sender, Header const &header) {
-    BXLOG(debug, "handling ping request");
+    ASLOG(debug, "handling ping request");
 
     network_.SendResponse(header.random_token_,
                           Header::MessageType::PING_RESPONSE, sender);
@@ -197,17 +198,17 @@ class Engine final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
    */
   void HandleStoreRequest(EndpointType const &sender, Header const & /*header*/,
                           BufferReader const &buffer) {
-    BXLOG(debug, "handling store request from {}", sender);
+    ASLOG(debug, "handling store request from {}", sender);
 
     StoreValueRequestBody request;
     try {
       Deserialize(buffer, request);
     } catch (std::exception const &ex) {
-      BXLOG(debug, "failed to deserialize store request ({})", ex.what());
+      ASLOG(debug, "failed to deserialize store request ({})", ex.what());
       return;
     }
     // Save the key and its value
-    BXLOG(debug, "saving key '{}' in my own store", request.data_key_);
+    ASLOG(debug, "saving key '{}' in my own store", request.data_key_);
     value_store_[request.data_key_] = std::move(request.data_value_);
     // Do not republish - Republishing will be done after at least one hour
     // as per the kademlia optimized key republishing
@@ -223,14 +224,14 @@ class Engine final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
    */
   void HandleFindPeerRequest(EndpointType const &sender, Header const &header,
                              BufferReader const &buffer) {
-    BXLOG(debug, "handling find peer request from {}", sender);
+    ASLOG(debug, "handling find peer request from {}", sender);
 
     // Ensure the request is valid.
     FindNodeRequestBody request;
     try {
       Deserialize(buffer, request);
     } catch (std::exception const &ex) {
-      BXLOG(debug, "failed to deserialize find peer request ({})", ex.what());
+      ASLOG(debug, "failed to deserialize find peer request ({})", ex.what());
       return;
     }
 
@@ -254,7 +255,7 @@ class Engine final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
     };
 
     // Now send the response.
-    BXLOG(debug, "sending find peer response");
+    ASLOG(debug, "sending find peer response");
     network_.SendResponse(random_token, response, sender);
   }
 
@@ -263,13 +264,13 @@ class Engine final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
    */
   void HandleFindValueRequest(EndpointType const &sender, Header const &header,
                               BufferReader const &buffer) {
-    BXLOG(debug, "handling find value request");
+    ASLOG(debug, "handling find value request");
 
     FindValueRequestBody request;
     try {
       Deserialize(buffer, request);
     } catch (std::exception const &ex) {
-      BXLOG(debug, "failed to deserialize find value request ({})", ex.what());
+      ASLOG(debug, "failed to deserialize find value request ({})", ex.what());
       return;
     }
 
@@ -301,14 +302,14 @@ class Engine final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
    *
    */
   void HandleNewMessage(IpEndpoint const &sender, BufferReader const &buffer) {
-    BXLOG(debug, "received new message from '{}'", sender);
+    ASLOG(debug, "received new message from '{}'", sender);
 
     Header header;
     std::size_t consumed = 0;
     try {
       consumed = Deserialize(buffer, header);
     } catch (std::exception const &ex) {
-      BXLOG(debug, "failed to deserialize header ({})", ex.what());
+      ASLOG(debug, "failed to deserialize header ({})", ex.what());
       return;
     }
 
@@ -341,14 +342,14 @@ class Engine final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
   void RefreshBuckets() {
     // Refresh buckets that have not been updated for more than
     // PERIODIC_BUCKET_REFRESH
-    BXLOG(debug,
+    ASLOG(debug,
           "[REFRESH] refreshing all buckets not updated within the last {} "
           "seconds",
           PERIODIC_REFRESH_TIMER.count());
 
     for (auto const &bucket : routing_table_) {
       auto since_last_update = bucket.TimeSinceLastUpdated();
-      BXLOG(debug, "[REFRESH] time since this bucket last updated: {}s",
+      ASLOG(debug, "[REFRESH] time since this bucket last updated: {}s",
             since_last_update.count());
       if (since_last_update > BUCKET_INACTIVE_TIME_BEFORE_REFRESH) {
         // Select a random id in the bucket
@@ -356,7 +357,7 @@ class Engine final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
           auto const &node = bucket.SelectRandomNode();
           auto const &id = node.Id();
 
-          BXLOG(debug,
+          ASLOG(debug,
                 "periodic bucket refresh -> lookup for random peer with id {}",
                 id.ToHex());
 
@@ -364,14 +365,14 @@ class Engine final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
             detail::StartFindNodeTask(
                 id, network_, routing_table_,
                 [this]() {
-                  BXLOG(debug, "periodic bucket refresh completed");
+                  ASLOG(debug, "periodic bucket refresh completed");
                   routing_table_.DumpToLog();
                 },
                 "REFRESH/FIND_NODE");
           });
         }
       }
-      BXLOG(debug, "[REFRESH] all buckets refresh completed");
+      ASLOG(debug, "[REFRESH] all buckets refresh completed");
     }
   }
 
@@ -392,5 +393,3 @@ class Engine final : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
 }  // namespace kademlia
 }  // namespace p2p
 }  // namespace blocxxi
-
-#endif  // BLOCXXI_P2P_KADEMLIA_ENGINE_H_

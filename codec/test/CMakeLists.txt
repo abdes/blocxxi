@@ -1,15 +1,15 @@
 
 list(APPEND CODEC_TEST_SRC
-        base16_test.cpp
-        )
+  base16_test.cpp
+  )
 
-set(CODEC_TEST_LIBRARIES bloxi::codec)
+set(CODEC_TEST_LIBRARIES asap::codec gtest_main gtest gmock)
 
-bloxi_test(
-        TARGET
-        codec_test
-        SOURCES
-        ${CODEC_TEST_SRC}
-        PUBLIC_LIBRARIES
-        ${CODEC_TEST_LIBRARIES}
+asap_test(
+  TARGET
+  codec_test
+  SOURCES
+  ${CODEC_TEST_SRC}
+  PUBLIC_LIBRARIES
+  ${CODEC_TEST_LIBRARIES}
 )

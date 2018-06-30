@@ -16,7 +16,7 @@ using blocxxi::p2p::kademlia::Node;
 using blocxxi::p2p::kademlia::RoutingTable;
 
 int main(int argc, char** argv) {
-  BXLOG_MISC(info, "Simulation program started");
+  ASLOG_MISC(info, "Simulation program started");
 
   auto name = std::string("Stranger");
   try {
@@ -45,7 +45,7 @@ int main(int argc, char** argv) {
     constexpr auto const KSIZE = 20;
     RoutingTable rt(std::move(my_node), KSIZE);
 
-    BXLOG_MISC(info, "Adding {} nodes...", KSIZE);
+    ASLOG_MISC(info, "Adding {} nodes...", KSIZE);
     for (int ii = 0; ii < KSIZE + 1; ++ii) {
       rt.AddPeer(Node(Node::IdType::RandomHash(), "::1", 3030));
     }
@@ -57,10 +57,10 @@ int main(int argc, char** argv) {
     rt.DumpToLog();
 
   } catch (std::exception& e) {
-    BXLOG_MISC(error, "Error: {}", e.what());
+    ASLOG_MISC(error, "Error: {}", e.what());
     return -1;
   } catch (...) {
-    BXLOG_MISC(error, "Unknown error!");
+    ASLOG_MISC(error, "Unknown error!");
     return -1;
   }
 

@@ -24,10 +24,6 @@ if (BUILD_TESTING)
                 "${gmock_SOURCE_DIR}/include")
     endif ()
 
-    check_target(gtest)
-    check_target(gtest_main)
-    check_target(gmock)
-
     list(APPEND BLOXI_TEST_COMMON_LIBRARIES
             gtest_main
             gtest

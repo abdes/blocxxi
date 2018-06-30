@@ -3,8 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_CRYPTO_HASH_H_
-#define BLOCXXI_CRYPTO_HASH_H_
+#pragma once
 
 #include <array>     // for std::array
 #include <bitset>    // for std::bitset
@@ -94,7 +93,7 @@ class Hash {
   */
   explicit Hash(gsl::span<std::uint8_t const> buf) noexcept : storage_({}) {
     auto src_size = buf.size();
-    BLOCXXI_ASSERT_PRECOND(src_size <= Size());
+    ASAP_ASSERT_PRECOND(src_size <= Size());
     auto start = begin();
     if (Size() > src_size) {
       // Pad with zeros and adjust the start
@@ -163,11 +162,11 @@ class Hash {
   /// Returns a reference to the element at specified location pos. No bounds
   /// checking is performed.
   reference operator[](size_type pos) noexcept {
-    BLOCXXI_ASSERT_PRECOND(pos < Size());
+    ASAP_ASSERT_PRECOND(pos < Size());
     return reinterpret_cast<pointer>(storage_.data())[pos];
   }
   const_reference operator[](size_type pos) const noexcept {
-    BLOCXXI_ASSERT_PRECOND(pos < Size());
+    ASAP_ASSERT_PRECOND(pos < Size());
     return reinterpret_cast<pointer>(storage_.data())[pos];
   }
 
@@ -315,7 +314,7 @@ class Hash {
   void Assign(gsl::span<std::uint8_t const> buf, iterator start) noexcept {
     size_type src_size = buf.size();
     size_type dst_size = end() - start;
-    BLOCXXI_ASSERT_PRECOND(src_size <= dst_size);
+    ASAP_ASSERT_PRECOND(src_size <= dst_size);
     std::memcpy(start, buf.data(), std::min(src_size, dst_size));
   }
 
@@ -409,5 +408,3 @@ using Hash160 = Hash<160>;  // 20 bytes
 
 }  // namespace crypto
 }  // namespace blocxxi
-
-#endif  // BLOCXXI_CRYPTO_HASH_H_

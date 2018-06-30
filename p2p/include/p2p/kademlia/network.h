@@ -3,8 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_P2P_KADEMLIA_NETWORK_H_
-#define BLOCXXI_P2P_KADEMLIA_NETWORK_H_
+#pragma once
 
 #include <memory>
 
@@ -31,7 +30,7 @@ namespace kademlia {
  * @tparam TMessageSerializer message serialization type.
  */
 template <typename TChannel, typename TMessageSerializer>
-class Network : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
+class Network : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
  public:
   /// @name Type shortcuts
   //@{
@@ -68,7 +67,7 @@ class Network : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
         chan_ipv4_(std::move(chan_ipv4)),
         chan_ipv6_(std::move(chan_ipv6)),
         response_dispatcher_(io_context) {
-    BXLOG(debug, "Creating Network DONE at '{}' and '{}'",
+    ASLOG(debug, "Creating Network DONE at '{}' and '{}'",
           chan_ipv4_->LocalEndpoint().ToString(),
           chan_ipv6_->LocalEndpoint().ToString());
   };
@@ -83,7 +82,7 @@ class Network : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
   /// Default trivial assignment constructor.
   Network &operator=(Network &&) = default;
 
-  ~Network() { BXLOG(debug, "Destroy Network"); }
+  ~Network() { ASLOG(debug, "Destroy Network"); }
   //@}
 
   /*!
@@ -105,7 +104,7 @@ class Network : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
    * received. It cannot be null.
    */
   void OnMessageReceived(MessageHandlerCallbackType handler) {
-    BLOCXXI_ASSERT(handler != nullptr);
+    ASAP_ASSERT(handler != nullptr);
     receive_handler_ = handler;
   }
 
@@ -114,7 +113,7 @@ class Network : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
   /// Calling Start() multiple times has no additional effect than the first
   /// time.
   void Start() {
-    BLOCXXI_ASSERT(receive_handler_ != nullptr);
+    ASAP_ASSERT(receive_handler_ != nullptr);
     static auto started = false;
     if (!started) {
       ScheduleReceive(*chan_ipv4_);
@@ -192,21 +191,21 @@ class Network : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
                        Timer::DurationType const &timeout,
                        OnResponseCallbackType const &on_response_received,
                        OnErrorCallbackType const &on_error) {
-    BXLOG(debug, "SendConvRequest to {}", destination);
+    ASLOG(debug, "SendConvRequest to {}", destination);
     // Generate a random request/response id
     auto const correlation_id = blocxxi::crypto::Hash160::RandomHash();
     // Generate the request Buffer.
     auto message = message_serializer_->Serialize(request, correlation_id);
-    BXLOG(trace, "  message serialized");
+    ASLOG(trace, "  message serialized");
 
     auto on_message_sent = [this, correlation_id, on_response_received,
                             on_error, timeout](std::error_code const &failure) {
       // If the send fails, report to the caller.
       if (failure) {
-        BXLOG(debug, "  message send failed");
+        ASLOG(debug, "  message send failed");
         on_error(failure);
       } else {
-        BXLOG(trace, "  message sent");
+        ASLOG(trace, "  message sent");
         // Register the response/error callbacks for later dispatch
         // of the response message.
         response_dispatcher_.RegisterCallbackWithTimeout(
@@ -231,7 +230,7 @@ class Network : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
     auto message = message_serializer_->Serialize(request, correlation_id);
     SendMessage(message, destination, [](std::error_code const &failure) {
       if (failure) {
-        BXLOG(debug, "failed to send uni-request: {}", failure.message());
+        ASLOG(debug, "failed to send uni-request: {}", failure.message());
       }
     });
   }
@@ -252,9 +251,9 @@ class Network : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
     auto message = message_serializer_->Serialize(response, correlation_id);
     SendMessage(message, destination, [](std::error_code const &failure) {
       if (failure) {
-        BXLOG(debug, "failed to send response: {}", failure.message());
+        ASLOG(debug, "failed to send response: {}", failure.message());
       } else {
-        BXLOG(debug, "response sent");
+        ASLOG(debug, "response sent");
       }
     });
   }
@@ -278,7 +277,7 @@ class Network : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
       if (!failure) {
         receive_handler_(sender, buffer);
       } else {
-        BXLOG(error, "{}", failure.message());
+        ASLOG(error, "{}", failure.message());
         // TODO: figure out how to handle receive errors if needed
         // throw std::system_error{failure};
       }
@@ -308,5 +307,3 @@ class Network : blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
 }  // namespace kademlia
 }  // namespace p2p
 }  // namespace blocxxi
-
-#endif  // BLOCXXI_P2P_KADEMLIA_NETWORK_H_

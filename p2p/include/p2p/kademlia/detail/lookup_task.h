@@ -3,8 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_P2P_KADEMLIA_LOOKUP_TASK_H_
-#define BLOCXXI_P2P_KADEMLIA_LOOKUP_TASK_H_
+#pragma once
 
 #include <map>
 #include <ostream>
@@ -22,7 +21,7 @@ namespace detail {
  *
  */
 class BaseLookupTask
-    : protected blocxxi::logging::Loggable<logging::Id::P2P_KADEMLIA> {
+ : protected asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
  public:
   /// Get a string representing the task for debugging
   std::string Name() const {
@@ -63,7 +62,7 @@ class BaseLookupTask
 
     --in_flight_requests_count_;
     candidate->second.state_ = Candidate::STATE_RESPONDED;
-    BXLOG(trace, "{} candidate {} marked as STATE_RESPONDED", this->Name(),
+    ASLOG(trace, "{} candidate {} marked as STATE_RESPONDED", this->Name(),
           candidate_id.ToHex());
   }
 
@@ -77,7 +76,7 @@ class BaseLookupTask
 
     --in_flight_requests_count_;
     candidate->second.state_ = Candidate::STATE_TIMED_OUT;
-    BXLOG(trace, "{} candidate {} marked as STATE_TIMED_OUT", this->Name(),
+    ASLOG(trace, "{} candidate {} marked as STATE_TIMED_OUT", this->Name(),
           candidate_id.ToHex());
   }
 
@@ -101,10 +100,10 @@ class BaseLookupTask
       }
     }
 
-    BXLOG(trace, "{} selected {} new fresh (not contacted) candidate",
+    ASLOG(trace, "{} selected {} new fresh (not contacted) candidate",
           this->Name(), selection.size());
     for (auto &peer : selection) {
-      BXLOG(trace, " -> {}", peer.ToString());
+      ASLOG(trace, " -> {}", peer.ToString());
     }
     return selection;
   }
@@ -126,10 +125,10 @@ class BaseLookupTask
       }
     }
 
-    BXLOG(trace, "{} selected {} valid (responded) candidate", this->Name(),
+    ASLOG(trace, "{} selected {} valid (responded) candidate", this->Name(),
           selection.size());
     for (auto &peer : selection) {
-      BXLOG(trace, " -> {}", peer.ToString());
+      ASLOG(trace, " -> {}", peer.ToString());
     }
     return selection;
   }
@@ -142,7 +141,7 @@ class BaseLookupTask
   }
 
   bool AllRequestsCompleted(void) const {
-    BXLOG(debug, "{} checking if all tasks completed, in-flight={}",
+    ASLOG(debug, "{} checking if all tasks completed, in-flight={}",
           this->Name(), in_flight_requests_count_);
     return in_flight_requests_count_ == 0;
   }
@@ -196,5 +195,3 @@ inline std::ostream &operator<<(std::ostream &out, BaseLookupTask const &task) {
 }  // namespace kademlia
 }  // namespace p2p
 }  // namespace blocxxi
-
-#endif  // BLOCXXI_P2P_KADEMLIA_LOOKUP_TASK_H_

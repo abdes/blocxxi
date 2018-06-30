@@ -41,6 +41,15 @@ before_script:
       brew outdated cmake || brew upgrade cmake
     fi
 
+  #
+  # Update / Install Xorg dev and other libs for glfw3
+  #
+  - |
+    if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
+      sudo apt-get update
+      sudo apt-get install xorg-dev libglu1-mesa-dev
+    fi
+
 matrix:
   include:
   #
@@ -55,7 +64,7 @@ matrix:
           - graphviz
           - doxygen
     script:
-      - cmake ..
+      - cmake -Wno-dev ..
       - make dox
       - |
         if [[ -s dox/doxygen_warnings.txt ]]; then
@@ -96,7 +105,7 @@ matrix:
           - gcc-6
           - g++-6
     script:
-      - cmake -DENABLE_CLANG_TIDY=ON -DCMAKE_CXX_COMPILER="clang++-6.0" ..
+      - cmake -Wno-dev -DENABLE_CLANG_TIDY=ON -DCMAKE_CXX_COMPILER="clang++-6.0" ..
       - make 2>&1 | tee output.txt
       - |
         if [[ -n $(grep -E "(warning: |error: )" output.txt | grep -v -E "(third_party|_build)")  ]]; then
@@ -121,7 +130,7 @@ matrix:
           - gcc-6
           - g++-6
     script:
-      - cmake -DENABLE_CPPCHECK=ON -DCMAKE_CXX_COMPILER="g++-6" ..
+      - cmake -Wno-dev -DENABLE_CPPCHECK=ON -DCMAKE_CXX_COMPILER="g++-6" ..
       - make
 
   #
@@ -138,7 +147,7 @@ matrix:
     env:
       - TEST="Google Address Sanitizer"
     script:
-      - cmake -DENABLE_ASAN=ON -DCMAKE_CXX_COMPILER="g++-6" ..
+      - cmake -Wno-dev -DENABLE_ASAN=ON -DCMAKE_C_COMPILER="gcc-6" -DCMAKE_CXX_COMPILER="g++-6" ..
       - make
       - ctest --output-on-failure
 
@@ -156,7 +165,7 @@ matrix:
           - gcc-6
           - g++-6
     script:
-      - cmake -DENABLE_USAN=ON -DCMAKE_CXX_COMPILER="g++-6" ..
+      - cmake -Wno-dev -DENABLE_USAN=ON -DCMAKE_C_COMPILER="gcc-6" -DCMAKE_CXX_COMPILER="g++-6" ..
       - make
       - ctest --output-on-failure
 
@@ -174,7 +183,7 @@ matrix:
           - gcc-6
           - g++-6
     script:
-      - cmake -DENABLE_TSAN=ON -DCMAKE_CXX_COMPILER="g++-6" ..
+      - cmake -Wno-dev -DENABLE_TSAN=ON -DCMAKE_C_COMPILER="gcc-6" -DCMAKE_CXX_COMPILER="g++-6" ..
       - make
       - ctest --output-on-failure
 
@@ -193,7 +202,7 @@ matrix:
           - g++-6
           - valgrind
     script:
-      - cmake -DCMAKE_CXX_COMPILER="g++-6" ..
+      - cmake -Wno-dev -DCMAKE_C_COMPILER="gcc-6" -DCMAKE_CXX_COMPILER="g++-6" ..
       - make
       - ctest -T memcheck --output-on-failure
 
@@ -211,7 +220,7 @@ matrix:
           - gcc-7
           - g++-7
     script:
-      - cmake -DCMAKE_CXX_COMPILER="g++-7" ..
+      - cmake -Wno-dev -DCMAKE_C_COMPILER="gcc-7" -DCMAKE_CXX_COMPILER="g++-7" ..
       - make
       - ctest --output-on-failure
 
@@ -231,7 +240,7 @@ matrix:
           - gcc-6
           - g++-6
     script:
-      - cmake -DCMAKE_C_COMPILER=clang-4.0 -DCMAKE_CXX_COMPILER=clang++-4.0 ..
+      - cmake -Wno-dev -DCMAKE_C_COMPILER=clang-4.0 -DCMAKE_CXX_COMPILER=clang++-4.0 ..
       - make
       - ctest --output-on-failure
 
@@ -251,7 +260,7 @@ matrix:
           - gcc-6
           - g++-6
     script:
-      - cmake -DCMAKE_C_COMPILER=clang-5.0 -DCMAKE_CXX_COMPILER=clang++-5.0 ..
+      - cmake -Wno-dev -DCMAKE_C_COMPILER=clang-5.0 -DCMAKE_CXX_COMPILER=clang++-5.0 ..
       - make
       - ctest --output-on-failure
 
@@ -263,7 +272,7 @@ matrix:
       - TEST="XCode 8.3 - OS X 10.12"
     osx_image: xcode8.3
     script:
-      - cmake ..
+      - cmake -Wno-dev ..
       - make
       - ctest --output-on-failure
 
@@ -275,6 +284,6 @@ matrix:
       - TEST="XCode 9.4 - OS X 10.13"
     osx_image: xcode9.4
     script:
-      - cmake ..
+      - cmake -Wno-dev ..
       - make
       - ctest --output-on-failure

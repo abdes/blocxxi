@@ -44,15 +44,15 @@ list(APPEND P2P_PUBLIC_INCLUDE_DIRS
   )
 
 set(P2P_PUBLIC_LIBRARIES
-  bloxi::crypto
-  bloxi::codec
-  bloxi::common
+  asap::crypto
+  asap::codec
+  asap::common
   cryptopp-static
   Boost::boost
   Boost::system
   )
 
-bloxi_library(
+asap_library(
   TARGET bloxi_p2p
   SOURCES ${P2P_SRC}
   EXPORT_NAME p2p

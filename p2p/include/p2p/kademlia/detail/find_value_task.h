@@ -3,8 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_P2P_KADEMLIA_FIND_VALUE_TASK_H_
-#define BLOCXXI_P2P_KADEMLIA_FIND_VALUE_TASK_H_
+#pragma once
 
 #include <memory>
 #include <system_error>
@@ -106,14 +105,14 @@ class FindValueTask final : public BaseLookupTask {
         routing_table_(routing_table),
         handler_(std::move(load_handler)),
         is_finished_() {
-    BXLOG(debug, "{} create new task for '{}'", this->Name(), searched_key);
+    ASLOG(debug, "{} create new task for '{}'", this->Name(), searched_key);
   }
 
   /**
    *
    */
   void NotifyCaller(DataType const &data) {
-    BLOCXXI_ASSERT(!IsCallerNotified());
+    ASAP_ASSERT(!IsCallerNotified());
     handler_(std::error_code(), data);
     is_finished_ = true;
   }
@@ -122,7 +121,7 @@ class FindValueTask final : public BaseLookupTask {
    *
    */
   void NotifyCaller(std::error_code const &failure) {
-    BLOCXXI_ASSERT(!IsCallerNotified());
+    ASAP_ASSERT(!IsCallerNotified());
     handler_(failure, DataType{});
     is_finished_ = true;
   }
@@ -155,7 +154,7 @@ class FindValueTask final : public BaseLookupTask {
   static void SendFindValueRequest(FindValueRequestBody const &request,
                                    Node const &current_candidate,
                                    std::shared_ptr<FindValueTask> task) {
-    BXLOG(debug, "{} sending find '{}' value request to '{}'", task->Name(),
+    ASLOG(debug, "{} sending find '{}' value request to '{}'", task->Name(),
           task->Key(), current_candidate);
 
     // On message received, process it.
@@ -193,7 +192,7 @@ class FindValueTask final : public BaseLookupTask {
                                       Header const &header,
                                       BufferReader const &buffer,
                                       std::shared_ptr<FindValueTask> task) {
-    BXLOG(debug, "{} handling response from '{}' to find '{}'", task->Name(),
+    ASLOG(debug, "{} handling response from '{}' to find '{}'", task->Name(),
           sender, task->Key());
 
     if (header.type_ == Header::MessageType::FIND_NODE_RESPONSE) {
@@ -215,14 +214,14 @@ class FindValueTask final : public BaseLookupTask {
    */
   static void SendFindValueRequestsOnCloserPeers(
       BufferReader const &buffer, std::shared_ptr<FindValueTask> task) {
-    BXLOG(debug, "{} checking if found closer peers to '{}' value",
+    ASLOG(debug, "{} checking if found closer peers to '{}' value",
           task->Name(), task->Key());
 
     FindNodeResponseBody response;
     try {
       Deserialize(buffer, response);
     } catch (std::exception const &ex) {
-      BXLOG(debug, "{} failed to deserialize find node response ({})",
+      ASLOG(debug, "{} failed to deserialize find node response ({})",
             task->Name(), ex.what());
       return;
     }
@@ -246,13 +245,13 @@ class FindValueTask final : public BaseLookupTask {
    */
   static void ProcessFoundValue(BufferReader const &buffer,
                                 std::shared_ptr<FindValueTask> task) {
-    BXLOG(debug, "{} found value for key '{}'", task->Name(), task->Key());
+    ASLOG(debug, "{} found value for key '{}'", task->Name(), task->Key());
 
     FindValueResponseBody response;
     try {
       Deserialize(buffer, response);
     } catch (std::exception const &ex) {
-      BXLOG(debug, "{} failed to deserialize find value response ({})",
+      ASLOG(debug, "{} failed to deserialize find value response ({})",
             task->Name(), ex.what());
       return;
     }
@@ -292,5 +291,3 @@ void StartFindValueTask(
 }  // namespace kademlia
 }  // namespace p2p
 }  // namespace blocxxi
-
-#endif  // BLOCXXI_P2P_KADEMLIA_FIND_VALUE_TASK_H_

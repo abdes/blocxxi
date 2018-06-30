@@ -8,16 +8,7 @@
 #include <common/assert.h>
 #include <common/config.h>
 
-#ifdef BLOCXXI_PRODUCTION_ASSERTS
-#include <atomic>
-#endif
-
-#if BLOCXXI_USE_ASSERTS || defined BLOCXXI_ASIO_DEBUGGING || \
-    defined BLOCXXI_PROFILE_CALLS || defined BLOCXXI_DEBUG_BUFFERS
-
-//#ifdef __APPLE__
-//#include <AvailabilityMacros.h>
-//#endif
+#if ASAP_USE_ASSERTS
 
 #include <array>
 #include <cinttypes>  // for PRId64 et.al.
@@ -28,10 +19,10 @@
 #include <cstring>  // for strncat
 #include <string>   // for strstr, strchr
 
-#if BLOCXXI_USE_EXECINFO
+#if ASAP_USE_EXECINFO
 #include <execinfo.h>
 
-namespace blocxxi {
+namespace asap {
 
 void print_backtrace(char* out, int len, int max_depth, void*) {
   void* stack[50];
@@ -48,18 +39,18 @@ void print_backtrace(char* out, int len, int max_depth, void*) {
 
   ::free(symbols);
 }
-}  // namespace blocxxi
+}  // namespace asap
 
 #elif defined _WIN32
 
 #include <mutex>
-//#include "blocxxi/utf8.hpp"
+//#include "asap/utf8.hpp"
 #include "windows.h"
 
 #include "dbghelp.h"
 #include "winbase.h"
 
-namespace blocxxi {
+namespace asap {
 
 void print_backtrace(char* out, int len, int max_depth, void* ctx) {
   // all calls to DbgHlp.dll are thread-unsafe. i.e. they all need to be
@@ -155,52 +146,36 @@ void print_backtrace(char* out, int len, int max_depth, void* ctx) {
     if (i == max_depth && max_depth > 0) break;
   }
 }
-}  // namespace blocxxi
+}  // namespace asap
 
 #else
 
-namespace blocxxi {
+namespace asap {
 
 void print_backtrace(char* out, int len, int /*max_depth*/, void* /* ctx */) {
   out[0] = 0;
   std::strncat(out, "<not supported>", std::size_t(len));
 }
 
-}  // namespace blocxxi
+}  // namespace asap
 
 #endif
 
 #endif
 
-#if (BLOCXXI_USE_ASSERTS || defined BLOCXXI_ASIO_DEBUGGING) && \
-    defined BLOCXXI_PRODUCTION_ASSERTS
-char const* blocxxi_assert_log = "asserts.log";
-namespace {
-// the number of asserts we've printed to the log
-std::atomic<int> assert_counter(0);
-}  // namespace
-#endif
+namespace asap {
 
-namespace blocxxi {
+#if ASAP_USE_ASSERTS
 
-#if BLOCXXI_USE_ASSERTS || defined BLOCXXI_ASIO_DEBUGGING
-
-BLOCXXI_FORMAT(1, 2)
+ASAP_FORMAT(1, 2)
 void assert_print(char const* fmt, ...) {
-#ifdef BLOCXXI_PRODUCTION_ASSERTS
-  if (assert_counter > 500) return;
-
-  FILE* out = fopen(blocxxi_assert_log, "a+");
-  if (out == nullptr) out = stderr;
-#else
   FILE* out = stderr;
-#endif
   va_list va;
   va_start(va, fmt);
   std::vfprintf(out, fmt, va);
   va_end(va);
 
-#ifdef BLOCXXI_PRODUCTION_ASSERTS
+#ifdef ASAP_PRODUCTION_ASSERTS
   if (out != stderr) fclose(out);
 #endif
 }
@@ -214,7 +189,7 @@ void assert_print(char const* fmt, ...) {
 
 void assert_fail(char const* expr, int line, char const* file,
                  char const* function, char const* value, int kind) {
-#ifdef BLOCXXI_PRODUCTION_ASSERTS
+#ifdef ASAP_PRODUCTION_ASSERTS
   // no need to flood the assert log with infinite number of asserts
   if (assert_counter.fetch_add(1) + 1 > 500) return;
 #endif
@@ -230,13 +205,13 @@ void assert_fail(char const* expr, int line, char const* file,
   switch (kind) {
     case 1:
       message =
-          "A precondition of a blocxxi function has been violated.\n"
-          "This indicates a bug in the client application using blocxxi\n";
+          "A precondition of a asap function has been violated.\n"
+          "This indicates a bug in the client application using asap\n";
   }
 
   assert_print(
       "%s\n"
-#ifdef BLOCXXI_PRODUCTION_ASSERTS
+#ifdef ASAP_PRODUCTION_ASSERTS
       "#: %d\n"
 #endif
       "file: '%s'\n"
@@ -247,7 +222,7 @@ void assert_fail(char const* expr, int line, char const* file,
       "stack:\n"
       "%s\n",
       message
-#ifdef BLOCXXI_PRODUCTION_ASSERTS
+#ifdef ASAP_PRODUCTION_ASSERTS
       ,
       assert_counter.load()
 #endif
@@ -255,8 +230,8 @@ void assert_fail(char const* expr, int line, char const* file,
       file, line, function, expr, value ? value : "", value ? "\n" : "", stack);
 
   // if production asserts are defined, don't abort, just print the error
-#ifndef BLOCXXI_PRODUCTION_ASSERTS
-#ifdef BLOCXXI_WINDOWS
+#ifndef ASAP_PRODUCTION_ASSERTS
+#ifdef ASAP_WINDOWS
   // SIGINT doesn't trigger a break with msvc
   DebugBreak();
 #else
@@ -272,16 +247,16 @@ void assert_fail(char const* expr, int line, char const* file,
 #pragma clang diagnostic pop
 #endif
 
-#elif !BLOCXXI_USE_ASSERTS
+#elif !ASAP_USE_ASSERTS
 
 // these are just here to make it possible for a client that built with debug
 // enable to be able to link against a release build (just possible, not
 // necessarily supported)
-BLOCXXI_FORMAT(1, 2)
+ASAP_FORMAT(1, 2)
 void assert_print(char const*, ...) {}
 void assert_fail(char const*, int, char const*, char const*, char const*, int) {
 }
 
 #endif
 
-}  // blocxxi namespace
+}  // namespace asap
