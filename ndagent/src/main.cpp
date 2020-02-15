@@ -67,7 +67,7 @@ int main(int argc, char **argv) {
     bpo::options_description desc("Allowed options");
     // clang-format off
     desc.add_options()
-      ("help", "produce hel message")
+      ("help", "produce help message")
       ("nat,n", bpo::value<std::string>(&nat_spec)->default_value(""),
         "NAT specification as one of the following accepted formats: "
         "'upnp','extip:1.2.3.4[:192.168.1.5]'. If not present, best effort "
