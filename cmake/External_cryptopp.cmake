@@ -4,8 +4,8 @@
 # Download googletest
 download_project(
         PROJ cryptopp
-        URL ${CMAKE_CURRENT_SOURCE_DIR}/third_party/cryptopp/cryptopp700.zip
-        URL_HASH SHA256=a4bc939910edd3d29fb819a6fc0dfdc293f686fa62326f61c56d72d0a366ceb0
+        URL ${CMAKE_CURRENT_SOURCE_DIR}/third_party/cryptopp/cryptopp820.zip
+        URL_HASH SHA256=1e5052e356bdefdfc742d0cfd480381a15d08d3a78c8a0383139b9fbe84d0dd5
 )
 
 set(CRYPTOPP_CMAKE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/third_party/cryptopp-cmake)
