@@ -4,4 +4,4 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ===-----------------------------------------------------------------------===#
 
-message("=> [third-party modules]")
+include(common/FindValgrind)

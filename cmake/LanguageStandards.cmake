@@ -4,4 +4,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ===-----------------------------------------------------------------------===#
 
-message("=> [third-party modules]")
+include(common/LanguageStandards)
+
+function(asap_set_language_standards)
+  swift_set_language_standards(${ARGV})
+endfunction()
