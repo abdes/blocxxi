@@ -242,7 +242,7 @@ add_subdirectory(third_party)
 # Project modules
 # ==============================================================================
 
-# Add project modules here
+add_subdirectory(codec)
 
 # ==============================================================================
 # Code analyzers: clang-tidy, cppcheck, valgrind, sanitizers, etc...

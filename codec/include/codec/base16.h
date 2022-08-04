@@ -5,20 +5,18 @@
 
 #pragma once
 
-#include <cstdint>   // for uint8_t
-#include <gsl/gsl>  // for gsl::span
-#include <string>    // for std::string
+#include <codec/blocxxi_codec_api.h>
 
-namespace blocxxi {
-namespace codec {
-namespace hex {
+#include <cstdint> // for uint8_t
+#include <gsl/gsl> // for gsl::span
+#include <string>  // for std::string
 
-std::string Encode(gsl::span<const uint8_t> src, bool reverse = false,
-                   bool lower_case = false);
+namespace blocxxi::codec::hex {
 
-void Decode(gsl::span<const char> src, gsl::span<uint8_t> dest,
-            bool reverse = false);
+BLOCXXI_CODEC_API auto Encode(gsl::span<const uint8_t> src,
+    bool reverse = false, bool lower_case = false) -> std::string;
 
-}  // namespace hex
-}  // namespace codec
-}  // namespace blocxxi
+BLOCXXI_CODEC_API void Decode(
+    gsl::span<const char> src, gsl::span<uint8_t> dest, bool reverse = false);
+
+} // namespace blocxxi::codec::hex
