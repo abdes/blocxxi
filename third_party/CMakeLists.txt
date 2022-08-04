@@ -38,6 +38,7 @@ CPMAddPackage(
 if(cryptopp_ADDED)
   function(add_cryptopp_subdir)
     set(BUILD_TESTING OFF)
+    set(BUILD_SHARED OFF)
     add_subdirectory(
       ${CRYPTOPP_CMAKE_DIR}
       ${CRYPTOPP_BUILD_DIR}
