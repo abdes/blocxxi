@@ -10,9 +10,11 @@
  * \brief Implementation of the encoding/decoding utilities for blocxxi,
  */
 
-#include <array>
 #include <codec/base16.h>
 
+#include <common/compilers.h>
+
+#include <array>
 #include <cctype> // for isxdigit
 #include <cstdint>
 #include <stdexcept> // for std::runtime_exception
@@ -88,12 +90,12 @@ template <unsigned N> struct DecLookupTable {
 template <typename LambdaType, unsigned... Is>
 constexpr auto DecTableGenerator(seq<Is...> /*unused*/, LambdaType DecForIndex)
     -> DecLookupTable<sizeof...(Is)> {
-#if __clang__
+#if defined(ASAP_CLANG_VERSION)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-braces"
 #endif
   return {DecForIndex(Is)...};
-#if __clang__
+#if defined(ASAP_CLANG_VERSION)
 #pragma clang diagnostic pop
 #endif
 }
