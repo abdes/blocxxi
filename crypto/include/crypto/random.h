@@ -5,15 +5,13 @@
 
 #pragma once
 
-#include <cstddef>  // for std::size_t
-#include <cstdint>  // for uint8_t
+#include <crypto/blocxxi_crypto_api.h>
 
-namespace blocxxi {
-namespace crypto {
-namespace random {
+#include <cstddef> // for std::size_t
+#include <cstdint> // for uint8_t
 
-void GenerateBlock(std::uint8_t *output, std::size_t size);
+namespace blocxxi::crypto::random {
 
-}  // namespace random
-}  // namespace crypto
-}  // namespace blocxxi
+BLOCXXI_CRYPTO_API void GenerateBlock(std::uint8_t *output, std::size_t size);
+
+} // namespace blocxxi::crypto::random

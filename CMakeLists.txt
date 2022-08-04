@@ -243,6 +243,7 @@ add_subdirectory(third_party)
 # ==============================================================================
 
 add_subdirectory(codec)
+add_subdirectory(crypto)
 
 # ==============================================================================
 # Code analyzers: clang-tidy, cppcheck, valgrind, sanitizers, etc...

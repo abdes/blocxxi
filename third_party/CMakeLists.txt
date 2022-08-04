@@ -59,3 +59,42 @@ if(cryptopp_ADDED)
   # Add the include directory
   include_directories(SYSTEM ${cryptopp_SOURCE_DIR})
 endif()
+
+# ------------------------------------------------------------------------------
+# Boost libs
+# ------------------------------------------------------------------------------
+CPMAddPackage(
+  NAME boost_config
+  GIT_TAG "boost-1.79.0"
+  GITHUB_REPOSITORY boostorg/config
+)
+CPMAddPackage(
+  NAME boost_core
+  GIT_TAG "boost-1.79.0"
+  GITHUB_REPOSITORY boostorg/core
+)
+CPMAddPackage(
+  NAME boost_assert
+  GIT_TAG "boost-1.79.0"
+  GITHUB_REPOSITORY boostorg/assert
+)
+CPMAddPackage(
+  NAME boost_static_assert
+  GIT_TAG "boost-1.79.0"
+  GITHUB_REPOSITORY boostorg/static_assert
+)
+CPMAddPackage(
+  NAME boost_throw_exception
+  GIT_TAG "boost-1.79.0"
+  GITHUB_REPOSITORY boostorg/throw_exception
+)
+CPMAddPackage(
+  NAME boost_type_traits
+  GIT_TAG "boost-1.79.0"
+  GITHUB_REPOSITORY boostorg/type_traits
+)
+CPMAddPackage(
+  NAME boost_endian
+  GIT_TAG "boost-1.79.0"
+  GITHUB_REPOSITORY boostorg/endian
+)
