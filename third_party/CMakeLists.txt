@@ -36,19 +36,21 @@ CPMAddPackage(
   DOWNLOAD_ONLY YES
 )
 if(cryptopp_ADDED)
+  function(add_cryptopp_subdir)
+    set(BUILD_TESTING OFF)
+    add_subdirectory(
+      ${CRYPTOPP_CMAKE_DIR}
+      ${CRYPTOPP_BUILD_DIR}
+    )
+  endfunction()
+
   set(CRYPTOPP_CMAKE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/cryptopp-cmake)
   set(CRYPTOPP_BUILD_DIR ${CMAKE_BINARY_DIR}/third_party_deps/cryptopp-build)
 
   set(cryptopp_DISPLAY_CMAKE_SUPPORT_WARNING FALSE)
   set(CRYPTOPP_PROJECT_DIR ${cryptopp_SOURCE_DIR} CACHE PATH "Crypto++ project directory")
-  set(BUILD_TESTING OFF)
-
   # Let cmake do the rest using the cryptopp-cmake CMakeLists.txt
-  add_subdirectory(
-    ${CRYPTOPP_CMAKE_DIR}
-    ${CRYPTOPP_BUILD_DIR}
-  )
-  set(BUILD_TESTING OFF)
+  add_cryptopp_subdir()
 
   # Add the include directory
   include_directories(SYSTEM ${cryptopp_SOURCE_DIR})
