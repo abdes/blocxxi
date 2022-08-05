@@ -3,13 +3,13 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_NAT_ERROR_H_
-#define BLOCXXI_NAT_ERROR_H_
+#pragma once
+
+#include <nat/blocxxi_nat_api.h>
 
 #include <system_error>
 
-namespace blocxxi {
-namespace nat {
+namespace blocxxi::nat {
 
 /// All NAT module error codes.
 enum error_type {
@@ -24,16 +24,14 @@ enum error_type {
  *
  *  @return The created error condition.
  */
-std::error_condition make_error_condition(error_type condition);
+BLOCXXI_NAT_API auto make_error_condition(error_type condition)
+    -> std::error_condition;
 
-}  // namespace nat
-}  // namespace blocxxi
+} // namespace blocxxi::nat
 
 namespace std {
 
 template <>
 struct is_error_condition_enum<blocxxi::nat::error_type> : true_type {};
 
-}  // namespace std
-
-#endif  // BLOCXXI_NAT_ERROR_H_
+} // namespace std

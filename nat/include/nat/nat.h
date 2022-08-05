@@ -3,24 +3,23 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_NAT_NAT_H_
-#define BLOCXXI_NAT_NAT_H_
+#pragma once
 
-#include <memory>  // for unique_ptr
-#include <vector>  // for string splitting
+#include <nat/blocxxi_nat_api.h>
 
-#include <common/logging.h>
+#include <memory> // for unique_ptr
+#include <vector> // for string splitting
+
 #include <nat/port_mapper.h>
 
-namespace blocxxi {
-namespace nat {
+namespace blocxxi::nat {
 
 /*!
  * @brief Implements the PortMapper interface for situations where no port
  * forwarding is needed.
  */
-class NoPortMapper : public PortMapper {
- public:
+class BLOCXXI_NAT_API NoPortMapper : public PortMapper {
+public:
   /// @name Constructors etc.
   //@{
   /*!
@@ -37,37 +36,40 @@ class NoPortMapper : public PortMapper {
    * @param [in] internal_ip the internal (LAN facing) IP address
    */
   NoPortMapper(std::string const &external_ip, std::string const &internal_ip)
-      : PortMapper(external_ip, internal_ip) {}
+      : PortMapper(external_ip, internal_ip) {
+  }
   /// Not copyable
   NoPortMapper(NoPortMapper const &) = delete;
   /// Not assignable
-  NoPortMapper &operator=(NoPortMapper const &) = delete;
+  auto operator=(NoPortMapper const &) -> NoPortMapper & = delete;
   /// Move copyable
   NoPortMapper(NoPortMapper &&) = default;
   /// Move assignable
-  NoPortMapper &operator=(NoPortMapper &&) = default;
+  auto operator=(NoPortMapper &&) -> NoPortMapper & = default;
   /// Default
   ~NoPortMapper() override = default;
   //@}
 
   /// Does nothing.
-  std::error_condition AddMapping(Protocol,
-                                  unsigned short,
-                                  unsigned short,
-                                  std::string const &,
-                                  std::chrono::seconds) override {
+  auto AddMapping(Protocol /*protocol*/, unsigned short /*external_port*/,
+      unsigned short /*internal_port*/, std::string const & /*name*/,
+      std::chrono::seconds /*lease_time*/) -> std::error_condition override {
     return {};
   }
 
   /// Does nothing.
-  std::error_condition DeleteMapping(Protocol, unsigned short) override {
+  auto DeleteMapping(Protocol /*protocol*/, unsigned short /*external_port*/)
+      -> std::error_condition override {
     return {};
   }
 
   /// @copydoc PortMapper::ToString()
-  std::string ToString() const override {
-    return std::string("NoPortMapper(ext=").append(ExternalIP()).append(", int=").append(
-        InternalIP()).append(")");
+  [[nodiscard]] auto ToString() const -> std::string override {
+    return std::string("NoPortMapper(ext=")
+        .append(ExternalIP())
+        .append(", int=")
+        .append(InternalIP())
+        .append(")");
   }
 };
 
@@ -95,10 +97,7 @@ class NoPortMapper : public PortMapper {
  * @return a unique_ptr to a suitable PortMapper if one has been successfully
  * made; nullptr otherwise.
  */
-std::unique_ptr<PortMapper> GetPortMapper(std::string const &spec);
+BLOCXXI_NAT_API auto GetPortMapper(std::string const &spec)
+    -> std::unique_ptr<PortMapper>;
 
-}  // namespace nat
-}  // namespace blocxxi
-
-
-#endif //BLOCXXI_NAT_NAT_H_
+} // namespace blocxxi::nat

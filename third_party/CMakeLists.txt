@@ -96,3 +96,30 @@ CPMAddPackage(
   GIT_TAG "boost-1.79.0"
   GITHUB_REPOSITORY boostorg/endian
 )
+
+# ------------------------------------------------------------------------------
+# miniupnpc
+# ------------------------------------------------------------------------------
+CPMAddPackage(
+  NAME miniupnp
+  GIT_TAG master
+  GITHUB_REPOSITORY miniupnp/miniupnp
+  DOWNLOAD_ONLY YES
+)
+if(miniupnp_ADDED)
+  function(add_miniupnpc_subdir)
+    add_subdirectory(
+      ${MINIUPNPC_CMAKE_DIR}
+      ${MINIUPNPC_BUILD_DIR}
+    )
+  endfunction()
+
+  set(MINIUPNPC_CMAKE_DIR ${miniupnp_SOURCE_DIR}/miniupnpc)
+  set(MINIUPNPC_BUILD_DIR ${CMAKE_BINARY_DIR}/third_party_deps/miniupnpc-build)
+
+  # Let cmake do the rest using the cryptopp-cmake CMakeLists.txt
+  add_miniupnpc_subdir()
+
+  # Add the include directory
+  include_directories(SYSTEM ${MINIUPNPC_CMAKE_DIR}/include)
+endif()
