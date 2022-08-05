@@ -37,6 +37,7 @@ CPMAddPackage(
 )
 if(cryptopp_ADDED)
   function(add_cryptopp_subdir)
+    set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
     set(BUILD_TESTING OFF)
     set(BUILD_SHARED OFF)
     add_subdirectory(
