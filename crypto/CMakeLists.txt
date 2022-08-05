@@ -23,6 +23,38 @@ asap_declare_module(
   "0"
   VERSION_PATCH
   "0")
+# ------------------------------------------------------------------------------
+# Code generation
+# ------------------------------------------------------------------------------
+
+if(MSVC)
+  check_cxx_source_compiles(
+      "#include <intrin.h>
+      #pragma intrinsic(_BitScanReverse)
+      #pragma intrinsic(_BitScanReverse64)
+      int main () {
+          unsigned long x = 5;
+          unsigned long y;
+          _BitScanReverse(&y, x);
+          _BitScanReverse64(&x, y);
+          return 0;
+      }"
+      BLOCXXI_HAS_BITSCAN_REVERSE)
+else()
+  check_cxx_source_compiles(
+      "#include <cstdint>
+       int main () {
+          unsigned int x = 5;
+          unsigned long long y = __builtin_clz(x);
+          x = __builtin_clzll(y);
+          return 0;
+      }"
+      BLOCXXI_HAS_BUILTIN_CLZ)
+endif()
+
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/crypto/config.h.in
+  ${CMAKE_CURRENT_BINARY_DIR}/include/crypto/config.h)
 
 # ==============================================================================
 # Build instructions

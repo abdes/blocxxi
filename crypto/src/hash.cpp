@@ -3,6 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
+#include <crypto/config.h>
 #include <crypto/hash.h>
 
 #include <boost/endian/conversion.hpp>
@@ -63,15 +64,12 @@ int CountLeadingZeroBits_HW(gsl::span<std::uint32_t const> buf) {
       continue;
     std::uint32_t v = NetworkToHost(ptr[i]);
 
-#if ASAP_HAS_BUILTIN_CLZ
+#if BLOCXXI_HAS_BUILTIN_CLZ
     return i * 32 + __builtin_clz(v);
-#elif defined _MSC_VER
+#elif BLOCXXI_HAS_BITSCAN_REVERSE
     unsigned long pos;
     _BitScanReverse(&pos, v);
     return i * 32 + 31 - pos;
-#else
-    ASAP_ASSERT_FAIL();
-    return -1;
 #endif
   }
 
@@ -79,7 +77,7 @@ int CountLeadingZeroBits_HW(gsl::span<std::uint32_t const> buf) {
 }
 
 int CountLeadingZeroBits(gsl::span<std::uint32_t const> buf) {
-#if ASAP_HAS_BUILTIN_CLZ || defined _MSC_VER
+#if BLOCXXI_HAS_BUILTIN_CLZ || BLOCXXI_HAS_BITSCAN_REVERSE
   return CountLeadingZeroBits_HW(buf);
 #else
   return CountLeadingZeroBits_SW(buf);
