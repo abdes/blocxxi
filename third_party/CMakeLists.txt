@@ -108,6 +108,11 @@ CPMAddPackage(
 )
 if(miniupnp_ADDED)
   function(add_miniupnpc_subdir)
+    set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+    set(UPNPC_BUILD_SHARED FALSE)
+    set(UPNPC_BUILD_TESTS FALSE)
+    set(UPNPC_BUILD_SAMPLE FALSE)
+    set(UPNPC_NO_INSTALL TRUE)
     add_subdirectory(
       ${MINIUPNPC_CMAKE_DIR}
       ${MINIUPNPC_BUILD_DIR}
