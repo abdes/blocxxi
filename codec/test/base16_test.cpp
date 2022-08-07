@@ -48,7 +48,7 @@ void addTestValue(std::vector<EncodeTestParams> &values,
     const std::array<const uint8_t, N> &data, bool reverse, bool lower_case,
     const std::string hex) {
   auto buffer = new uint8_t[N];
-  if (N > 0)
+  if constexpr (N > 0)
     memcpy(buffer, &data[0], N);
   auto data_span = gsl::make_span(buffer, N);
   values.emplace_back(EncodeTestParams(data_span, reverse, lower_case, hex));

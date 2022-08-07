@@ -5,17 +5,15 @@
 
 #pragma once
 
-#include <cstdint>      // for std::uint8_t etc.
-#include <type_traits>  // for std::underlying_type_t<>
+#include <cstdint>     // for std::uint8_t etc.
+#include <type_traits> // for std::underlying_type_t<>
 
-#include <gsl/gsl>  // for gsl::span
+#include <gsl/gsl> // for gsl::span
 
 #include <p2p/kademlia/buffer.h>
 #include <p2p/kademlia/node.h>
 
-namespace blocxxi {
-namespace p2p {
-namespace kademlia {
+namespace blocxxi::p2p::kademlia {
 
 /*!
  * @brief Represents a message header block.
@@ -85,8 +83,7 @@ constexpr std::underlying_type_t<TEnum> ToUnderlying(TEnum e_value) noexcept {
  * @tparam TMessageBody the type of the message body described by this traits
  * class.
  */
-template <typename TMessageBody>
-struct MessageTraits;
+template <typename TMessageBody> struct MessageTraits;
 
 /*!
  * @brief Serialize the header into the given buffer, which is expected to be
@@ -114,8 +111,7 @@ struct FindNodeRequestBody final {
 };
 
 /// Message traits template specialization for the FIND_NODE request message.
-template <>
-struct MessageTraits<FindNodeRequestBody> {
+template <> struct MessageTraits<FindNodeRequestBody> {
   static constexpr Header::MessageType TYPE_ID =
       Header::MessageType::FIND_NODE_REQUEST;
 };
@@ -145,8 +141,7 @@ struct FindNodeResponseBody final {
 };
 
 /// Message traits template specialization for the FIND_NODE response message.
-template <>
-struct MessageTraits<FindNodeResponseBody> {
+template <> struct MessageTraits<FindNodeResponseBody> {
   static constexpr Header::MessageType TYPE_ID =
       Header::MessageType::FIND_NODE_RESPONSE;
 };
@@ -176,8 +171,7 @@ struct FindValueRequestBody final {
 };
 
 /// Message traits template specialization for the FIND_VALUE request message.
-template <>
-struct MessageTraits<FindValueRequestBody> {
+template <> struct MessageTraits<FindValueRequestBody> {
   static constexpr Header::MessageType TYPE_ID =
       Header::MessageType::FIND_VALUE_REQUEST;
 };
@@ -207,8 +201,7 @@ struct FindValueResponseBody final {
 };
 
 /// Message traits template specialization for the FIND_VALUE response message.
-template <>
-struct MessageTraits<FindValueResponseBody> {
+template <> struct MessageTraits<FindValueResponseBody> {
   static constexpr Header::MessageType TYPE_ID =
       Header::MessageType::FIND_VALUE_RESPONSE;
 };
@@ -229,8 +222,8 @@ void Serialize(FindValueResponseBody const &body, Buffer &buffer);
  * @return the number of consumed bytes from the input buffer. Subsequent
  * deserialization from the buffer need to start after the consumed bytes.
  */
-std::size_t Deserialize(BufferReader const &buffer,
-                        FindValueResponseBody &body);
+std::size_t Deserialize(
+    BufferReader const &buffer, FindValueResponseBody &body);
 
 /// STORE_VALUE request message body.
 struct StoreValueRequestBody final {
@@ -241,8 +234,7 @@ struct StoreValueRequestBody final {
 };
 
 /// Message traits template specialization for the STORE_VALUE request message.
-template <>
-struct MessageTraits<StoreValueRequestBody> {
+template <> struct MessageTraits<StoreValueRequestBody> {
   static constexpr Header::MessageType TYPE_ID =
       Header::MessageType::STORE_REQUEST;
 };
@@ -263,9 +255,7 @@ void Serialize(StoreValueRequestBody const &body, Buffer &buffer);
  * @return the number of consumed bytes from the input buffer. Subsequent
  * deserialization from the buffer need to start after the consumed bytes.
  */
-std::size_t Deserialize(BufferReader const &buffer,
-                        StoreValueRequestBody &body);
+std::size_t Deserialize(
+    BufferReader const &buffer, StoreValueRequestBody &body);
 
-}  // namespace kademlia
-}  // namespace p2p
-}  // namespace blocxxi
+} // namespace blocxxi::p2p::kademlia

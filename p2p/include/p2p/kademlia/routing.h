@@ -5,23 +5,22 @@
 
 #pragma once
 
+#include "p2p/blocxxi_p2p_export.h"
 #include <chrono>
 #include <deque>
 #include <forward_list>
-#include <set>      // for std::set (neighbors)
-#include <utility>  // for std::pair
+#include <set>     // for std::set (neighbors)
+#include <utility> // for std::pair
 
-#include <boost/iterator/iterator_adaptor.hpp>
 #include <boost/iterator/reverse_iterator.hpp>
 
-#include <common/logging.h>
+#include <logging/logging.h>
+#include <p2p/blocxxi_p2p_api.h>
 #include <p2p/kademlia/kbucket.h>
 #include <p2p/kademlia/node.h>
 #include <p2p/kademlia/parameters.h>
 
-namespace blocxxi {
-namespace p2p {
-namespace kademlia {
+namespace blocxxi::p2p::kademlia {
 
 /*!
  * @brief A routing table to manage contacts for a node in a Kademlia
@@ -43,8 +42,11 @@ namespace kademlia {
  * @see https://en.wikipedia.org/wiki/Kademlia
  * @see https://pdos.csail.mit.edu/~petar/papers/maymounkov-kademlia-lncs.pdf
  */
-class RoutingTable : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
- public:
+class BLOCXXI_P2P_API RoutingTable : asap::logging::Loggable<RoutingTable> {
+public:
+  /// The logger id used for logging within this class.
+  static constexpr const char *LOGGER_NAME = "p2p-kademlia";
+
   /*!
    * Represents an iterator over the buckets in the routing table.
    *
@@ -54,20 +56,21 @@ class RoutingTable : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
   template <typename TValue, typename TIterator>
   class BucketIterator
       : public boost::iterator_adaptor<BucketIterator<TValue, TIterator>,
-                                       TIterator, TValue,
-                                       std::bidirectional_iterator_tag> {
-   public:
-    BucketIterator() : BucketIterator::iterator_adaptor_() {}
+            TIterator, TValue, std::bidirectional_iterator_tag> {
+  public:
+    BucketIterator() : BucketIterator::iterator_adaptor_() {
+    }
     explicit BucketIterator(TIterator node)
-        : BucketIterator::iterator_adaptor_(node) {}
+        : BucketIterator::iterator_adaptor_(node) {
+    }
 
     /// Conversion constructor mainly between const and non-const iterators.
     template <class OtherValue>
-    BucketIterator(
-        BucketIterator<OtherValue, TIterator> const &other,
-        typename std::enable_if<
-            std::is_convertible<OtherValue *, TValue *>::value>::type)
-        : BucketIterator::iterator_adaptor_(other.base()) {}
+    BucketIterator(BucketIterator<OtherValue, TIterator> const &other,
+        typename std::enable_if<std::is_convertible<OtherValue *,
+            TValue *>::value>::type /*unused*/)
+        : BucketIterator::iterator_adaptor_(other.base()) {
+    }
   };
 
   using iterator = BucketIterator<KBucket, std::deque<KBucket>::iterator>;
@@ -76,7 +79,7 @@ class RoutingTable : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
   using reverse_iterator = boost::reverse_iterator<iterator>;
   using const_reverse_iterator = boost::reverse_iterator<const_iterator>;
 
- public:
+public:
   /// @name Constructors etc.
   //@{
   /*!
@@ -91,45 +94,53 @@ class RoutingTable : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
   /// Not copyable
   RoutingTable(const RoutingTable &) = delete;
   /// Not assignable
-  RoutingTable &operator=(const RoutingTable &) = delete;
+  auto operator=(const RoutingTable &) -> RoutingTable & = delete;
   /// Movable
   RoutingTable(RoutingTable &&) = default;
   /// Move assignable
-  RoutingTable &operator=(RoutingTable &&) = default;
+  auto operator=(RoutingTable &&) -> RoutingTable & = default;
   /// Default destructor
   ~RoutingTable() = default;
   //@}
 
   /// @name Iteration
   //@{
-  iterator begin() noexcept { return iterator(buckets_.begin()); };
-  const_iterator begin() const noexcept {
+  auto begin() noexcept -> iterator {
+    return iterator(buckets_.begin());
+  };
+  [[nodiscard]] auto begin() const noexcept -> const_iterator {
     return const_iterator(buckets_.cbegin());
   }
-  iterator end() noexcept { return iterator(buckets_.end()); }
-  const_iterator end() const noexcept {
+  auto end() noexcept -> iterator {
+    return iterator(buckets_.end());
+  }
+  [[nodiscard]] auto end() const noexcept -> const_iterator {
     return const_iterator(buckets_.cend());
   }
 
-  reverse_iterator rbegin() noexcept { return reverse_iterator(end()); }
-  const_reverse_iterator rbegin() const noexcept {
+  auto rbegin() noexcept -> reverse_iterator {
+    return reverse_iterator(end());
+  }
+  [[nodiscard]] auto rbegin() const noexcept -> const_reverse_iterator {
     return const_reverse_iterator(cend());
   }
-  reverse_iterator rend() noexcept { return reverse_iterator(begin()); }
-  const_reverse_iterator rend() const noexcept {
+  auto rend() noexcept -> reverse_iterator {
+    return reverse_iterator(begin());
+  }
+  [[nodiscard]] auto rend() const noexcept -> const_reverse_iterator {
     return const_reverse_iterator(cbegin());
   }
 
-  const_iterator cbegin() const noexcept {
+  [[nodiscard]] auto cbegin() const noexcept -> const_iterator {
     return const_iterator(buckets_.cbegin());
   }
-  const_iterator cend() const noexcept {
+  [[nodiscard]] auto cend() const noexcept -> const_iterator {
     return const_iterator(buckets_.cend());
   }
-  const_reverse_iterator crbegin() const noexcept {
+  [[nodiscard]] auto crbegin() const noexcept -> const_reverse_iterator {
     return const_reverse_iterator(cend());
   }
-  const_reverse_iterator crend() const noexcept {
+  [[nodiscard]] auto crend() const noexcept -> const_reverse_iterator {
     return const_reverse_iterator(cbegin());
   }
   //@}
@@ -138,17 +149,19 @@ class RoutingTable : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
   //@{
 
   /// Return this routing table routing node.
-  const Node &ThisNode() const { return my_node_; }
+  [[nodiscard]] auto ThisNode() const -> const Node & {
+    return my_node_;
+  }
 
   /// Return the number of nodes in the routing table (excluding any nodes
   /// stored in buckets as replacements).
-  std::size_t NodesCount() const;
+  [[nodiscard]] auto NodesCount() const -> std::size_t;
 
   /// Return the number of buckets in this routing table.
-  std::size_t BucketsCount() const;
+  [[nodiscard]] auto BucketsCount() const -> std::size_t;
 
   /// Check if this routing table is empty (does not contain any node).
-  bool Empty() const;
+  [[nodiscard]] auto Empty() const -> bool;
   //@}
 
   /// @name Contact management
@@ -163,7 +176,7 @@ class RoutingTable : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
    * if false, the peer is guaranteed to have been added to a bucket
    * replacement list.
    */
-  bool AddPeer(Node &&peer);
+  auto AddPeer(Node &&peer) -> bool;
 
   /// Remove a contact from the routing table.
   void RemovePeer(const Node &peer);
@@ -182,11 +195,12 @@ class RoutingTable : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
    * @return true if the failing peer became stale and has been removed from the
    * routing table.
    */
-  bool PeerTimedOut(Node const &peer);
+  auto PeerTimedOut(Node const &peer) -> bool;
 
   /// Find the closest \em k nodes to the given id. If the routing table does
   /// not have enough nodes to satisfy k, all nodes will be returned.
-  std::vector<Node> FindNeighbors(Node::IdType const &id) const {
+  [[nodiscard]] auto FindNeighbors(Node::IdType const &id) const
+      -> std::vector<Node> {
     return FindNeighbors(id, ksize_);
   };
 
@@ -207,21 +221,24 @@ class RoutingTable : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
    * @return up to max_number nodes representing the closest nodes to the given
    * id known by this routing table.
    */
-  std::vector<Node> FindNeighbors(Node::IdType const &id,
-                                  std::size_t max_number) const;
+  [[nodiscard]] auto FindNeighbors(Node::IdType const &id,
+      std::size_t max_number) const -> std::vector<Node>;
 
   // TODO: refactor this
-  size_t GetBucketIndexFor(const Node::IdType &node) const;
+  [[nodiscard]] auto GetBucketIndexFor(const Node::IdType &node) const
+      -> size_t;
 
   /// Return a string representation of this routing table for debugging.
-  std::string ToString() const;
+  [[nodiscard]] auto ToString() const -> std::string;
 
   /// Dump the contents of the routing table to logs.
   void DumpToLog() const;
 
- private:
+private:
   /// Create the initial bucket (empty) for this routing table.
-  void AddInitialBucket() { buckets_.push_front(KBucket(my_node_, 0, ksize_)); }
+  void AddInitialBucket() {
+    buckets_.push_front(KBucket(my_node_, 0, ksize_));
+  }
 
   /// This routing node.
   Node my_node_;
@@ -237,8 +254,6 @@ class RoutingTable : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
 };
 
 /// Output this routing table to the given stream.
-std::ostream &operator<<(std::ostream &out, RoutingTable const &rt);
+auto operator<<(std::ostream &out, RoutingTable const &rt) -> std::ostream &;
 
-}  // namespace kademlia
-}  // namespace p2p
-}  // namespace blocxxi
+} // namespace blocxxi::p2p::kademlia

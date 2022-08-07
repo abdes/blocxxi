@@ -7,13 +7,9 @@
 
 #include <crypto/hash.h>
 
-namespace blocxxi {
-namespace p2p {
-namespace kademlia {
+namespace blocxxi::p2p::kademlia {
 
 /// Hash 160 key type used for value keys and  response correlation id.
 using KeyType = blocxxi::crypto::Hash160;
 
-}  // namespace kademlia
-}  // namespace p2p
-}  // namespace blocxxi
+} // namespace blocxxi::p2p::kademlia

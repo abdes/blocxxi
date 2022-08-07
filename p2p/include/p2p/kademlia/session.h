@@ -12,13 +12,11 @@
 #include <common/logging.h>
 #include <p2p/kademlia/key.h>
 
-namespace blocxxi {
-namespace p2p {
-namespace kademlia {
+namespace blocxxi::p2p::kademlia {
 
 template <typename TEngine>
 class Session final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
- public:
+public:
   using EngineType = TEngine;
   ///
   using DataType = std::vector<std::uint8_t>;
@@ -28,7 +26,7 @@ class Session final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
   using LoadHandlerType =
       std::function<void(std::error_code const &error, DataType const &data)>;
 
- public:
+public:
   explicit Session(boost::asio::io_context &io_context, EngineType &&engine)
       : io_context_(io_context), engine_(std::move(engine)) {
     ASLOG(debug, "Creating Session DONE");
@@ -40,9 +38,13 @@ class Session final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
   Session(Session &&) = default;
   Session &operator=(Session &&) = default;
 
-  ~Session() { ASLOG(debug, "Destroy Session"); }
+  ~Session() {
+    ASLOG(debug, "Destroy Session");
+  }
 
-  EngineType const &GetEngine() const { return engine_; }
+  EngineType const &GetEngine() const {
+    return engine_;
+  }
 
   void Start() {
     ASLOG(debug, "Session Start");
@@ -62,8 +64,8 @@ class Session final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
     engine_.Stop();
   }
 
-  void StoreValue(KeyType const &key, DataType const &data,
-                  StoreHandlerType handler) {
+  void StoreValue(
+      KeyType const &key, DataType const &data, StoreHandlerType handler) {
     engine_.AsyncStoreValue(key, data, handler);
   }
 
@@ -71,13 +73,11 @@ class Session final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
     engine_.AsyncFindValue(key, handler);
   }
 
- private:
+private:
   ///
   boost::asio::io_context &io_context_;
   ///
   EngineType engine_;
 };
 
-}  // namespace kademlia
-}  // namespace p2p
-}  // namespace blocxxi
+} // namespace blocxxi::p2p::kademlia

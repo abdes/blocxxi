@@ -5,13 +5,12 @@
 
 #include <p2p/kademlia/node.h>
 
-namespace blocxxi {
-namespace p2p {
-namespace kademlia {
+namespace blocxxi::p2p::kademlia {
 
 namespace {
 // table of leading zero counts for bytes [0..255]
 constexpr int lzcount[256]{
+    // clang-format off
     8, 7, 6, 6, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 3, 3, 3,
     3, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
     2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -23,15 +22,17 @@ constexpr int lzcount[256]{
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    // clang-format on
 };
-}  // anonymous namespace
+} // anonymous namespace
 
 // Find the number of common prefix bits in the id of the nodes within the given
 // iterator range.
-unsigned int SharedPrefixSize(const Node &a, const Node &b) {
+auto SharedPrefixSize(const Node &a, const Node &b) -> unsigned int {
   auto lz = 0U;
-  auto ida = a.Id(), idb = b.Id();
-  auto size = ida.Size();
+  auto ida = a.Id();
+  auto idb = b.Id();
+  auto size = Node::IdType::Size();
   for (auto i = 0U; i < size; ++i) {
     auto x = ida[i] ^ idb[i];
     if (x == 0) {
@@ -44,14 +45,15 @@ unsigned int SharedPrefixSize(const Node &a, const Node &b) {
   return lz;
 }
 
-int Node::LogDistanceTo(blocxxi::crypto::Hash160 const &hash) const {
+auto Node::LogDistanceTo(blocxxi::crypto::Hash160 const &hash) const -> int {
   auto dist = DistanceTo(hash);
   auto lzc = dist.LeadingZeroBits();
-  return (id_.BitSize() - 1 - lzc);
+  return (Node::IdType::BitSize() - 1 - lzc);
 }
 
 std::string const &Node::ToString() const {
-  if (url_) return *url_;
+  if (url_)
+    return *url_;
 
   url_ = new std::string();
   url_->append("knode://")
@@ -82,7 +84,7 @@ Node Node::FromUrlString(const std::string &url) {
             auto port = url.substr(pos + 1);
 
             return Node(IdType::FromHex(id), address,
-                        static_cast<unsigned short>(std::stoi(port)));
+                static_cast<unsigned short>(std::stoi(port)));
           }
         }
       }
@@ -91,6 +93,4 @@ Node Node::FromUrlString(const std::string &url) {
   throw std::invalid_argument("bad node url: " + url);
 }
 
-}  // namespace kademlia
-}  // namespace p2p
-}  // namespace blocxxi
+} // namespace blocxxi::p2p::kademlia

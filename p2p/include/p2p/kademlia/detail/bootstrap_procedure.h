@@ -14,10 +14,7 @@
 #include "error_impl.h"
 #include "find_node_task.h"
 
-namespace blocxxi {
-namespace p2p {
-namespace kademlia {
-namespace detail {
+namespace blocxxi::p2p::kademlia::detail {
 
 /*!
  *
@@ -45,13 +42,13 @@ namespace detail {
 template <typename TNetwork, typename TRoutingTable>
 class BootstrapProcedure final
     : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
- public:
+public:
   ///
   using NetworkType = TNetwork;
   ///
   using RoutingTableType = TRoutingTable;
 
- public:
+public:
   /**
    *
    */
@@ -62,7 +59,7 @@ class BootstrapProcedure final
     NodeLookupSelf(task);
   }
 
- private:
+private:
   /**
    *
    */
@@ -83,7 +80,7 @@ class BootstrapProcedure final
     };
 
     StartFindNodeTask(my_id, task->network_, task->routing_table_, on_complete,
-                      "BOOT/FIND_NODE");
+        "BOOT/FIND_NODE");
   }
 
   static void RefreshBuckets(std::shared_ptr<BootstrapProcedure> task) {
@@ -99,22 +96,22 @@ class BootstrapProcedure final
         auto const &node = bucket.SelectRandomNode();
 
         ASLOG(debug,
-              "[BOOT/REFRESH] bucket -> lookup for random peer with id {}",
-              node.Id().ToHex());
+            "[BOOT/REFRESH] bucket -> lookup for random peer with id {}",
+            node.Id().ToHex());
 
-        StartFindNodeTask(node.Id(), task->network_, task->routing_table_,
-                          [task]() {
-                            ASLOG(debug,
-                                  "[BOOT/REFRESH] bucket refresh completed");
-                            task->routing_table_.DumpToLog();
-                          },
-                          "BOOT/REFRESH/FIND_NODE");
+        StartFindNodeTask(
+            node.Id(), task->network_, task->routing_table_,
+            [task]() {
+              ASLOG(debug, "[BOOT/REFRESH] bucket refresh completed");
+              task->routing_table_.DumpToLog();
+            },
+            "BOOT/REFRESH/FIND_NODE");
       }
     }
     ASLOG(debug, "[BOOT/REFRESH] all buckets refresh completed");
   }
 
- private:
+private:
   ///
   NetworkType &network_;
   ///
@@ -125,14 +122,11 @@ class BootstrapProcedure final
  *
  */
 template <typename TNetwork, typename TRoutingTable>
-inline void StartBootstrapProcedure(TNetwork &network,
-                                    TRoutingTable &routing_table) {
+inline void StartBootstrapProcedure(
+    TNetwork &network, TRoutingTable &routing_table) {
   using TaskType = BootstrapProcedure<TNetwork, TRoutingTable>;
 
   TaskType::Start(network, routing_table);
 }
 
-}  // namespace detail
-}  // namespace kademlia
-}  // namespace p2p
-}  // namespace blocxxi
+} // namespace blocxxi::p2p::kademlia::detail

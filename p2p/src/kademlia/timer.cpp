@@ -7,9 +7,7 @@
 
 #include <p2p/kademlia/detail/error_impl.h>
 
-namespace blocxxi {
-namespace p2p {
-namespace kademlia {
+namespace blocxxi::p2p::kademlia {
 
 void Timer::ScheduleNextTick(TimePointType const &expiration_time) {
   // This will cancel any pending task.
@@ -17,7 +15,8 @@ void Timer::ScheduleNextTick(TimePointType const &expiration_time) {
 
   timer_.async_wait([this](boost::system::error_code const &failure) {
     // If the deadline timer has been cancelled, just stop right there.
-    if (failure == boost::asio::error::operation_aborted) return;
+    if (failure == boost::asio::error::operation_aborted)
+      return;
 
     if (failure)
       throw std::system_error{detail::make_error_code(TIMER_MALFUNCTION)};
@@ -29,7 +28,7 @@ void Timer::ScheduleNextTick(TimePointType const &expiration_time) {
     auto end = timeouts_.upper_bound(ClockType::now());
     for (auto entry = begin; entry != end; ++entry) {
       ASLOG(trace, "invoke callback for timer expiring at {}",
-            entry->first.time_since_epoch().count());
+          entry->first.time_since_epoch().count());
       entry->second();
     }
 
@@ -38,7 +37,7 @@ void Timer::ScheduleNextTick(TimePointType const &expiration_time) {
     timeouts_.erase(begin, end);
 
     ASLOG(debug, "remove {} expired timer(s), remaining {}", count,
-          timeouts_.size());
+        timeouts_.size());
 
     // If there is a remaining timeout, schedule it.
     if (!timeouts_.empty()) {
@@ -49,6 +48,4 @@ void Timer::ScheduleNextTick(TimePointType const &expiration_time) {
   });
 }
 
-}  // namespace kademlia
-}  // namespace p2p
-}  // namespace blocxi
+} // namespace blocxxi::p2p::kademlia

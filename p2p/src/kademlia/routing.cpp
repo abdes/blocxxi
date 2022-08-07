@@ -3,7 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#include <sstream>  // for ToString() implementation
+#include <sstream> // for ToString() implementation
 
 #include <boost/multiprecision/cpp_int.hpp>
 
@@ -19,7 +19,7 @@ using boost::multiprecision::unchecked;
 using boost::multiprecision::unsigned_magnitude;
 
 using uint161_t = number<cpp_int_backend<KEYSIZE_BITS + 1, KEYSIZE_BITS + 1,
-                                         unsigned_magnitude, unchecked, void>>;
+    unsigned_magnitude, unchecked, void>>;
 
 RoutingTable::RoutingTable(Node node, std::size_t ksize)
     : my_node_(std::move(node)), ksize_(ksize) {
@@ -28,13 +28,18 @@ RoutingTable::RoutingTable(Node node, std::size_t ksize)
 
 std::size_t RoutingTable::NodesCount() const {
   std::size_t total = 0;
-  for (auto &kb : buckets_) total += kb.Size().first;
+  for (auto &kb : buckets_)
+    total += kb.Size().first;
   return total;
 }
 
-std::size_t RoutingTable::BucketsCount() const { return buckets_.size(); }
+std::size_t RoutingTable::BucketsCount() const {
+  return buckets_.size();
+}
 
-bool RoutingTable::Empty() const { return buckets_.front().Empty(); }
+bool RoutingTable::Empty() const {
+  return buckets_.front().Empty();
+}
 
 // Calculate the index of the bucket to receive the new node.
 // Theoretically, node is supposed to go into the bucket covering the distance
@@ -49,7 +54,7 @@ std::size_t RoutingTable::GetBucketIndexFor(const Node::IdType &id) const {
   // When we get here, the routing table should have been properly initialized
   // and thus has at least the initial bucket.
   auto num_buckets = buckets_.size();
-  ASAP_ASSERT(num_buckets > 0);
+  // ASAP_ASSERT(num_buckets > 0);
 
   auto bucket = buckets_.begin();
   while (bucket != buckets_.end()) {
@@ -57,18 +62,18 @@ std::size_t RoutingTable::GetBucketIndexFor(const Node::IdType &id) const {
       std::size_t bucket_index =
           static_cast<std::size_t>(std::distance(buckets_.begin(), bucket));
       ASLOG(trace, "{} belongs to bucket index={}", id.ToBitStringShort(),
-            bucket_index);
+          bucket_index);
       return bucket_index;
     }
     ++bucket;
   }
-  ASAP_ASSERT_FAIL();
+  // ASAP_ASSERT_FAIL();
   return num_buckets - 1;
 }
 
 bool RoutingTable::AddPeer(Node &&node) {
   ASLOG(trace, "ADD CONTACT [ {} ]: {} / logdist: {}", this->ToString(),
-        node.Id().ToBitStringShort(), my_node_.LogDistanceTo(node));
+      node.Id().ToBitStringShort(), my_node_.LogDistanceTo(node));
   // Don't add our node
   if (my_node_ == node) {
     ASLOG(debug, "Unexpected attempt to add our node to the routing table.");
@@ -100,19 +105,19 @@ bool RoutingTable::AddPeer(Node &&node) {
   auto bucket_has_in_range_my_node = (bucket_index == (buckets_.size() - 1));
   can_split |= bucket_has_in_range_my_node;
   ASLOG(trace, "|| bucket has in range my node? {} --> split={}",
-        bucket_has_in_range_my_node, can_split);
+      bucket_has_in_range_my_node, can_split);
   can_split |= shared_prefix_test;
   ASLOG(trace, "|| shared prefix size % {} != 0? {} --> split={}", DEPTH_B,
-        shared_prefix_test, can_split);
+      shared_prefix_test, can_split);
   can_split &= (buckets_.size() < 160);
   ASLOG(trace, "&& we have {} less than 160 buckets? {} --> split={}",
-        buckets_.size(), buckets_.size() < 160, can_split);
+      buckets_.size(), buckets_.size() < 160, can_split);
 
   // Should we split?
   // Don't split the first bucket unles it's the first split ever
   can_split &= !(buckets_.size() > 1 && bucket_index == 0);
   ASLOG(trace, "&& not the first bucket? {} --> split={}",
-        !(buckets_.size() > 1 && bucket_index == 0), can_split);
+      !(buckets_.size() > 1 && bucket_index == 0), can_split);
 
   if (can_split) {
     std::pair<KBucket, KBucket> pair = bucket->Split();
@@ -141,7 +146,7 @@ bool RoutingTable::PeerTimedOut(Node const &peer) {
       if (bn->Id() == peer.Id()) {
         bn->IncFailuresCount();
         ASLOG(debug, "node {} failed to respond for {} times", bn->ToString(),
-              bn->FailuresCount());
+            bn->FailuresCount());
         if (bn->IsStale()) {
           bucket->RemoveNode(bn);
           return true;
@@ -154,10 +159,10 @@ bool RoutingTable::PeerTimedOut(Node const &peer) {
   return false;
 }
 
-std::vector<Node> RoutingTable::FindNeighbors(Node::IdType const &id,
-                                              std::size_t k) const {
-  ASLOG(trace, "try to find up to {} neighbors for {}", k,
-        id.ToBitStringShort());
+std::vector<Node> RoutingTable::FindNeighbors(
+    Node::IdType const &id, std::size_t k) const {
+  ASLOG(
+      trace, "try to find up to {} neighbors for {}", k, id.ToBitStringShort());
   auto cmp = [&id](Node const &a, Node const &b) {
     return a.DistanceTo(id) < b.DistanceTo(id);
   };
@@ -181,9 +186,10 @@ std::vector<Node> RoutingTable::FindNeighbors(Node::IdType const &id,
       if (neighbor.Id() != id) {
         ++count;
         ASLOG(debug, "found neighbor(count={}) {}", count,
-              neighbor.Id().ToBitStringShort());
+            neighbor.Id().ToBitStringShort());
         neighbors.insert(neighbor);
-        if (count == k) goto Done;
+        if (count == k)
+          goto Done;
       } else {
         ASLOG(debug, "skip caller node from neighbors list");
       }
@@ -191,7 +197,8 @@ std::vector<Node> RoutingTable::FindNeighbors(Node::IdType const &id,
 
     // If one bucket does not have enough, fill by alternating left and right
     // buckets until we collect the requested number of neighbors
-    if (right == buckets_.end()) use_left = true;
+    if (right == buckets_.end())
+      use_left = true;
     if (left != buckets_.begin()) {
       has_more = true;
       if (use_left) {
@@ -210,7 +217,7 @@ std::vector<Node> RoutingTable::FindNeighbors(Node::IdType const &id,
   }
 Done:
   ASLOG(debug, "found {} neighbors out of {} non-replacement nodes I know",
-        neighbors.size(), this->NodesCount());
+      neighbors.size(), this->NodesCount());
   return std::vector<Node>(neighbors.begin(), neighbors.end());
 }
 
@@ -239,6 +246,6 @@ std::ostream &operator<<(std::ostream &out, RoutingTable const &rt) {
   return out;
 }
 
-}  // namespace kademlia
-}  // namespace p2p
-}  // namespace blocxxi
+} // namespace kademlia
+} // namespace p2p
+} // namespace blocxxi

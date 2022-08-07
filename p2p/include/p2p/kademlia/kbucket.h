@@ -5,14 +5,16 @@
 
 #pragma once
 
+#include <p2p/blocxxi_p2p_api.h>
+
 #include <chrono>
 #include <deque>
-#include <utility>  // for std::pair
+#include <utility> // for std::pair
 
 #include <boost/iterator/iterator_adaptor.hpp>
 #include <boost/iterator/reverse_iterator.hpp>
 
-#include <common/logging.h>
+#include <logging/logging.h>
 #include <p2p/kademlia/node.h>
 #include <p2p/kademlia/parameters.h>
 
@@ -31,9 +33,11 @@ namespace kademlia {
  * @see https://en.wikipedia.org/wiki/Kademlia
  * @see https://pdos.csail.mit.edu/~petar/papers/maymounkov-kademlia-lncs.pdf
  */
-class KBucket
-    : public asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
- public:
+class BLOCXXI_P2P_API KBucket : public asap::logging::Loggable<KBucket> {
+public:
+  /// The logger id used for logging within this class.
+  static constexpr const char *LOGGER_NAME = "p2p-kademlia";
+
   /*!
    * Represents an iterator over the nodes in a bucket.
    *
@@ -43,19 +47,21 @@ class KBucket
   template <typename TValue, typename TIterator>
   class NodeIterator
       : public boost::iterator_adaptor<NodeIterator<TValue, TIterator>,
-                                       TIterator, TValue,
-                                       std::bidirectional_iterator_tag> {
-   public:
-    NodeIterator() : NodeIterator::iterator_adaptor_() {}
+            TIterator, TValue, std::bidirectional_iterator_tag> {
+  public:
+    NodeIterator() : NodeIterator::iterator_adaptor_() {
+    }
     explicit NodeIterator(TIterator node)
-        : NodeIterator::iterator_adaptor_(node) {}
+        : NodeIterator::iterator_adaptor_(node) {
+    }
 
     /// Conversion constructor mainly between const and non-const iterators.
     template <class OtherValue>
     NodeIterator(NodeIterator<OtherValue, TIterator> const &other,
-                 typename std::enable_if<
-                     std::is_convertible<OtherValue *, TValue *>::value>::type)
-        : NodeIterator::iterator_adaptor_(other.base()) {}
+        typename std::enable_if<
+            std::is_convertible<OtherValue *, TValue *>::value>::type)
+        : NodeIterator::iterator_adaptor_(other.base()) {
+    }
   };
 
   using iterator = NodeIterator<Node, std::deque<Node>::iterator>;
@@ -64,7 +70,7 @@ class KBucket
   using reverse_iterator = boost::reverse_iterator<iterator>;
   using const_reverse_iterator = boost::reverse_iterator<const_iterator>;
 
- public:
+public:
   /// @name Constructors etc.
   //@{
   /*!
@@ -90,18 +96,28 @@ class KBucket
 
   /// @name Iteration
   //@{
-  iterator begin() noexcept { return iterator(nodes_.begin()); };
+  iterator begin() noexcept {
+    return iterator(nodes_.begin());
+  };
   const_iterator begin() const noexcept {
     return const_iterator(nodes_.cbegin());
   }
-  iterator end() noexcept { return iterator(nodes_.end()); }
-  const_iterator end() const noexcept { return const_iterator(nodes_.cend()); }
+  iterator end() noexcept {
+    return iterator(nodes_.end());
+  }
+  const_iterator end() const noexcept {
+    return const_iterator(nodes_.cend());
+  }
 
-  reverse_iterator rbegin() noexcept { return reverse_iterator(end()); }
+  reverse_iterator rbegin() noexcept {
+    return reverse_iterator(end());
+  }
   const_reverse_iterator rbegin() const noexcept {
     return const_reverse_iterator(cend());
   }
-  reverse_iterator rend() noexcept { return reverse_iterator(begin()); }
+  reverse_iterator rend() noexcept {
+    return reverse_iterator(begin());
+  }
   const_reverse_iterator rend() const noexcept {
     return const_reverse_iterator(cbegin());
   }
@@ -109,7 +125,9 @@ class KBucket
   const_iterator cbegin() const noexcept {
     return const_iterator(nodes_.cbegin());
   }
-  const_iterator cend() const noexcept { return const_iterator(nodes_.cend()); }
+  const_iterator cend() const noexcept {
+    return const_iterator(nodes_.cend());
+  }
   const_reverse_iterator crbegin() const noexcept {
     return const_reverse_iterator(cend());
   }
@@ -156,16 +174,20 @@ class KBucket
 
   /// Get the shared prefix (bits) with the router node
   std::string SharedPrefix() const {
-	  return prefix_.to_string().substr(0, prefix_size_);
+    return prefix_.to_string().substr(0, prefix_size_);
   }
   //@}
 
   /// @name Node accessors and manipulators
   //@{
   /// Get the least recently seen node in the bucket.
-  Node &LeastRecentlySeenNode() { return nodes_.front(); }
+  Node &LeastRecentlySeenNode() {
+    return nodes_.front();
+  }
   /// Get the least recently seen node in the bucket.
-  Node const &LeastRecentlySeenNode() const { return nodes_.front(); }
+  Node const &LeastRecentlySeenNode() const {
+    return nodes_.front();
+  }
   /// Select a random node from the bucket.
   Node const &SelectRandomNode() const;
 
@@ -216,7 +238,7 @@ class KBucket
   /// Print debug logs with the bucket contents.
   void DumpBucketToLog() const;
 
- private:
+private:
   /// This routing node.
   Node my_node_;
 
@@ -264,6 +286,6 @@ class KBucket
 /// Output this bucket to the given stream.
 std::ostream &operator<<(std::ostream &out, KBucket const &kb);
 
-}  // namespace kademlia
-}  // namespace p2p
-}  // namespace blocxxi
+} // namespace kademlia
+} // namespace p2p
+} // namespace blocxxi

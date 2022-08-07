@@ -7,24 +7,22 @@
 
 #include <map>
 #include <ostream>
+#include <utility>
 #include <vector>
 
-#include <common/logging.h>
+// #include <common/logging.h>
 #include <p2p/kademlia/node.h>
 
-namespace blocxxi {
-namespace p2p {
-namespace kademlia {
-namespace detail {
+namespace blocxxi::p2p::kademlia::detail {
 
 /*!
  *
  */
 class BaseLookupTask
- : protected asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
- public:
+    : protected asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
+public:
   /// Get a string representing the task for debugging
-  std::string Name() const {
+  [[nodiscard]] auto Name() const -> std::string {
     return std::string("[")
         .append(task_name_)
         .append("/")
@@ -32,7 +30,7 @@ class BaseLookupTask
         .append("]");
   };
 
- protected:
+protected:
   /*!
    *
    * @tparam Nodes
@@ -40,17 +38,15 @@ class BaseLookupTask
    * @param initial_peers
    */
   template <typename TNodes>
-  BaseLookupTask(Node::IdType const &key, TNodes initial_peers,
-                 std::string const &task_name)
-      : key_{key},
-        in_flight_requests_count_{0},
-        candidates_{},
-        task_name_(task_name) {
-    for (auto peer : initial_peers) AddCandidate(peer);
+  BaseLookupTask(Node::IdType key, TNodes initial_peers, std::string task_name)
+      : key_{std::move(key)}, , task_name_(std::move(task_name)) {
+    for (auto peer : initial_peers) {
+      AddCandidate(peer);
+    }
   }
 
   /// Default
-  virtual ~BaseLookupTask() = default;
+  ~BaseLookupTask() = default;
 
   /*!
    *
@@ -58,12 +54,14 @@ class BaseLookupTask
    */
   void MarkCandidateAsValid(Node::IdType const &candidate_id) {
     auto candidate = FindCandidate(candidate_id);
-    if (candidate == candidates_.end()) return;
+    if (candidate == candidates_.end()) {
+      return;
+    }
 
     --in_flight_requests_count_;
     candidate->second.state_ = Candidate::STATE_RESPONDED;
     ASLOG(trace, "{} candidate {} marked as STATE_RESPONDED", this->Name(),
-          candidate_id.ToHex());
+        candidate_id.ToHex());
   }
 
   /*!
@@ -72,12 +70,14 @@ class BaseLookupTask
    */
   void MarkCandidateAsInvalid(Node::IdType const &candidate_id) {
     auto candidate = FindCandidate(candidate_id);
-    if (candidate == candidates_.end()) return;
+    if (candidate == candidates_.end()) {
+      return;
+    }
 
     --in_flight_requests_count_;
     candidate->second.state_ = Candidate::STATE_TIMED_OUT;
     ASLOG(trace, "{} candidate {} marked as STATE_TIMED_OUT", this->Name(),
-          candidate_id.ToHex());
+        candidate_id.ToHex());
   }
 
   /*!
@@ -85,7 +85,7 @@ class BaseLookupTask
    * @param max_count
    * @return
    */
-  std::vector<Node> SelectUnContactedCandidates(std::size_t max_count) {
+  auto SelectUnContactedCandidates(std::size_t max_count) -> std::vector<Node> {
     std::vector<Node> selection;
 
     // Iterate over all candidates until we picked
@@ -101,7 +101,7 @@ class BaseLookupTask
     }
 
     ASLOG(trace, "{} selected {} new fresh (not contacted) candidate",
-          this->Name(), selection.size());
+        this->Name(), selection.size());
     for (auto &peer : selection) {
       ASLOG(trace, " -> {}", peer.ToString());
     }
@@ -113,7 +113,7 @@ class BaseLookupTask
    * @param max_count
    * @return
    */
-  std::vector<Node> GetValidCandidates(std::size_t max_count) {
+  auto GetValidCandidates(std::size_t max_count) -> std::vector<Node> {
     std::vector<Node> selection;
 
     // Iterate over all candidates until we picked
@@ -126,29 +126,30 @@ class BaseLookupTask
     }
 
     ASLOG(trace, "{} selected {} valid (responded) candidate", this->Name(),
-          selection.size());
+        selection.size());
     for (auto &peer : selection) {
       ASLOG(trace, " -> {}", peer.ToString());
     }
     return selection;
   }
 
-  template <typename TPeers>
-  void AddCandidates(TPeers const &peers) {
+  template <typename TPeers> void AddCandidates(TPeers const &peers) {
     for (auto const &peer : peers) {
       AddCandidate(peer);
     }
   }
 
-  bool AllRequestsCompleted(void) const {
+  [[nodiscard]] auto AllRequestsCompleted() const -> bool {
     ASLOG(debug, "{} checking if all tasks completed, in-flight={}",
-          this->Name(), in_flight_requests_count_);
+        this->Name(), in_flight_requests_count_);
     return in_flight_requests_count_ == 0;
   }
 
-  Node::IdType const &Key(void) const { return key_; }
+  [[nodiscard]] auto Key() const -> Node::IdType const & {
+    return key_;
+  }
 
- private:
+private:
   ///
   struct Candidate final {
     Node peer_;
@@ -169,29 +170,26 @@ class BaseLookupTask
     candidates_.emplace(dist, c);
   }
 
-  CandidatesCollection::iterator FindCandidate(
-      Node::IdType const &candidate_id) {
+  auto FindCandidate(Node::IdType const &candidate_id)
+      -> CandidatesCollection::iterator {
     auto const dist = Distance(candidate_id, key_);
     return candidates_.find(dist);
   }
 
- private:
   ///
   Node::IdType key_;
   ///
-  std::size_t in_flight_requests_count_;
+  std::size_t in_flight_requests_count_{};
   ///
   CandidatesCollection candidates_;
   ///
   std::string task_name_;
 };
 
-inline std::ostream &operator<<(std::ostream &out, BaseLookupTask const &task) {
+inline auto operator<<(std::ostream &out, BaseLookupTask const &task)
+    -> std::ostream & {
   out << task.Name();
   return out;
 }
 
-}  // namespace detail
-}  // namespace kademlia
-}  // namespace p2p
-}  // namespace blocxxi
+} // namespace blocxxi::p2p::kademlia::detail

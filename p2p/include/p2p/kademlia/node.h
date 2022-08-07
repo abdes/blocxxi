@@ -5,16 +5,16 @@
 
 #pragma once
 
+#include "p2p/blocxxi_p2p_export.h"
 #include <chrono>
 #include <string>
 
 #include <crypto/hash.h>
-#include <p2p/kademlia/parameters.h>
+#include <p2p/blocxxi_p2p_api.h>
 #include <p2p/kademlia/endpoint.h>
+#include <p2p/kademlia/parameters.h>
 
-namespace blocxxi {
-namespace p2p {
-namespace kademlia {
+namespace blocxxi::p2p::kademlia {
 
 /*!
  * @brief Represents a Kademlia node or a remote peer in the kademlia P2P
@@ -32,14 +32,14 @@ namespace kademlia {
  * The enode url scheme is used by the Node discovery protocol and can be used
  * in the bootstrap nodes argument to the Engine AddBootsrapNode() method.
  */
-class Node {
- public:
+class BLOCXXI_P2P_API Node {
+public:
   /// @name Type shortcuts
   //@{
   using IdType = blocxxi::crypto::Hash160;
   //@}
 
- public:
+public:
   /// @name Constructors etc.
   //@{
   Node() = default;
@@ -56,8 +56,9 @@ class Node {
    * endpoint.
    */
   Node(IdType const &id, std::string const &ip_address,
-       unsigned short port_number)
-      : id_{id}, endpoint_{ip_address, port_number} {}
+      unsigned short port_number)
+      : id_{id}, endpoint_{ip_address, port_number} {
+  }
 
   /*!
    * @brief Create a Node object from the given id and endpoint.
@@ -67,13 +68,15 @@ class Node {
    * P2P network.
    * @param [in] ep UDP discovery and P2P RPC endpoint.
    */
-  Node(IdType const &id, IpEndpoint const &ep) : id_(id), endpoint_(ep) {}
+  Node(IdType const &id, IpEndpoint const &ep) : id_(id), endpoint_(ep) {
+  }
 
   /// Copy constructor.
-  Node(const Node &other) : id_(other.id_),
-                            endpoint_(other.endpoint_),
-                            failed_requests_count_(other.failed_requests_count_),
-                            last_seen_time_(other.last_seen_time_) {}
+  Node(const Node &other)
+      : id_(other.id_), endpoint_(other.endpoint_),
+        failed_requests_count_(other.failed_requests_count_),
+        last_seen_time_(other.last_seen_time_) {
+  }
 
   /// Assignment.
   Node &operator=(Node const &rhs) {
@@ -85,10 +88,10 @@ class Node {
   }
 
   /// Move constructor.
-  Node(Node &&other) noexcept : id_(std::move(other.id_)),
-                                endpoint_(std::move(other.endpoint_)),
-                                failed_requests_count_(other.failed_requests_count_),
-                                last_seen_time_(other.last_seen_time_) {
+  Node(Node &&other) noexcept
+      : id_(std::move(other.id_)), endpoint_(std::move(other.endpoint_)),
+        failed_requests_count_(other.failed_requests_count_),
+        last_seen_time_(other.last_seen_time_) {
     // we don't move the url_, instead delete it
     delete other.url_;
     other.url_ = nullptr;
@@ -108,7 +111,9 @@ class Node {
   }
 
   /// Destructor.
-  ~Node() { delete url_; };
+  ~Node() {
+    delete url_;
+  };
 
   /*!
    * @brief Create a node object from a knode URL string.
@@ -130,15 +135,21 @@ class Node {
   //@{
 
   /// The node ID.
-  IdType const &Id() const { return id_; }
+  IdType const &Id() const {
+    return id_;
+  }
 
   /// The node endpoint (addres/port).
-  IpEndpoint const &Endpoint() const { return endpoint_; }
+  IpEndpoint const &Endpoint() const {
+    return endpoint_;
+  }
 
   /// The number of times this node failed to respond timely to communication
   /// requests. After NODE_FAILED_COMMS_BEFORE_STALE failures, the node is
   /// marked as stale.
-  int FailuresCount() const { return failed_requests_count_; }
+  int FailuresCount() const {
+    return failed_requests_count_;
+  }
 
   /// Check if this node is stale.
   bool IsStale() const {
@@ -148,12 +159,14 @@ class Node {
   /// Check if this node is questionable. A node becomes questionable if it has
   /// not been active for more than NODE_INACTIVE_TIME_BEFORE_QUESTIONABLE.
   bool IsQuestionable() const {
-    return (std::chrono::steady_clock::now() - last_seen_time_)
-        > NODE_INACTIVE_TIME_BEFORE_QUESTIONABLE;
+    return (std::chrono::steady_clock::now() - last_seen_time_) >
+           NODE_INACTIVE_TIME_BEFORE_QUESTIONABLE;
   }
 
   /// Return the distance from this node to the given node.
-  IdType DistanceTo(Node const &node) const { return DistanceTo(node.Id()); }
+  IdType DistanceTo(Node const &node) const {
+    return DistanceTo(node.Id());
+  }
 
   /// Return the distance from this node to the given ID.
   IdType DistanceTo(blocxxi::crypto::Hash160 const &hash) const {
@@ -164,7 +177,9 @@ class Node {
   ///-1 if the two nodes have the same ID.
   /// The value that is returned is the number trailing bits after the common
   /// prefix of a and b. If the first bits are different, that would be 159.
-  int LogDistanceTo(Node const &node) const { return LogDistanceTo(node.Id()); }
+  int LogDistanceTo(Node const &node) const {
+    return LogDistanceTo(node.Id());
+  }
 
   /// @see LogDistance(Node const &)
   int LogDistanceTo(blocxxi::crypto::Hash160 const &hash) const;
@@ -173,19 +188,25 @@ class Node {
   /// @name Node state management
   //@{
   /// Increment the number of failed communications with this node.
-  void IncFailuresCount() { ++failed_requests_count_; }
+  void IncFailuresCount() {
+    ++failed_requests_count_;
+  }
   //@}
 
   /// @name Serialization support
   //@{
-  IdType &Id() { return id_; }
-  IpEndpoint &Endpoint() { return endpoint_; }
+  IdType &Id() {
+    return id_;
+  }
+  IpEndpoint &Endpoint() {
+    return endpoint_;
+  }
   //@}
 
   /// Return a string representation of this node for debugging.
   std::string const &ToString() const;
 
- private:
+private:
   /// The node ID (Hash 160)
   IdType id_;
   /// The node endpoint (address/port of its corresponding peer).
@@ -211,8 +232,8 @@ inline Node::IdType Distance(Node const &a, Node const &b) {
   return a.DistanceTo(b);
 }
 
-inline Node::IdType Distance(Node const &node,
-                             blocxxi::crypto::Hash160 const &hash) {
+inline Node::IdType Distance(
+    Node const &node, blocxxi::crypto::Hash160 const &hash) {
   return node.DistanceTo(hash);
 }
 
@@ -237,6 +258,4 @@ inline std::ostream &operator<<(std::ostream &out, Node const &node) {
   return out;
 }
 
-}  // namespace kademlia
-}  // namespace p2p
-}  // namespace blocxxi
+} // namespace blocxxi::p2p::kademlia

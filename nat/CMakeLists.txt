@@ -58,8 +58,7 @@ asap_add_library(
 
 target_link_libraries(
   ${MODULE_TARGET_NAME}
-  PRIVATE libminiupnpc-static
-  PUBLIC asap::common
+  PRIVATE asap::common libminiupnpc-static asap::logging
   )
 
 target_include_directories(

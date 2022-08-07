@@ -86,8 +86,8 @@ asap_add_library(
 
 target_link_libraries(
   ${MODULE_TARGET_NAME}
-  PRIVATE asap::codec cryptopp-static Boost::endian
-  PUBLIC asap::common
+  PRIVATE cryptopp-static Boost::endian GSL
+  PUBLIC asap::common asap::codec
   )
 
 target_include_directories(

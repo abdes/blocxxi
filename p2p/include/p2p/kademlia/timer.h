@@ -5,23 +5,26 @@
 
 #pragma once
 
-#include <chrono>      // for std:: time related types
-#include <functional>  // for std::function (callbacks)
-#include <map>         // for multimap storing timers<->callbacks
+#include "p2p/blocxxi_p2p_export.h"
+#include <chrono>     // for std:: time related types
+#include <functional> // for std::function (callbacks)
+#include <map>        // for multimap storing timers<->callbacks
 
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <boost/asio/io_service.hpp>
 
-#include <common/logging.h>
+#include <logging/logging.h>
+#include <p2p/blocxxi_p2p_api.h>
 
-namespace blocxxi {
-namespace p2p {
-namespace kademlia {
+namespace blocxxi::p2p::kademlia {
 
 /// Timer management class using a single asynchronous timer to run a list of
 /// timeouts associated with callback handlers.
-class Timer final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
- public:
+class BLOCXXI_P2P_API Timer final : asap::logging::Loggable<Timer> {
+public:
+  /// The logger id used for logging within this class.
+  static constexpr const char *LOGGER_NAME = "p2p-kademlia";
+
   /// Clock type for timer duration, we are using a steady_clock, most suitable
   /// for measuring intervals.
   using ClockType = std::chrono::steady_clock;
@@ -30,7 +33,7 @@ class Timer final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
   /// (nanoseconds, microseconds, milliseconds, seconds, minutes and hours).
   using DurationType = ClockType::duration;
 
- public:
+public:
   /// @name Constructors etc.
   //@{
   /*!
@@ -92,10 +95,10 @@ class Timer final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
    * @param on_timer_expired callabck to be invoked when the timer expires.
    */
   template <typename CallbackType>
-  void ExpiresFromNow(DurationType const &timeout,
-                      CallbackType const &on_timer_expired);
+  void ExpiresFromNow(
+      DurationType const &timeout, CallbackType const &on_timer_expired);
 
- private:
+private:
   /// Represents a point in time. It is implemented as if it stores a value of
   /// type Duration indicating the time interval from the start of the Clock's
   /// epoch.
@@ -145,10 +148,10 @@ class Timer final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
   using DeadlineTimerType =
       boost::asio::basic_waitable_timer<ClockType, ClockTypeWaitTraits>;
 
- private:
+private:
   void ScheduleNextTick(TimePointType const &expiration_time);
 
- private:
+private:
   /// The deadline timer used to wait for all registered timeouts.
   DeadlineTimerType timer_;
   /// The collection of registered timeouts. Key is the point in time, value is
@@ -157,11 +160,11 @@ class Timer final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
 };
 
 template <typename Callback>
-void Timer::ExpiresFromNow(DurationType const &timeout,
-                           Callback const &on_timer_expired) {
+void Timer::ExpiresFromNow(
+    DurationType const &timeout, Callback const &on_timer_expired) {
   auto expiration_time = ClockType::now() + timeout;
   ASLOG(debug, "adding timer expiring at {}",
-        expiration_time.time_since_epoch().count());
+      expiration_time.time_since_epoch().count());
 
   // If the current expiration time will be the sooner to expires
   // then cancel any pending wait and schedule this one instead.
@@ -172,6 +175,4 @@ void Timer::ExpiresFromNow(DurationType const &timeout,
   timeouts_.emplace(expiration_time, on_timer_expired);
 }
 
-}  // namespace kademlia
-}  // namespace p2p
-}  // namespace blocxxi
+} // namespace blocxxi::p2p::kademlia

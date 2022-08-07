@@ -5,13 +5,11 @@
 
 #pragma once
 
-#include <cstdint>  // for std::uint8_t
-#include <gsl/gsl>  // for gsl::span<std::uint8_t>
-#include <vector>   // for std::vector<std::uint8_t>
+#include <cstdint> // for std::uint8_t
+#include <gsl/gsl> // for gsl::span<std::uint8_t>
+#include <vector>  // for std::vector<std::uint8_t>
 
-namespace blocxxi {
-namespace p2p {
-namespace kademlia {
+namespace blocxxi::p2p::kademlia {
 
 /// Represents an output buffer to which headers and message bodies can be
 /// serialized. Whatever type is used, it needs to be able to expand as needed.
@@ -21,6 +19,4 @@ using Buffer = std::vector<std::uint8_t>;
 /// headers and message bodies.
 using BufferReader = gsl::span<std::uint8_t>;
 
-}  // namespace kademlia
-}  // namespace p2p
-}  // namespace blocxxi
+} // namespace blocxxi::p2p::kademlia

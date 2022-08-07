@@ -9,17 +9,15 @@
 
 #include <boost/asio.hpp>
 
-#include <common/assert.h>
-#include <common/logging.h>
+// #include <common/assert.h>
+#include <logging/logging.h>
 
 #include <p2p/kademlia/buffer.h>
 #include <p2p/kademlia/endpoint.h>
 
 #include <p2p/kademlia/detail/error_impl.h>
 
-namespace blocxxi {
-namespace p2p {
-namespace kademlia {
+namespace blocxxi::p2p::kademlia {
 
 /*!
  * @brief A Channel encapsulates an underlying socket and uses it to provide an
@@ -28,8 +26,11 @@ namespace kademlia {
  * @tparam TUnderlyingSocket the underlying socket type.
  */
 template <typename TUnderlyingSocket>
-class Channel final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
- public:
+class Channel final : asap::logging::Loggable<Channel<TUnderlyingSocket>> {
+public:
+  /// The logger id used for logging within this class.
+  static constexpr const char *LOGGER_NAME = "p2p-kademlia";
+
   /// @name Type shortcuts
   ///@{
   using PointerType = std::unique_ptr<Channel>;
@@ -52,10 +53,9 @@ class Channel final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
    * @param ep the endpoint to which the underlying socket must be bound.
    */
   Channel(boost::asio::io_context &io_context, EndpointType const &ep)
-      : reception_buffer_(SAFE_PAYLOAD_SIZE),
-        current_message_sender_(),
+      : reception_buffer_(SAFE_PAYLOAD_SIZE), current_message_sender_(),
         socket_(CreateUnderlyingSocket(io_context, ep)) {
-    ASLOG(debug, "Creating channel {} DONE", ep);
+    ASLOG(debug, "Creating channel {} DONE", ep.ToString());
   }
 
   /*!
@@ -63,7 +63,7 @@ class Channel final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
    * are ignored.
    */
   ~Channel() {
-    ASLOG(debug, "Destroy channel {}", LocalEndpoint());
+    ASLOG(debug, "Destroy channel {}", LocalEndpoint().ToString());
     try {
       socket_.close();
     } catch (std::exception const &ex) {
@@ -75,12 +75,12 @@ class Channel final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
   /// Not copyable
   Channel(Channel const &) = delete;
   /// Not copyable
-  Channel &operator=(Channel const &) = delete;
+  auto operator=(Channel const &) -> Channel & = delete;
 
   /// Default
   Channel(Channel &&) = default;
   /// Default
-  Channel &operator=(Channel &&) = default;
+  auto operator=(Channel &&) -> Channel & = default;
 
   /*!
    * @brief Create a channel for the IPv4 protocol.
@@ -99,21 +99,22 @@ class Channel final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
    * @throw std::system_error if the resolution does not produce a valid IPv4
    * endpoint.
    */
-  static PointerType ipv4(boost::asio::io_context &io_context,
-                          std::string const &host, std::string const &service) {
+  static auto ipv4(boost::asio::io_context &io_context, std::string const &host,
+      std::string const &service) -> PointerType {
     try {
       auto endpoints = ResolveEndpoint(io_context, host, service);
 
       for (auto const &ep : endpoints) {
-        if (ep.address_.is_v4())
+        if (ep.address_.is_v4()) {
           return std::make_unique<Channel>(io_context, ep);
+        }
       }
     } catch (std::exception const &) {
       throw std::system_error{detail::make_error_code(INVALID_IPV4_ADDRESS)};
     }
 
     ASLOG(error, "({} / {}) did not resolve to a valid IPv4 endpoint", host,
-          service);
+        service);
     throw std::system_error{detail::make_error_code(INVALID_IPV4_ADDRESS)};
   }
 
@@ -134,21 +135,22 @@ class Channel final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
    * @throw std::system_error if the resolution does not produce a valid IPv6
    * endpoint.
    */
-  static PointerType ipv6(boost::asio::io_context &io_context,
-                          std::string const &host, std::string const &service) {
+  static auto ipv6(boost::asio::io_context &io_context, std::string const &host,
+      std::string const &service) -> PointerType {
     try {
       auto endpoints = ResolveEndpoint(io_context, host, service);
 
       for (auto const &ep : endpoints) {
-        if (ep.address_.is_v6())
+        if (ep.address_.is_v6()) {
           return std::make_unique<Channel>(io_context, ep);
+        }
       }
     } catch (std::exception const &) {
       throw std::system_error{detail::make_error_code(INVALID_IPV4_ADDRESS)};
     }
 
     ASLOG(error, "({} / {}) did not resolve to a valid IPv6 endpoint", host,
-          service);
+        service);
     throw std::system_error{detail::make_error_code(INVALID_IPV6_ADDRESS)};
   }
   ///@}
@@ -177,24 +179,26 @@ class Channel final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
   template <typename TReceiveCallback>
   void AsyncReceive(TReceiveCallback const &callback) {
     auto on_completion = [this, callback](
-        boost::system::error_code const &failure, std::size_t bytes_received) {
+                             boost::system::error_code const &failure,
+                             std::size_t bytes_received) {
 #ifdef _MSC_VER
       // On Windows, an UDP socket may return connection_reset
       // to inform application that a previous send by this socket
       // has generated an ICMP port unreachable.
       // https://msdn.microsoft.com/en-us/library/ms740120.aspx
       // Ignore it and schedule another read.
-      if (failure == boost::system::errc::connection_reset)
+      if (failure == boost::system::errc::connection_reset) {
         return AsyncReceive(callback);
+      }
 #endif
       callback(detail::BoostToStdError(failure),
-               ConvertEndpoint(current_message_sender_),
-               BufferReader(reception_buffer_.data(), bytes_received));
+          ConvertEndpoint(current_message_sender_),
+          BufferReader(reception_buffer_.data(), bytes_received));
     };
 
-    ASAP_ASSERT(reception_buffer_.size() == SAFE_PAYLOAD_SIZE);
+    // ASAP_ASSERT(reception_buffer_.size() == SAFE_PAYLOAD_SIZE);
     socket_.async_receive_from(boost::asio::buffer(reception_buffer_),
-                               current_message_sender_, on_completion);
+        current_message_sender_, on_completion);
   }
 
   /*!
@@ -220,21 +224,22 @@ class Channel final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
    */
   template <typename TSendCallback>
   void AsyncSend(Buffer const &message, IpEndpoint const &to,
-                 TSendCallback const &callback) {
-    if (message.size() > SAFE_PAYLOAD_SIZE)
+      TSendCallback const &callback) {
+    if (message.size() > SAFE_PAYLOAD_SIZE) {
       callback(make_error_code(std::errc::value_too_large));
-    else {
+    } else {
       // Copy the buffer as it has to live past the end of this call.
       auto message_copy = std::make_shared<Buffer>(message);
       auto on_completion = [callback, message_copy](
-          boost::system::error_code const &failure,
-          std::size_t /* bytes_sent */) {
-        if (failure) ASLOG(error, "{}", failure.message());
+                               boost::system::error_code const &failure,
+                               std::size_t /* bytes_sent */) {
+        if (failure)
+          ASLOG(error, "{}", failure.message());
         callback(detail::BoostToStdError(failure));
       };
 
       socket_.async_send_to(boost::asio::buffer(*message_copy),
-                            ConvertEndpoint(to), on_completion);
+          ConvertEndpoint(to), on_completion);
     }
   }
 
@@ -243,9 +248,9 @@ class Channel final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
    *
    * @return the local endpoint of the channel.
    */
-  EndpointType LocalEndpoint() const {
-    return EndpointType(socket_.local_endpoint().address(),
-                        socket_.local_endpoint().port());
+  [[nodiscard]] auto LocalEndpoint() const -> EndpointType {
+    return EndpointType(
+        socket_.local_endpoint().address(), socket_.local_endpoint().port());
   }
 
   /*!
@@ -264,9 +269,9 @@ class Channel final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
    *
    * @throw std::system_error if the resolution fails.
    */
-  static std::vector<IpEndpoint> ResolveEndpoint(
-      boost::asio::io_context &io_context, std::string const &host,
-      std::string const &service) {
+  static auto ResolveEndpoint(boost::asio::io_context &io_context,
+      std::string const &host, std::string const &service)
+      -> std::vector<IpEndpoint> {
     using protocol_type = typename UnderlyingSocketType::protocol_type;
 
     typename protocol_type::resolver r{io_context};
@@ -287,7 +292,7 @@ class Channel final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
     }
   }
 
- private:
+private:
   /// @name Private type shortcuts
   ///@{
   /// The underlying socket type.
@@ -311,8 +316,8 @@ class Channel final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
    *
    * @throw std::system_error if the resolution fails.
    */
-  static UnderlyingSocketType CreateUnderlyingSocket(
-      boost::asio::io_context &io_context, EndpointType const &ep) {
+  static auto CreateUnderlyingSocket(boost::asio::io_context &io_context,
+      EndpointType const &ep) -> UnderlyingSocketType {
     UnderlyingEndpointType const uep = ConvertEndpoint(ep);
 
     try {
@@ -338,7 +343,8 @@ class Channel final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
    * @param [in] uep underlying endpoint.
    * @return the equivalent generic endpoint.
    */
-  static EndpointType ConvertEndpoint(UnderlyingEndpointType const &uep) {
+  static auto ConvertEndpoint(UnderlyingEndpointType const &uep)
+      -> EndpointType {
     return EndpointType{uep.address(), uep.port()};
   }
 
@@ -347,7 +353,8 @@ class Channel final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
    * @param [in] ep generic endpoint.
    * @return the equivalent underlying endpoint.
    */
-  static UnderlyingEndpointType ConvertEndpoint(EndpointType const &ep) {
+  static auto ConvertEndpoint(EndpointType const &ep)
+      -> UnderlyingEndpointType {
     return UnderlyingEndpointType{ep.Address(), ep.Port()};
   }
 
@@ -364,6 +371,4 @@ class Channel final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
 /// Template instantiation for an async UDP socket.
 using AsyncUdpChannel = Channel<boost::asio::ip::udp::socket>;
 
-}  // namespace kademlia
-}  // namespace p2p
-}  // namespace blocxxi
+} // namespace blocxxi::p2p::kademlia

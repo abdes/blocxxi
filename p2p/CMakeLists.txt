@@ -1,5 +1,50 @@
+# ===------------------------------------------------------------------------===#
+# Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+# copy at https://opensource.org/licenses/BSD-3-Clause).
+# SPDX-License-Identifier: BSD-3-Clause
+# ===------------------------------------------------------------------------===#
 
-list(APPEND P2P_PUBLIC_HEADERS
+# ------------------------------------------------------------------------------
+# Meta information about the this module
+# ------------------------------------------------------------------------------
+
+asap_declare_module(
+  MODULE_NAME
+  "p2p"
+  DESCRIPTION
+  "Kademlia DHT implementation"
+  GITHUB_REPO
+  "https://github.com/abdes/blocxxi"
+  AUTHOR_MAINTAINER
+  "Abdessattar Sassi"
+  VERSION_MAJOR
+  "1"
+  VERSION_MINOR
+  "0"
+  VERSION_PATCH
+  "0")
+# ------------------------------------------------------------------------------
+# Code generation
+# ------------------------------------------------------------------------------
+
+# ==============================================================================
+# Build instructions
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Main module target
+# ------------------------------------------------------------------------------
+
+set(MODULE_TARGET_NAME "${META_PROJECT_NAME}_${META_MODULE_NAME}")
+
+asap_add_library(
+  ${MODULE_TARGET_NAME}
+  STATIC
+  SHARED
+  WARNING
+  SOURCES
+
+  # Headers
   "include/p2p/kademlia/error.h"
   "include/p2p/kademlia/parameters.h"
   "include/p2p/kademlia/session.h"
@@ -24,9 +69,8 @@ list(APPEND P2P_PUBLIC_HEADERS
   "include/p2p/kademlia/detail/store_value_task.h"
   "include/p2p/kademlia/detail/ping_node_task.h"
   "include/p2p/kademlia/value_store.h"
-  )
 
-list(APPEND P2P_SRC
+  # Sources
   "src/kademlia/timer.cpp"
   "src/kademlia/message.cpp"
   "src/kademlia/message_serializer.cpp"
@@ -35,38 +79,104 @@ list(APPEND P2P_SRC
   "src/kademlia/node.cpp"
   "src/kademlia/kbucket.cpp"
   "src/kademlia/routing.cpp"
-  ${P2P_PUBLIC_HEADERS}
   )
 
-list(APPEND P2P_PUBLIC_INCLUDE_DIRS
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
-  ${CRYPTOPP_INCLUDE_DIRS}
+target_link_libraries(
+  ${MODULE_TARGET_NAME}
+  PRIVATE asap::codec Boost::asio Boost::multiprecision
+  PUBLIC asap::common asap::logging asap::crypto
   )
 
-set(P2P_PUBLIC_LIBRARIES
-  asap::crypto
-  asap::codec
-  asap::common
-  cryptopp-static
-  Boost::boost
-  Boost::system
-  )
+target_include_directories(
+  ${MODULE_TARGET_NAME}
+  PUBLIC $<INSTALL_INTERFACE:include>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
+  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
-asap_library(
-  TARGET bloxi_p2p
-  SOURCES ${P2P_SRC}
-  EXPORT_NAME p2p
-  PUBLIC_INCLUDE_DIRS ${P2P_PUBLIC_INCLUDE_DIRS}
-  PUBLIC_LIBRARIES ${P2P_PUBLIC_LIBRARIES}
-)
-set_tidy_target_properties(bloxi_p2p)
+target_compile_features(${MODULE_TARGET_NAME} PUBLIC cxx_std_17)
 
-add_subdirectory(test)
+# logging comes directly from asap and is usually kept as is. It is more
+# convenient to simply use it as asap::logging
+add_library(asap::${META_MODULE_NAME} ALIAS ${MODULE_TARGET_NAME})
 
-set_cppcheck_command()
+# Generate module config files for cmake and pkgconfig
+asap_create_module_config_files()
 
-configure_doxyfile(P2PLib
-  "\"P2P Module\""
-  "\"A module implementing a P2P node using a DHT, including an implementation of Kademlia.\""
+# ------------------------------------------------------------------------------
+# Tests
+# ------------------------------------------------------------------------------
+if(ASAP_BUILD_TESTS)
+  asap_add_sanitizers(${MODULE_TARGET_NAME})
+  add_subdirectory(test)
+endif()
+
+# ------------------------------------------------------------------------------
+# API Documentation
+# ------------------------------------------------------------------------------
+asap_with_doxygen(
+  MODULE_NAME
+  ${MODULE_TARGET_NAME}
+  VERSION
+  ${META_MODULE_VERSION}
+  TITLE
+  "\"P2P protocol implementation\""
+  BRIEF
+  "\"Kademlia based DHT implementation for blocxxi\""
+  INPUT_PATH
   "${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/include")
-add_doxygen_target(P2PLib)
+
+asap_with_sphinx(${MODULE_TARGET_NAME})
+
+# ==============================================================================
+# Deployment instructions
+# ==============================================================================
+if(${META_PROJECT_ID}_INSTALL)
+  set(TARGETS_EXPORT_NAME "${MODULE_TARGET_NAME}Targets")
+  set(runtime "${MODULE_TARGET_NAME}_runtime")
+  set(dev "${MODULE_TARGET_NAME}_dev")
+
+  # Library
+  install(
+    TARGETS ${MODULE_TARGET_NAME}
+    EXPORT "${TARGETS_EXPORT_NAME}"
+    COMPONENT dev
+    RUNTIME DESTINATION ${ASAP_INSTALL_BIN} COMPONENT ${runtime}
+    LIBRARY DESTINATION ${ASAP_INSTALL_SHARED} COMPONENT ${runtime}
+    ARCHIVE DESTINATION ${ASAP_INSTALL_LIB} COMPONENT ${dev})
+
+  # Header files
+  install(
+    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/${META_MODULE_NAME}
+    DESTINATION ${ASAP_INSTALL_INCLUDE}
+    COMPONENT ${dev}
+    FILES_MATCHING
+    PATTERN "*.h")
+
+  # Generated header files
+  install(
+    DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/${META_MODULE_NAME}
+    DESTINATION ${ASAP_INSTALL_INCLUDE}
+    COMPONENT ${dev})
+
+  # Target config
+  install(
+    EXPORT ${TARGETS_EXPORT_NAME}
+    NAMESPACE ${META_PROJECT_NAME}::
+    DESTINATION ${ASAP_INSTALL_CMAKE}/${META_MODULE_NAME}
+    COMPONENT ${dev})
+
+  # Package configuration files
+  install(
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/${MODULE_TARGET_NAME}Config.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/${MODULE_TARGET_NAME}ConfigVersion.cmake
+    DESTINATION ${ASAP_INSTALL_CMAKE}/${META_MODULE_NAME})
+
+  # Docs
+  if(EXISTS ${SPHINX_BUILD_DIR}/${MODULE_TARGET_NAME})
+    install(
+      DIRECTORY ${SPHINX_BUILD_DIR}/${MODULE_TARGET_NAME}
+      DESTINATION ${ASAP_INSTALL_DOC}
+      COMPONENT ${MODULE_TARGET_NAME}_docs)
+  endif()
+endif()

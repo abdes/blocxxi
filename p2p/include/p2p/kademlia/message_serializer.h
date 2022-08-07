@@ -7,17 +7,16 @@
 
 #include <memory>
 
+#include <p2p/blocxxi_p2p_api.h>
 #include <p2p/kademlia/message.h>
 
-namespace blocxxi {
-namespace p2p {
-namespace kademlia {
+namespace blocxxi::p2p::kademlia {
 
 /*!
  * @brief Offers serialization helpers for the Kademlia protocol messages.
  */
-class MessageSerializer {
- public:
+class BLOCXXI_P2P_API MessageSerializer {
+public:
   /// @name Constructors etc.
   //@{
   /*!
@@ -26,7 +25,7 @@ class MessageSerializer {
    *
    * @param my_id this node's id, which will be automatically added to headers.
    */
-  explicit MessageSerializer(Node::IdType const &my_id);
+  explicit MessageSerializer(Node::IdType my_id);
 
   /// Not copyable
   MessageSerializer(MessageSerializer const &) = delete;
@@ -48,8 +47,8 @@ class MessageSerializer {
    * @return a buffer containing the serialized message body.
    */
   template <typename TMessage>
-  Buffer Serialize(TMessage const &message,
-                   blocxxi::crypto::Hash160 const &token);
+  Buffer Serialize(
+      TMessage const &message, blocxxi::crypto::Hash160 const &token);
 
   /*!
    * Serialize a Kademlia protocol message header for the given message type.
@@ -58,10 +57,10 @@ class MessageSerializer {
    * @param token the random correlation token to be used in the header.
    * @return a buffer containing the serialized message header.
    */
-  Buffer Serialize(Header::MessageType const &type,
-                   blocxxi::crypto::Hash160 const &token);
+  Buffer Serialize(
+      Header::MessageType const &type, blocxxi::crypto::Hash160 const &token);
 
- private:
+private:
   /*!
    * Make a header for the given message type and using the random correlation
    * token.
@@ -70,10 +69,10 @@ class MessageSerializer {
    * @param token the random correlation token to be used in the header.
    * @return a fully populated Header object.
    */
-  Header MakeHeader(Header::MessageType const &type,
-                    blocxxi::crypto::Hash160 const &token);
+  Header MakeHeader(
+      Header::MessageType const &type, blocxxi::crypto::Hash160 const &token);
 
- private:
+private:
   /// This node's id, used in serialized headers.
   Node::IdType const my_id_;
 };
@@ -91,6 +90,4 @@ inline Buffer MessageSerializer::Serialize(
   return buffer;
 }
 
-}  // namespace kademlia
-}  // namespace p2p
-}  // namespace blocxxi
+} // namespace blocxxi::p2p::kademlia

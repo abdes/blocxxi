@@ -5,11 +5,12 @@
 
 #pragma once
 
+#include "p2p/kademlia/buffer.h"
 #include <vector>
 
 #include <boost/asio/io_context.hpp>
 
-#include <common/logging.h>
+// #include <common/logging.h>
 #include <p2p/kademlia/detail/bootstrap_procedure.h>
 #include <p2p/kademlia/detail/find_node_task.h>
 #include <p2p/kademlia/detail/find_value_task.h>
@@ -31,7 +32,7 @@ namespace kademlia {
 
 template <typename TRoutingTable, typename TNetwork>
 class Engine final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
- public:
+public:
   ///
   using DataType = std::vector<std::uint8_t>;
   ///
@@ -43,13 +44,11 @@ class Engine final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
   ///
   using ValueStoreType = ValueStore<KeyType, DataType>;
 
- public:
+public:
   Engine(boost::asio::io_context &io_context, RoutingTableType &&routing_table,
-         NetworkType &&network)
-      : io_context_(io_context),
-        routing_table_(std::move(routing_table)),
-        network_(std::move(network)),
-        value_store_(),
+      NetworkType &&network)
+      : io_context_(io_context), routing_table_(std::move(routing_table)),
+        network_(std::move(network)), value_store_(),
         refresh_timer_(io_context) {
     ASLOG(debug, "Creating Engine DONE");
   }
@@ -60,9 +59,13 @@ class Engine final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
   Engine(Engine &&) = default;
   Engine &operator=(Engine &&) = default;
 
-  ~Engine() { ASLOG(debug, "Destroy Engine"); }
+  ~Engine() {
+    ASLOG(debug, "Destroy Engine");
+  }
 
-  RoutingTable const &GetRoutingTable() const { return routing_table_; }
+  RoutingTable const &GetRoutingTable() const {
+    return routing_table_;
+  }
 
   void AddBootstrapNode(const std::string &bnode_url) {
     AddBootstrapNode(Node::FromUrlString(bnode_url));
@@ -76,8 +79,7 @@ class Engine final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
   void Start() {
     ASLOG(debug, "Engine Start: {}", routing_table_.ThisNode().ToString());
     network_.OnMessageReceived(std::bind(&Engine::HandleNewMessage, this,
-                                         std::placeholders::_1,
-                                         std::placeholders::_2));
+        std::placeholders::_1, std::placeholders::_2));
 
     network_.Start();
 
@@ -94,12 +96,13 @@ class Engine final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
   void ScheduleBucketRefreshTimer() {
     // Start the buckets refresh period timer
     ASLOG(debug, "[REFRESH] periodic bucket refresh timer started ({}s)",
-          PERIODIC_REFRESH_TIMER.count());
-    refresh_timer_.expires_at(std::chrono::steady_clock::now() +
-                              PERIODIC_REFRESH_TIMER);
+        PERIODIC_REFRESH_TIMER.count());
+    refresh_timer_.expires_at(
+        std::chrono::steady_clock::now() + PERIODIC_REFRESH_TIMER);
     refresh_timer_.async_wait([this](boost::system::error_code const &failure) {
       // If the deadline timer has been cancelled, just stop right there.
-      if (failure == boost::asio::error::operation_aborted) return;
+      if (failure == boost::asio::error::operation_aborted)
+        return;
 
       if (failure)
         throw std::system_error{detail::make_error_code(TIMER_MALFUNCTION)};
@@ -115,8 +118,8 @@ class Engine final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
           auto const &least_recent = bucket->LeastRecentlySeenNode();
           io_context_.post([this, least_recent]() {
             // Initiate a PING to the least recently seen node in the bucket
-            detail::StartPingNodeTask(least_recent, network_, routing_table_,
-                                      []() {});
+            detail::StartPingNodeTask(
+                least_recent, network_, routing_table_, []() {});
           });
         }
         ++bucket_index;
@@ -139,14 +142,14 @@ class Engine final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
   void AsyncFindValue(KeyType const &key, THandler &handler) {
     io_context_.post([this, key, handler]() {
       ASLOG(debug, "executing async load of key '{}'", key);
-      detail::StartFindValueTask<DataType>(key, network_, routing_table_,
-                                           handler);
+      detail::StartFindValueTask<DataType>(
+          key, network_, routing_table_, handler);
     });
   }
 
   template <typename THandler>
-  void AsyncStoreValue(KeyType const &key, DataType const &data,
-                       THandler &handler) {
+  void AsyncStoreValue(
+      KeyType const &key, DataType const &data, THandler &handler) {
     io_context_.post([this, key, data, handler]() {
       // Put in the value store
       ASLOG(debug, "saving key '{}' in my own store", key);
@@ -158,28 +161,28 @@ class Engine final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
     });
   }
 
- private:
+private:
   /**
    *
    */
   void ProcessNewMessage(EndpointType const &sender, Header const &header,
-                         BufferReader const &buffer) {
+      BufferReader const &buffer) {
     switch (header.type_) {
-      case Header::MessageType::PING_REQUEST:
-        HandlePingRequest(sender, header);
-        break;
-      case Header::MessageType::STORE_REQUEST:
-        HandleStoreRequest(sender, header, buffer);
-        break;
-      case Header::MessageType::FIND_NODE_REQUEST:
-        HandleFindPeerRequest(sender, header, buffer);
-        break;
-      case Header::MessageType::FIND_VALUE_REQUEST:
-        HandleFindValueRequest(sender, header, buffer);
-        break;
-      default:
-        network_.HandleNewResponse(sender, header, buffer);
-        break;
+    case Header::MessageType::PING_REQUEST:
+      HandlePingRequest(sender, header);
+      break;
+    case Header::MessageType::STORE_REQUEST:
+      HandleStoreRequest(sender, header, buffer);
+      break;
+    case Header::MessageType::FIND_NODE_REQUEST:
+      HandleFindPeerRequest(sender, header, buffer);
+      break;
+    case Header::MessageType::FIND_VALUE_REQUEST:
+      HandleFindValueRequest(sender, header, buffer);
+      break;
+    default:
+      network_.HandleNewResponse(sender, header, buffer);
+      break;
     }
   }
 
@@ -189,15 +192,15 @@ class Engine final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
   void HandlePingRequest(EndpointType const &sender, Header const &header) {
     ASLOG(debug, "handling ping request");
 
-    network_.SendResponse(header.random_token_,
-                          Header::MessageType::PING_RESPONSE, sender);
+    network_.SendResponse(
+        header.random_token_, Header::MessageType::PING_RESPONSE, sender);
   }
 
   /**
    *
    */
   void HandleStoreRequest(EndpointType const &sender, Header const & /*header*/,
-                          BufferReader const &buffer) {
+      BufferReader const &buffer) {
     ASLOG(debug, "handling store request from {}", sender);
 
     StoreValueRequestBody request;
@@ -223,7 +226,7 @@ class Engine final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
    *
    */
   void HandleFindPeerRequest(EndpointType const &sender, Header const &header,
-                             BufferReader const &buffer) {
+      BufferReader const &buffer) {
     ASLOG(debug, "handling find peer request from {}", sender);
 
     // Ensure the request is valid.
@@ -242,8 +245,8 @@ class Engine final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
    *
    */
   void SendFindPeerResponse(EndpointType const &sender,
-                            blocxxi::crypto::Hash160 const &random_token,
-                            Node::IdType const &peer_to_find_id) {
+      blocxxi::crypto::Hash160 const &random_token,
+      Node::IdType const &peer_to_find_id) {
     // Find X closest peers and save
     // their location into the response..
     FindNodeResponseBody response;
@@ -263,7 +266,7 @@ class Engine final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
    *
    */
   void HandleFindValueRequest(EndpointType const &sender, Header const &header,
-                              BufferReader const &buffer) {
+      BufferReader const &buffer) {
     ASLOG(debug, "handling find value request");
 
     FindValueRequestBody request;
@@ -327,8 +330,8 @@ class Engine final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
       if (least_recent.IsQuestionable()) {
         io_context_.post([this, least_recent]() {
           // Initiate a PING to the least recently seen node in the bucket
-          detail::StartPingNodeTask(least_recent, network_, routing_table_,
-                                    []() {});
+          detail::StartPingNodeTask(
+              least_recent, network_, routing_table_, []() {});
         });
       }
     }
@@ -343,14 +346,14 @@ class Engine final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
     // Refresh buckets that have not been updated for more than
     // PERIODIC_BUCKET_REFRESH
     ASLOG(debug,
-          "[REFRESH] refreshing all buckets not updated within the last {} "
-          "seconds",
-          PERIODIC_REFRESH_TIMER.count());
+        "[REFRESH] refreshing all buckets not updated within the last {} "
+        "seconds",
+        PERIODIC_REFRESH_TIMER.count());
 
     for (auto const &bucket : routing_table_) {
       auto since_last_update = bucket.TimeSinceLastUpdated();
       ASLOG(debug, "[REFRESH] time since this bucket last updated: {}s",
-            since_last_update.count());
+          since_last_update.count());
       if (since_last_update > BUCKET_INACTIVE_TIME_BEFORE_REFRESH) {
         // Select a random id in the bucket
         if (!bucket.Empty()) {
@@ -358,8 +361,8 @@ class Engine final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
           auto const &id = node.Id();
 
           ASLOG(debug,
-                "periodic bucket refresh -> lookup for random peer with id {}",
-                id.ToHex());
+              "periodic bucket refresh -> lookup for random peer with id {}",
+              id.ToHex());
 
           io_context_.post([this, id]() {
             detail::StartFindNodeTask(
@@ -390,6 +393,6 @@ class Engine final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
   boost::asio::steady_timer refresh_timer_;
 };
 
-}  // namespace kademlia
-}  // namespace p2p
-}  // namespace blocxxi
+} // namespace kademlia
+} // namespace p2p
+} // namespace blocxxi

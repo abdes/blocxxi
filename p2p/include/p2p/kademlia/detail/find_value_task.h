@@ -8,17 +8,15 @@
 #include <memory>
 #include <system_error>
 
-#include <common/logging.h>
+// #include <common/logging.h>
+#include <p2p/kademlia/buffer.h>
 #include <p2p/kademlia/key.h>
 #include <p2p/kademlia/message.h>
 
 #include "error_impl.h"
 #include "lookup_task.h"
 
-namespace blocxxi {
-namespace p2p {
-namespace kademlia {
-namespace detail {
+namespace blocxxi::p2p::kademlia::detail {
 
 /**
  *  @brief This class represents a find value task.
@@ -59,9 +57,9 @@ namespace detail {
  *  @enddot
  */
 template <typename TValueHandler, typename TNetwork, typename TRoutingTable,
-          typename TData>
+    typename TData>
 class FindValueTask final : public BaseLookupTask {
- public:
+public:
   ///
   using HandlerType = TValueHandler;
 
@@ -77,34 +75,32 @@ class FindValueTask final : public BaseLookupTask {
 
   constexpr static char const *TASK_NAME = "FIND_VALUE";
 
- public:
+public:
   /**
    *
    */
   static void Start(KeyType const &key, NetworkType &network,
-                    RoutingTableType &routing_table, HandlerType handler,
-                    std::string const &task_name) {
+      RoutingTableType &routing_table, HandlerType handler,
+      std::string const &task_name) {
     std::shared_ptr<FindValueTask> task;
-    task.reset(new FindValueTask(key, network, routing_table,
-                                 std::move(handler), task_name));
+    task.reset(new FindValueTask(
+        key, network, routing_table, std::move(handler), task_name));
 
     TryCandidates(task);
   }
 
- private:
+private:
   /**
    *
    */
   FindValueTask(KeyType const &searched_key, NetworkType &network,
-                TRoutingTable &routing_table, HandlerType load_handler,
-                std::string const &task_name)
-      : BaseLookupTask(searched_key, routing_table.FindNeighbors(
-                                         searched_key, PARALLELISM_ALPHA),
-                       task_name),
-        network_(network),
-        routing_table_(routing_table),
-        handler_(std::move(load_handler)),
-        is_finished_() {
+      TRoutingTable &routing_table, HandlerType load_handler,
+      std::string const &task_name)
+      : BaseLookupTask(searched_key,
+            routing_table.FindNeighbors(searched_key, PARALLELISM_ALPHA),
+            task_name),
+        network_(network), routing_table_(routing_table),
+        handler_(std::move(load_handler)), is_finished_() {
     ASLOG(debug, "{} create new task for '{}'", this->Name(), searched_key);
   }
 
@@ -129,7 +125,9 @@ class FindValueTask final : public BaseLookupTask {
   /**
    *
    */
-  bool IsCallerNotified() const { return is_finished_; }
+  [[nodiscard]] auto IsCallerNotified() const -> bool {
+    return is_finished_;
+  }
 
   /**
    *
@@ -152,24 +150,26 @@ class FindValueTask final : public BaseLookupTask {
    *
    */
   static void SendFindValueRequest(FindValueRequestBody const &request,
-                                   Node const &current_candidate,
-                                   std::shared_ptr<FindValueTask> task) {
+      Node const &current_candidate, std::shared_ptr<FindValueTask> task) {
     ASLOG(debug, "{} sending find '{}' value request to '{}'", task->Name(),
-          task->Key(), current_candidate);
+        task->Key(), current_candidate);
 
     // On message received, process it.
-    auto on_message_received = [task, current_candidate](
-        EndpointType const &sender, Header const &header,
-        BufferReader const &buffer) {
-      if (task->IsCallerNotified()) return;
+    auto on_message_received =
+        [task, current_candidate](EndpointType const &sender,
+            Header const &header, BufferReader const &buffer) {
+          if (task->IsCallerNotified()) {
+            return;
+          }
 
-      task->MarkCandidateAsValid(current_candidate.Id());
-      HandleFindValueResponse(sender, header, buffer, task);
-    };
+          task->MarkCandidateAsValid(current_candidate.Id());
+          HandleFindValueResponse(sender, header, buffer, task);
+        };
 
     // On error, retry with another endpoint.
     auto on_error = [task, current_candidate](std::error_code const &) {
-      if (task->IsCallerNotified()) return;
+      if (task->IsCallerNotified())
+        return;
 
       // Invalidate the candidate
       task->MarkCandidateAsInvalid(current_candidate.Id());
@@ -180,8 +180,7 @@ class FindValueTask final : public BaseLookupTask {
     };
 
     task->network_.SendConvRequest(request, current_candidate.Endpoint(),
-                                   REQUEST_TIMEOUT, on_message_received,
-                                   on_error);
+        REQUEST_TIMEOUT, on_message_received, on_error);
   }
 
   /**
@@ -189,11 +188,10 @@ class FindValueTask final : public BaseLookupTask {
    *         the peer owner of the value.
    */
   static void HandleFindValueResponse(EndpointType const &sender,
-                                      Header const &header,
-                                      BufferReader const &buffer,
-                                      std::shared_ptr<FindValueTask> task) {
+      Header const &header, BufferReader const &buffer,
+      std::shared_ptr<FindValueTask> task) {
     ASLOG(debug, "{} handling response from '{}' to find '{}'", task->Name(),
-          sender, task->Key());
+        sender, task->Key());
 
     if (header.type_ == Header::MessageType::FIND_NODE_RESPONSE) {
       // The current peer didn't know the value
@@ -215,14 +213,14 @@ class FindValueTask final : public BaseLookupTask {
   static void SendFindValueRequestsOnCloserPeers(
       BufferReader const &buffer, std::shared_ptr<FindValueTask> task) {
     ASLOG(debug, "{} checking if found closer peers to '{}' value",
-          task->Name(), task->Key());
+        task->Name(), task->Key());
 
     FindNodeResponseBody response;
     try {
       Deserialize(buffer, response);
     } catch (std::exception const &ex) {
       ASLOG(debug, "{} failed to deserialize find node response ({})",
-            task->Name(), ex.what());
+          task->Name(), ex.what());
       return;
     }
 
@@ -230,9 +228,9 @@ class FindValueTask final : public BaseLookupTask {
     // but filter out ourselves from the list
     response.peers_.erase(
         std::remove_if(response.peers_.begin(), response.peers_.end(),
-                       [task](Node &peer) {
-                         return peer == task->routing_table_.ThisNode();
-                       }),
+            [task](Node &peer) {
+              return peer == task->routing_table_.ThisNode();
+            }),
         response.peers_.end());
     task->AddCandidates(response.peers_);
     TryCandidates(task);
@@ -243,8 +241,8 @@ class FindValueTask final : public BaseLookupTask {
    *         has been found. It forwards the value to
    *         the user handler.
    */
-  static void ProcessFoundValue(BufferReader const &buffer,
-                                std::shared_ptr<FindValueTask> task) {
+  static void ProcessFoundValue(
+      BufferReader const &buffer, std::shared_ptr<FindValueTask> task) {
     ASLOG(debug, "{} found value for key '{}'", task->Name(), task->Key());
 
     FindValueResponseBody response;
@@ -252,14 +250,14 @@ class FindValueTask final : public BaseLookupTask {
       Deserialize(buffer, response);
     } catch (std::exception const &ex) {
       ASLOG(debug, "{} failed to deserialize find value response ({})",
-            task->Name(), ex.what());
+          task->Name(), ex.what());
       return;
     }
 
     task->NotifyCaller(response.data_);
   }
 
- private:
+private:
   ///
   NetworkType &network_;
   ///
@@ -274,20 +272,16 @@ class FindValueTask final : public BaseLookupTask {
  *
  */
 template <typename TData, typename TNetwork, typename TRoutingTable,
-          typename THandler>
-void StartFindValueTask(
-    KeyType const &key, TNetwork &network, TRoutingTable &routing_table,
-    THandler &&handler,
+    typename THandler>
+void StartFindValueTask(KeyType const &key, TNetwork &network,
+    TRoutingTable &routing_table, THandler &&handler,
     std::string const &task_name =
         FindValueTask<THandler, TNetwork, TRoutingTable, TData>::TASK_NAME) {
   using handler_type = typename std::decay<THandler>::type;
   using task = FindValueTask<handler_type, TNetwork, TRoutingTable, TData>;
 
-  task::Start(key, network, routing_table, std::forward<THandler>(handler),
-              task_name);
+  task::Start(
+      key, network, routing_table, std::forward<THandler>(handler), task_name);
 }
 
-}  // namespace detail
-}  // namespace kademlia
-}  // namespace p2p
-}  // namespace blocxxi
+} // namespace blocxxi::p2p::kademlia::detail

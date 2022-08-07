@@ -18,8 +18,10 @@
 #include <nat/nat.h>
 #include <nat/upnp_port_mapper.h>
 
-// using asap::logging::Logger;
-// using asap::logging::Registry;
+#include <logging/logging.h>
+
+using asap::logging::Logger;
+using asap::logging::Registry;
 
 namespace blocxxi::nat {
 
@@ -79,7 +81,7 @@ auto IsLocal(std::string address, bool ipv6 = false) -> bool {
  * @return the most suitable IPV4 address to be used for the application.
  */
 auto FindBestAddress() -> std::string {
-  // auto &logger = Registry::GetLogger(asap::logging::Id::NAT);
+  auto &logger = Registry::GetLogger("nat");
   // Try to find a suitable interface, preferably with an external IPV4
   // address
 
@@ -102,12 +104,12 @@ auto FindBestAddress() -> std::string {
 #else  // WIN32
   struct ifaddrs *ifaddr, *ifa;
 
-  // ASLOG_TO_LOGGER(
-  //     logger, debug, "enumerating network interfaces and IP addresses");
+  ASLOG_TO_LOGGER(
+      logger, debug, "enumerating network interfaces and IP addresses");
   if (getifaddrs(&ifaddr) == -1) {
-    // ASLOG_TO_LOGGER(logger, warn,
-    //     "could not gather any info on available network interfaces (e={})",
-    //     errno);
+    ASLOG_TO_LOGGER(logger, warn,
+        "could not gather any info on available network interfaces (e={})",
+        errno);
     return selected_address;
   }
 
@@ -136,9 +138,9 @@ auto FindBestAddress() -> std::string {
         !IsLocal(address, ifa->ifa_addr->sa_family == AF_INET6),
         ifa->ifa_addr->sa_family == AF_INET};
 
-    // ASLOG_TO_LOGGER(logger, debug, "{}: {} {} {} {}", ifa->ifa_name,
-    //     addr_info.is_v4_ ? "v4" : "v6", addr_info.is_external_ ? "ext" :
-    //     "loc", addr_info.value_, addr_info.is_loopback_ ? "(loopback)" : "");
+    ASLOG_TO_LOGGER(logger, debug, "{}: {} {} {} {}", ifa->ifa_name,
+        addr_info.is_v4_ ? "v4" : "v6", addr_info.is_external_ ? "ext" : "loc",
+        addr_info.value_, addr_info.is_loopback_ ? "(loopback)" : "");
 
     interfaces[ifa->ifa_name].push_back(addr_info);
   }
@@ -187,8 +189,8 @@ auto FindBestAddress() -> std::string {
     }
   }
 
-  // ASLOG_TO_LOGGER(logger, info, "selected address: {}",
-  //     selected_address.empty() ? "none" : selected_address);
+  ASLOG_TO_LOGGER(logger, info, "selected address: {}",
+      selected_address.empty() ? "none" : selected_address);
 
   return selected_address;
 }
@@ -196,9 +198,9 @@ auto FindBestAddress() -> std::string {
 } // namespace
 
 auto GetPortMapper(std::string const &spec) -> std::unique_ptr<PortMapper> {
-  // auto &logger = Registry::GetLogger(asap::logging::Id::NAT);
+  auto &logger = Registry::GetLogger("nat");
 
-  // ASLOG_TO_LOGGER(logger, debug, "NAT port mapper spec: [{}]", spec);
+  ASLOG_TO_LOGGER(logger, debug, "NAT port mapper spec: [{}]", spec);
 
   std::vector<std::string> parts;
   size_t token_start{0};
@@ -218,10 +220,10 @@ auto GetPortMapper(std::string const &spec) -> std::unique_ptr<PortMapper> {
     } else if (parts.size() == 2) {
       mapper = new NoPortMapper(parts[1], parts[1]);
     } else {
-      // ASLOG_TO_LOGGER(
-      //     logger, debug, "Missing explicit external IP in 'extip' nat spec");
+      ASLOG_TO_LOGGER(
+          logger, debug, "Missing explicit external IP in 'extip' nat spec");
     }
-    // ASLOG_TO_LOGGER(logger, debug, "Using mapper {}", mapper->ToString());
+    ASLOG_TO_LOGGER(logger, debug, "Using mapper {}", mapper->ToString());
     return std::unique_ptr<PortMapper>(mapper);
   }
   if (mechanism == "upnp") {
@@ -229,7 +231,7 @@ auto GetPortMapper(std::string const &spec) -> std::unique_ptr<PortMapper> {
   }
   if (mechanism == "pmp") {
     // TODO: Not implemented yet (pmp)
-    // ASLOG_TO_LOGGER(logger, error, "PMP port mapper is not implemented yet");
+    ASLOG_TO_LOGGER(logger, error, "PMP port mapper is not implemented yet");
     return nullptr;
   }
   // Try to auto discover the environment
@@ -247,9 +249,9 @@ auto GetPortMapper(std::string const &spec) -> std::unique_ptr<PortMapper> {
 
     // TODO: Try PMP
 
-    // ASLOG_TO_LOGGER(logger, warn, "Could not discover external IP
-    // address."); ASLOG_TO_LOGGER(logger, info,
-    //     "Consider using nat spec 'extip' to manually specify it");
+    ASLOG_TO_LOGGER(logger, warn, "Could not discover external IP address.");
+    ASLOG_TO_LOGGER(
+        logger, info, "Consider using nat spec 'extip' to manually specify it");
   }
   mapper = new NoPortMapper(address, address);
   return std::unique_ptr<PortMapper>(mapper);

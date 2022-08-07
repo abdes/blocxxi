@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include <common/logging.h>
+#include <logging/logging.h>
 #include <p2p/kademlia/buffer.h>
 #include <p2p/kademlia/endpoint.h>
 #include <p2p/kademlia/key.h>
@@ -35,9 +35,11 @@ namespace kademlia {
  * removed. Any received response with an id for which no callback is registered
  * is simply discarded.
  */
-class ResponseDispatcher final
-    : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
- public:
+class ResponseDispatcher final : asap::logging::Loggable<ResponseDispatcher> {
+public:
+  /// The logger id used for logging within this class.
+  static constexpr const char *LOGGER_NAME = "p2p-kademlia";
+
   /// @name Type shortcuts
   //@{
   using EndpointType = IpEndpoint;
@@ -48,7 +50,7 @@ class ResponseDispatcher final
   using OnErrorCallbackType = std::function<void(std::error_code)>;
   //@}
 
- public:
+public:
   /// @name Constructors, etc.
   //@{
   explicit ResponseDispatcher(boost::asio::io_context &io_context)
@@ -62,7 +64,9 @@ class ResponseDispatcher final
   ResponseDispatcher(ResponseDispatcher &&) = default;
   ResponseDispatcher &operator=(ResponseDispatcher &&) = default;
 
-  ~ResponseDispatcher() { ASLOG(debug, "Destroy ResponseDispatcher"); }
+  ~ResponseDispatcher() {
+    ASLOG(debug, "Destroy ResponseDispatcher");
+  }
   //@}
 
   /*!
@@ -77,7 +81,7 @@ class ResponseDispatcher final
    * data.
    */
   void HandleResponse(EndpointType const &sender, Header const &header,
-                      BufferReader const &buffer) {
+      BufferReader const &buffer) {
     // Try to dispatch the response to its registered callback.
     auto failure = DispatchResponse(sender, header, buffer);
     if (failure == UNASSOCIATED_MESSAGE_ID) {
@@ -108,8 +112,8 @@ class ResponseDispatcher final
    * @param [in] on_error callback to be invoked if an error occurs or the
    * timeout period expires.
    */
-  void RegisterCallbackWithTimeout(
-      KeyType const &response_id, Timer::DurationType const &callback_ttl,
+  void RegisterCallbackWithTimeout(KeyType const &response_id,
+      Timer::DurationType const &callback_ttl,
       OnResponseCallbackType const &on_response_received,
       OnErrorCallbackType const &on_error) {
     ASLOG(trace, "  register response callback with timeout");
@@ -129,7 +133,7 @@ class ResponseDispatcher final
     });
   }
 
- private:
+private:
   /*!
    * @brief Register a callback for the given response key.
    *
@@ -139,7 +143,7 @@ class ResponseDispatcher final
    * is received.
    */
   void AddCallback(KeyType const &response_id,
-                   OnResponseCallbackType const &on_response_received) {
+      OnResponseCallbackType const &on_response_received) {
     // auto i = callbacks_.emplace(response_id, on_response_received);
     //(void)i;
     // assert(i.second && "an id can't be registered twice");
@@ -174,8 +178,7 @@ class ResponseDispatcher final
    * callback was associated to the response id, UNASSOCIATED_MESSAGE_ID error.
    */
   std::error_code DispatchResponse(EndpointType const &sender,
-                                   Header const &header,
-                                   BufferReader const &buffer) {
+      Header const &header, BufferReader const &buffer) {
     auto callback = callbacks_.find(header.random_token_);
     if (callback == callbacks_.end()) {
       return detail::make_error_code(UNASSOCIATED_MESSAGE_ID);
@@ -189,7 +192,7 @@ class ResponseDispatcher final
     return std::error_code{};
   }
 
- private:
+private:
   /// The collection type for storing all registered response callbacks
   using CallbackCollectionType =
       std::map<blocxxi::crypto::Hash160, OnResponseCallbackType>;
@@ -199,6 +202,6 @@ class ResponseDispatcher final
   Timer timer_;
 };
 
-}  // namespace kademlia
-}  // namespace p2p
-}  // namespace blocxxi
+} // namespace kademlia
+} // namespace p2p
+} // namespace blocxxi

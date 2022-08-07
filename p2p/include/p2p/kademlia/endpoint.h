@@ -5,40 +5,50 @@
 
 #pragma once
 
+#include <p2p/blocxxi_p2p_api.h>
+
 #include <iostream>
 
 #include <boost/asio.hpp>
+#include <utility>
 
-namespace blocxxi {
-namespace p2p {
-namespace kademlia {
+namespace blocxxi::p2p::kademlia {
 
-class IpEndpoint final {
- public:
+class BLOCXXI_P2P_API IpEndpoint final {
+public:
   using AddressType = boost::asio::ip::address;
 
- public:
   IpEndpoint() = default;
-  IpEndpoint(const AddressType &address, unsigned short port)
-      : address_(address), port_(port) {}
+  IpEndpoint(AddressType address, unsigned short port)
+      : address_(std::move(address)), port_(port) {
+  }
 
   IpEndpoint(const std::string &address, unsigned short port)
-      : address_(boost::asio::ip::address::from_string(address)), port_(port) {}
+      : address_(boost::asio::ip::address::from_string(address)), port_(port) {
+  }
 
   IpEndpoint(IpEndpoint const &) = default;
-  IpEndpoint &operator=(IpEndpoint const &) = default;
+  auto operator=(IpEndpoint const &) -> IpEndpoint & = default;
 
   IpEndpoint(IpEndpoint &&) = default;
-  IpEndpoint &operator=(IpEndpoint &&) = default;
+  auto operator=(IpEndpoint &&) -> IpEndpoint & = default;
 
   ~IpEndpoint() = default;
 
-  AddressType const &Address() const { return address_; }
-  void Address(const AddressType &address) { address_ = address; }
-  std::uint16_t Port() const { return port_; }
-  void Port(std::uint16_t port) { port_ = port; }
+  [[nodiscard]] auto Address() const -> AddressType const & {
+    return address_;
+  }
+  void Address(const AddressType &address) {
+    address_ = address;
+  }
+  [[nodiscard]] auto Port() const -> std::uint16_t {
+    return port_;
+  }
+  void Port(std::uint16_t port) {
+    port_ = port;
+  }
 
-  std::string ToString() const {
+  [[nodiscard]] auto ToString() const -> std::string {
     return address_.to_string() + ":" + std::to_string(port_);
   }
 
@@ -46,19 +56,18 @@ class IpEndpoint final {
   std::uint16_t port_{0};
 };
 
-inline bool operator==(IpEndpoint const &a, IpEndpoint const &b) {
+inline auto operator==(IpEndpoint const &a, IpEndpoint const &b) -> bool {
   return a.address_ == b.address_ && a.port_ == b.port_;
 }
 
-inline bool operator!=(IpEndpoint const &a, IpEndpoint const &b) {
+inline auto operator!=(IpEndpoint const &a, IpEndpoint const &b) -> bool {
   return !(a == b);
 }
 
-inline std::ostream &operator<<(std::ostream &os, IpEndpoint const &ep) {
+inline auto operator<<(std::ostream &os, IpEndpoint const &ep)
+    -> std::ostream & {
   os << ep.Address().to_string() << ":" << ep.Port();
   return os;
 }
 
-}  // namespace kademlia
-}  // namespace p2p
-}  // namespace blocxxi
+} // namespace blocxxi::p2p::kademlia

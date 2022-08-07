@@ -249,6 +249,7 @@ add_subdirectory(third_party)
 add_subdirectory(codec)
 add_subdirectory(crypto)
 add_subdirectory(nat)
+add_subdirectory(p2p)
 
 # ==============================================================================
 # Code analyzers: clang-tidy, cppcheck, valgrind, sanitizers, etc...

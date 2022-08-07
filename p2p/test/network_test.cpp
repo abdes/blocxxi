@@ -10,25 +10,25 @@
 #include <p2p/kademlia/message_serializer.h>
 #include <p2p/kademlia/network.h>
 
-using testing::NiceMock;
-using testing::AtLeast;
-using testing::Return;
 using testing::_;
+using testing::AtLeast;
+using testing::NiceMock;
+using testing::Return;
 
 namespace blocxxi {
 namespace p2p {
 namespace kademlia {
 
 class MockChannel {
- public:
+public:
   using RecvCallBackType = std::function<void(
       std::error_code const &, IpEndpoint const &, BufferReader const &)>;
 
   using SendCallbackType = std::function<void(std::error_code const &)>;
 
   MOCK_METHOD1(AsyncReceive, void(RecvCallBackType));
-  MOCK_METHOD3(AsyncSend, void(std::vector<uint8_t> const &, IpEndpoint const &,
-                               SendCallbackType));
+  MOCK_METHOD3(AsyncSend,
+      void(std::vector<uint8_t> const &, IpEndpoint const &, SendCallbackType));
   MOCK_CONST_METHOD0(LocalEndpoint, IpEndpoint());
 };
 
@@ -44,29 +44,30 @@ TEST(NetworkTest, Simple) {
   context.run();
 }
 
-TEST(NetworkTest, CallingStartWithNoReceiveHandlerIsFatal) {
-  boost::asio::io_context context;
-  auto v4 = std::make_unique<NiceMock<MockChannel>>();
-  auto v6 = std::make_unique<NiceMock<MockChannel>>();
-  auto serializer =
-      std::make_unique<MessageSerializer>(Node::IdType::RandomHash());
-  Network<MockChannel, MessageSerializer> network(
-      context, std::move(serializer), std::move(v4), std::move(v6));
-  /*
-   Assertion failed. Please file a bugreport at ...
+// TODO(Abdessattar) this test relies on assertion failure
+// TEST(NetworkTest, CallingStartWithNoReceiveHandlerIsFatal) {
+//   boost::asio::io_context context;
+//   auto v4 = std::make_unique<NiceMock<MockChannel>>();
+//   auto v6 = std::make_unique<NiceMock<MockChannel>>();
+//   auto serializer =
+//       std::make_unique<MessageSerializer>(Node::IdType::RandomHash());
+//   Network<MockChannel, MessageSerializer> network(
+//       context, std::move(serializer), std::move(v4), std::move(v6));
+//   /*
+//    Assertion failed. Please file a bugreport at ...
 
-   file:   '/Users/abdessattar/Projects/blocxxi/p2p ...
-   line: 118
-   function: void blocxxi::p2p::kademlia::Network<blocxxi::p2p::...
-  */
-  auto regex =
-      "Assertion failed.*\n"
-      ".*\n"
-      "file:.*\n"
-      "line:.*\n"
-      "function:.*\n";
-  ASSERT_DEATH(network.Start(), regex);
-}
+//    file:   '/Users/abdessattar/Projects/blocxxi/p2p ...
+//    line: 118
+//    function: void blocxxi::p2p::kademlia::Network<blocxxi::p2p::...
+//   */
+//   auto regex =
+//       "Assertion failed.*\n"
+//       ".*\n"
+//       "file:.*\n"
+//       "line:.*\n"
+//       "function:.*\n";
+//   ASSERT_DEATH(network.Start(), regex);
+// }
 
 TEST(NetworkTest, StartSchedulesRceiveOnAllchannels) {
   boost::asio::io_context context;
@@ -89,6 +90,6 @@ TEST(NetworkTest, StartSchedulesRceiveOnAllchannels) {
   network.Start();
 }
 
-}  // namespace kademlia
-}  // namespace p2p
-}  // namespace blocxxi
+} // namespace kademlia
+} // namespace p2p
+} // namespace blocxxi

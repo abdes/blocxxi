@@ -5,11 +5,12 @@
 
 #pragma once
 
+#include "p2p/blocxxi_p2p_export.h"
+#include <p2p/blocxxi_p2p_api.h>
+
 #include <system_error>
 
-namespace blocxxi {
-namespace p2p {
-namespace kademlia {
+namespace blocxxi::p2p::kademlia {
 
 /// This enum list all library specific errors.
 enum error_type {
@@ -34,11 +35,10 @@ enum error_type {
  *
  *  @return The created error condition.
  */
-std::error_condition make_error_condition(error_type condition);
+BLOCXXI_P2P_API auto make_error_condition(error_type condition)
+    -> std::error_condition;
 
-}  // namespace kademlia
-}  // namespace p2p
-}  // namespace blocxxi
+} // namespace blocxxi::p2p::kademlia
 
 namespace std {
 
@@ -46,4 +46,4 @@ template <>
 struct is_error_condition_enum<blocxxi::p2p::kademlia::error_type> : true_type {
 };
 
-}  // namespace std
+} // namespace std
