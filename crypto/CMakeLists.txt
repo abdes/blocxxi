@@ -29,7 +29,7 @@ asap_declare_module(
 
 if(MSVC)
   check_cxx_source_compiles(
-      "#include <intrin.h>
+    "#include <intrin.h>
       #pragma intrinsic(_BitScanReverse)
       #pragma intrinsic(_BitScanReverse64)
       int main () {
@@ -39,22 +39,21 @@ if(MSVC)
           _BitScanReverse64(&x, y);
           return 0;
       }"
-      BLOCXXI_HAS_BITSCAN_REVERSE)
+    BLOCXXI_HAS_BITSCAN_REVERSE)
 else()
   check_cxx_source_compiles(
-      "#include <cstdint>
+    "#include <cstdint>
        int main () {
           unsigned int x = 5;
           unsigned long long y = __builtin_clz(x);
           x = __builtin_clzll(y);
           return 0;
       }"
-      BLOCXXI_HAS_BUILTIN_CLZ)
+    BLOCXXI_HAS_BUILTIN_CLZ)
 endif()
 
-configure_file(
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/crypto/config.h.in
-  ${CMAKE_CURRENT_BINARY_DIR}/include/crypto/config.h)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/crypto/config.h.in
+               ${CMAKE_CURRENT_BINARY_DIR}/include/crypto/config.h)
 
 # ==============================================================================
 # Build instructions
@@ -72,29 +71,25 @@ asap_add_library(
   SHARED
   WARNING
   SOURCES
-
   # Headers
   "include/crypto/hash.h"
   "include/crypto/keypair.h"
   "include/crypto/random.h"
-
   # Sources
   "src/hash.cpp"
   "src/keypair.cpp"
-  "src/random.cpp"
-  )
+  "src/random.cpp")
 
 target_link_libraries(
   ${MODULE_TARGET_NAME}
   PRIVATE cryptopp-static Boost::endian
-  PUBLIC asap::common asap::codec GSL
-  )
+  PUBLIC asap::common asap::codec GSL)
 
 target_include_directories(
   ${MODULE_TARGET_NAME}
   PUBLIC $<INSTALL_INTERFACE:include>
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
+         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_compile_features(${MODULE_TARGET_NAME} PUBLIC cxx_std_17)
@@ -172,7 +167,7 @@ if(${META_PROJECT_ID}_INSTALL)
   # Package configuration files
   install(
     FILES ${CMAKE_CURRENT_BINARY_DIR}/${MODULE_TARGET_NAME}Config.cmake
-    ${CMAKE_CURRENT_BINARY_DIR}/${MODULE_TARGET_NAME}ConfigVersion.cmake
+          ${CMAKE_CURRENT_BINARY_DIR}/${MODULE_TARGET_NAME}ConfigVersion.cmake
     DESTINATION ${ASAP_INSTALL_CMAKE}/${META_MODULE_NAME})
 
   # Docs

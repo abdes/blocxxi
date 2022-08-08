@@ -40,24 +40,21 @@ asap_add_library(
   SHARED
   WARNING
   SOURCES
-
   # Headers
   "include/codec/base16.h"
-
   # Sources
   "src/base16.cpp")
 
 target_link_libraries(
   ${MODULE_TARGET_NAME}
   PRIVATE
-  PUBLIC asap::common GSL
-  )
+  PUBLIC asap::common GSL)
 
 target_include_directories(
   ${MODULE_TARGET_NAME}
   PUBLIC $<INSTALL_INTERFACE:include>
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
+         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_compile_features(${MODULE_TARGET_NAME} PUBLIC cxx_std_17)
@@ -135,7 +132,7 @@ if(${META_PROJECT_ID}_INSTALL)
   # Package configuration files
   install(
     FILES ${CMAKE_CURRENT_BINARY_DIR}/${MODULE_TARGET_NAME}Config.cmake
-    ${CMAKE_CURRENT_BINARY_DIR}/${MODULE_TARGET_NAME}ConfigVersion.cmake
+          ${CMAKE_CURRENT_BINARY_DIR}/${MODULE_TARGET_NAME}ConfigVersion.cmake
     DESTINATION ${ASAP_INSTALL_CMAKE}/${META_MODULE_NAME})
 
   # Docs

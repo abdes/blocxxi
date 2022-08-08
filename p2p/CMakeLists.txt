@@ -43,7 +43,6 @@ asap_add_library(
   SHARED
   WARNING
   SOURCES
-
   # Headers
   "include/p2p/kademlia/error.h"
   "include/p2p/kademlia/parameters.h"
@@ -69,7 +68,6 @@ asap_add_library(
   "include/p2p/kademlia/detail/store_value_task.h"
   "include/p2p/kademlia/detail/ping_node_task.h"
   "include/p2p/kademlia/value_store.h"
-
   # Sources
   "src/kademlia/timer.cpp"
   "src/kademlia/message.cpp"
@@ -78,20 +76,18 @@ asap_add_library(
   "src/kademlia/error_impl.cpp"
   "src/kademlia/node.cpp"
   "src/kademlia/kbucket.cpp"
-  "src/kademlia/routing.cpp"
-  )
+  "src/kademlia/routing.cpp")
 
 target_link_libraries(
   ${MODULE_TARGET_NAME}
   PRIVATE asap::codec Boost::asio Boost::multiprecision
-  PUBLIC asap::common asap::logging asap::crypto
-  )
+  PUBLIC asap::common asap::logging asap::crypto)
 
 target_include_directories(
   ${MODULE_TARGET_NAME}
   PUBLIC $<INSTALL_INTERFACE:include>
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
+         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_compile_features(${MODULE_TARGET_NAME} PUBLIC cxx_std_17)
@@ -169,7 +165,7 @@ if(${META_PROJECT_ID}_INSTALL)
   # Package configuration files
   install(
     FILES ${CMAKE_CURRENT_BINARY_DIR}/${MODULE_TARGET_NAME}Config.cmake
-    ${CMAKE_CURRENT_BINARY_DIR}/${MODULE_TARGET_NAME}ConfigVersion.cmake
+          ${CMAKE_CURRENT_BINARY_DIR}/${MODULE_TARGET_NAME}ConfigVersion.cmake
     DESTINATION ${ASAP_INSTALL_CMAKE}/${META_MODULE_NAME})
 
   # Docs
