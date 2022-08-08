@@ -40,17 +40,3 @@ gtest_discover_tests(${MAIN_TEST_TARGET_NAME})
 asap_add_sanitizers(${MAIN_TEST_TARGET_NAME})
 swift_add_valgrind_massif(${MAIN_TEST_TARGET_NAME})
 swift_add_valgrind_callgrind(${MAIN_TEST_TARGET_NAME})
-
-
-# list(APPEND P2P_SIM_SRC
-#   simulation.cpp
-# )
-# set(P2P_SIM_LIBRARIES asap::p2p spdlog Boost::program_options)
-# asap_executable(TARGET
-#   p2psim
-#   SOURCES
-#   ${P2P_SIM_SRC}
-#   LIBRARIES
-#   ${P2P_SIM_LIBRARIES}
-# )
-# set_tidy_target_properties(p2psim)
