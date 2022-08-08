@@ -170,7 +170,7 @@ void Decode(gsl::span<const char> src, gsl::span<uint8_t> dest, bool reverse) {
         throw std::domain_error("Character ['" + std::to_string(*src_begin) +
                                 "'] not a valid hex digit");
       }
-      uint8_t dec = lookup << 4U;
+      auto dec = static_cast<uint8_t>(lookup << 4);
       src_begin++;
       lookup = DEC_LOOKUP_TABLE.dec_.at(static_cast<uint8_t>(*src_begin));
       if (lookup == c_invalid_value) {
@@ -191,7 +191,7 @@ void Decode(gsl::span<const char> src, gsl::span<uint8_t> dest, bool reverse) {
         throw std::domain_error("Character ['" + std::to_string(*src_begin) +
                                 "'] not a valid hex digit");
       }
-      uint8_t dec = lookup << 4U;
+      auto dec = static_cast<uint8_t>(lookup << 4);
       src_begin++;
       lookup = DEC_LOOKUP_TABLE.dec_.at(static_cast<uint8_t>(*src_begin));
       if (lookup == c_invalid_value) {
