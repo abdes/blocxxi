@@ -29,9 +29,13 @@ namespace blocxxi::codec::hex {
 struct EncodeTestParams {
   EncodeTestParams(std::vector<uint8_t> binary, bool reverse, bool lower_case,
       std::string hex)
-      : binary_(std::move(binary)), reverse_(reverse), lower_case_(lower_case),
-        hex_(std::move(hex)) {
+      : binary_(binary), reverse_(reverse), lower_case_(lower_case),
+        hex_(hex) {
   }
+
+  ~EncodeTestParams() {
+  }
+
   std::vector<uint8_t> binary_;
   bool reverse_;
   bool lower_case_;
@@ -46,9 +50,6 @@ public:
     lower_case_ = GetParam().lower_case_;
     hex_ = GetParam().hex_;
   }
-  void TearDown() override {
-    delete[] binary_.data();
-  }
 
   gsl::span<const uint8_t> binary_;
   bool reverse_{false};
@@ -56,38 +57,39 @@ public:
   std::string hex_;
 };
 
+const std::vector<EncodeTestParams> test_values{
+    EncodeTestParams({0xFF}, false, false, "FF"),
+    EncodeTestParams({0x00}, false, false, "00"),
+    EncodeTestParams({0xFF, 0xEE, 0xDD}, false, false, "FFEEDD"),
+    EncodeTestParams({0x11, 0x22, 0x33, 0x44}, false, false, "11223344"),
+
+    // No reverse, Lower Case
+    EncodeTestParams({0xFF}, false, true, "ff"),
+    EncodeTestParams({0x00}, false, true, "00"),
+    EncodeTestParams({0xFF, 0xEE, 0xDD}, false, true, "ffeedd"),
+    EncodeTestParams({0x11, 0x22, 0x33, 0x44}, false, true, "11223344"),
+
+    // Reverse, Upper Case
+    EncodeTestParams({0xFF}, true, false, "FF"),
+    EncodeTestParams({0x00}, true, false, "00"),
+    EncodeTestParams({0x1D, 0x2E, 0x3F}, true, false, "F3E2D1"),
+    EncodeTestParams({0xA4, 0xB3, 0xC2, 0xD1}, true, false, "1D2C3B4A"),
+
+    // Reverse, Lower Case
+    EncodeTestParams({0xFF}, true, true, "ff"),
+    EncodeTestParams({0x00}, true, true, "00"),
+    EncodeTestParams({0x1D, 0x2E, 0x3F}, true, true, "f3e2d1"),
+    EncodeTestParams({0xA4, 0xB3, 0x62, 0xD1}, true, true, "1d263b4a"),
+
+    // corner case
+    EncodeTestParams(
+        {0x00, 0x00, 0x00, 0x29, 0x00}, false, false, "0000002900"),
+    EncodeTestParams({0x00, 0x00, 0x00, 0xEF, 0x00}, true, false, "00FE000000"),
+};
+
 // NOLINTNEXTLINE
 INSTANTIATE_TEST_SUITE_P(Base16, CoDecTest,
-    ::testing::ValuesIn({
-        EncodeTestParams({0xFF}, false, false, "FF"),
-        EncodeTestParams({0x00}, false, false, "00"),
-        EncodeTestParams({0xFF, 0xEE, 0xDD}, false, false, "FFEEDD"),
-        EncodeTestParams({{0x11, 0x22, 0x33, 0x44}}, false, false, "11223344"),
-
-        // No reverse, Lower Case
-        EncodeTestParams({0xFF}, false, true, "ff"),
-        EncodeTestParams({0x00}, false, true, "00"),
-        EncodeTestParams({0xFF, 0xEE, 0xDD}, false, true, "ffeedd"),
-        EncodeTestParams({0x11, 0x22, 0x33, 0x44}, false, true, "11223344"),
-
-        // Reverse, Upper Case
-        EncodeTestParams({0xFF}, true, false, "FF"),
-        EncodeTestParams({0x00}, true, false, "00"),
-        EncodeTestParams({0x1D, 0x2E, 0x3F}, true, false, "F3E2D1"),
-        EncodeTestParams({0xA4, 0xB3, 0xC2, 0xD1}, true, false, "1D2C3B4A"),
-
-        // Reverse, Lower Case
-        EncodeTestParams({0xFF}, true, true, "ff"),
-        EncodeTestParams({0x00}, true, true, "00"),
-        EncodeTestParams({{0x1D, 0x2E, 0x3F}}, true, true, "f3e2d1"),
-        EncodeTestParams({0xA4, 0xB3, 0x62, 0xD1}, true, true, "1d263b4a"),
-
-        // corner case
-        EncodeTestParams(
-            {0x00, 0x00, 0x00, 0x29, 0x00}, false, false, "0000002900"),
-        EncodeTestParams(
-            {0x00, 0x00, 0x00, 0xEF, 0x00}, true, false, "00FE000000"),
-    }));
+    ::testing::ValuesIn(test_values));
 
 // NOLINTNEXTLINE
 TEST_P(CoDecTest, EncodeCorrectness) {
