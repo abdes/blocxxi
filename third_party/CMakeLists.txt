@@ -44,9 +44,20 @@ if(cryptopp_ADDED)
   # Let cmake do the rest using the cryptopp-cmake CMakeLists.txt
   add_cryptopp_subdir()
 
-  target_include_directories(
-    cryptopp-static SYSTEM PUBLIC $<BUILD_INTERFACE:${CRYPTOPP_PROJECT_DIR}>
-                                  $<INSTALL_INTERFACE:include>)
+  # Because cryptopp generates so many g++ warnings (that we treat as errors),
+  # just consider its include files like system includes so our own code does
+  # not fail and we keep the -Werror for g++. Do this for boith targets, the
+  # static and the shared lib
+  if(BUILD_STATIC)
+    target_include_directories(
+      cryptopp-static SYSTEM PUBLIC $<BUILD_INTERFACE:${CRYPTOPP_PROJECT_DIR}>
+                                    $<INSTALL_INTERFACE:include>)
+  endif()
+  if(BUILD_SHARED)
+    target_include_directories(
+      cryptopp-shared SYSTEM PUBLIC $<BUILD_INTERFACE:${CRYPTOPP_PROJECT_DIR}>
+                                    $<INSTALL_INTERFACE:include>)
+  endif()
 endif()
 
 # ------------------------------------------------------------------------------
