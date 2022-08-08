@@ -263,10 +263,10 @@ if(${META_PROJECT_ID}_IS_MASTER_PROJECT)
   include(ClangTidy)
 
   # Enable this target when the project has header or source files (.h or .cpp)
-  # asap_setup_clang_format()
+  asap_setup_clang_format()
 
   # Enable this target when the project has source files (.cpp)
-  # asap_create_clang_tidy_targets()
+  asap_create_clang_tidy_targets()
 endif()
 
 # ==============================================================================
