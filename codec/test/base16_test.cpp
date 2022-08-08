@@ -23,7 +23,6 @@ ASAP_DIAGNOSTIC_PUSH
 #pragma clang diagnostic ignored "-Wunused-member-function"
 #pragma clang diagnostic ignored "-Wweak-vtables"
 #endif
-// NOLINTBEGIN(used-but-marked-unused)
 
 namespace blocxxi::codec::hex {
 
