@@ -7,7 +7,7 @@
 /*!
  * \file
  *
- * \brief Implementation of the encoding/decoding utilities for blocxxi,
+ * \brief Implementation of the Base16 encoding/decoding utilities.
  */
 
 #include <codec/base16.h>
@@ -136,12 +136,16 @@ auto Encode(gsl::span<const uint8_t> src, bool reverse, bool lower_case)
 
   std::string out;
   out.reserve(2 * src.size());
-  for (auto bin : src) {
-    out.push_back(table.hi_.at(bin));
-    out.push_back(table.lo_.at(bin));
-  }
   if (reverse) {
-    std::reverse(out.begin(), out.end());
+    for (auto bin_iter = src.rbegin(); bin_iter != src.rend(); bin_iter++) {
+      out.push_back(table.lo_.at(*bin_iter));
+      out.push_back(table.hi_.at(*bin_iter));
+    }
+  } else {
+    for (auto bin : src) {
+      out.push_back(table.hi_.at(bin));
+      out.push_back(table.lo_.at(bin));
+    }
   }
   return out;
 }
