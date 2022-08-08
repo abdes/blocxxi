@@ -1,29 +1,35 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #include <random> // for random selection of one node in a bucket
 #include <set>    // for std::set (sorted nodes)
 
-#include <boost/multiprecision/cpp_int.hpp>
-
 #include <p2p/kademlia/kbucket.h>
 
-namespace blocxxi {
-namespace p2p {
-namespace kademlia {
+ASAP_DIAGNOSTIC_PUSH
+#if defined(ASAP_GNUC_VERSION)
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#pragma GCC diagnostic ignored "-Wold-style-cast"
+#endif
+#include <boost/multiprecision/cpp_int.hpp>
+ASAP_DIAGNOSTIC_POP
 
-using namespace boost::multiprecision;
-using uint161_t = number<cpp_int_backend<KEYSIZE_BITS + 1, KEYSIZE_BITS + 1,
-    unsigned_magnitude, unchecked, void>>;
+namespace blocxxi::p2p::kademlia {
+
+using uint161_t = boost::multiprecision::number<
+    boost::multiprecision::cpp_int_backend<KEYSIZE_BITS + 1, KEYSIZE_BITS + 1,
+        boost::multiprecision::unsigned_magnitude,
+        boost::multiprecision::unchecked, void>>;
 
 KBucket::KBucket(Node node, unsigned int depth, std::size_t ksize)
     : my_node_(std::move(node)), depth_(depth), ksize_(ksize) {
   TouchLastUpdated();
 }
 
-bool KBucket::AddNode(Node &&node) {
+auto KBucket::AddNode(Node &&node) -> bool {
   // If the bucket already has a node with the same id or with the same
   // endpoint, the new node replaces it and is placed at the front of the list
   // (most recently seen node)
@@ -42,7 +48,7 @@ bool KBucket::AddNode(Node &&node) {
   } else {
     // If no space available, store as a replacement node, at the tail (Most
     // recently seen node)
-    // TODO: Do we need to limit the size of replacement nodes list
+    // TODO(Abdessattar): Do we need to limit the size of replacement nodes list
     replacement_nodes_.emplace_back(std::move(node));
     ASLOG(trace, "bucket is full, node added to replacements");
     return false;
@@ -93,18 +99,19 @@ void KBucket::RemoveNode(KBucket::iterator &node_iter) {
   }
 }
 
-bool KBucket::CanHoldNode(const Node::IdType &id) const {
+auto KBucket::CanHoldNode(const Node::IdType &node_id) const -> bool {
   // check the node has the same prefix as the bucket
-  auto id_bits = id.ToBitSet();
+  auto id_bits = node_id.ToBitSet();
   auto last_bit = KEYSIZE_BITS - prefix_size_;
   for (auto bit = KEYSIZE_BITS - 1; bit >= last_bit; --bit) {
-    if (prefix_[bit] ^ id_bits[bit])
+    if (prefix_[bit] ^ id_bits[bit]) {
       return false;
+    }
   }
   return true;
 }
 
-std::pair<KBucket, KBucket> KBucket::Split() {
+auto KBucket::Split() -> std::pair<KBucket, KBucket> {
   ASLOG(trace,
       "Splitting bucket prefix= {} depth={} entries={} replacements={}",
       prefix_.to_string().substr(0, prefix_size_), depth_, nodes_.size(),
@@ -153,7 +160,7 @@ std::pair<KBucket, KBucket> KBucket::Split() {
     ASLOG(trace, "No replacement nodes to distribute");
   }
 
-  return std::make_pair<KBucket, KBucket>(std::move(one), std::move(two));
+  return std::make_pair(std::move(one), std::move(two));
 }
 
 struct NodeDistanceComparator {
@@ -161,7 +168,7 @@ struct NodeDistanceComparator {
   explicit NodeDistanceComparator(const Node &node) : ref_node_(node) {
   }
 
-  bool operator()(const Node &lhs, const Node &rhs) const {
+  auto operator()(const Node &lhs, const Node &rhs) const -> bool {
     return ref_node_.DistanceTo(lhs) < ref_node_.DistanceTo(rhs);
   }
 };
@@ -183,13 +190,13 @@ void KBucket::DumpBucketToLog() const {
   }
 }
 
-Node const &KBucket::SelectRandomNode() const {
+auto KBucket::SelectRandomNode() const -> Node const & {
   // ASAP_ASSERT(!nodes_.empty());
 
   auto node_iter = nodes_.cbegin();
-  std::random_device rd; // only used once to initialise (seed) engine
+  std::random_device rand; // only used once to initialise (seed) engine
   std::mt19937 rng(
-      rd()); // random-number engine used (Mersenne-Twister in this case)
+      rand()); // random-number engine used (Mersenne-Twister in this case)
   std::uniform_int_distribution<std::size_t> uni(
       0, nodes_.size() - 1); // guaranteed unbiased
 
@@ -198,33 +205,32 @@ Node const &KBucket::SelectRandomNode() const {
   return *node_iter;
 }
 
-bool KBucket::Empty() const {
+auto KBucket::Empty() const -> bool {
   return nodes_.empty();
 }
-bool KBucket::Full() const {
+auto KBucket::Full() const -> bool {
   return nodes_.size() == ksize_;
 }
-std::pair<unsigned int, unsigned int> KBucket::Size() const {
+auto KBucket::Size() const -> std::pair<unsigned int, unsigned int> {
   return std::make_pair(nodes_.size(), replacement_nodes_.size());
 }
-std::chrono::seconds KBucket::TimeSinceLastUpdated() const {
+auto KBucket::TimeSinceLastUpdated() const -> std::chrono::seconds {
   return std::chrono::duration_cast<std::chrono::seconds>(
       std::chrono::steady_clock::now() - last_updated_);
 }
-bool KBucket::HasReplacements() const {
+auto KBucket::HasReplacements() const -> bool {
   return !replacement_nodes_.empty();
 }
 void KBucket::TouchLastUpdated() const {
   last_updated_ = std::chrono::steady_clock::now();
 }
-unsigned int KBucket::Depth() const {
+auto KBucket::Depth() const -> unsigned int {
   return depth_;
 }
 
-std::ostream &operator<<(std::ostream &out, KBucket const &kb) {
-  out << "entries:" << kb.Size().first << " replacements:" << kb.Size().second;
+auto operator<<(std::ostream &out, KBucket const &bucket) -> std::ostream & {
+  out << "entries:" << bucket.Size().first
+      << " replacements:" << bucket.Size().second;
   return out;
 }
-} // namespace kademlia
-} // namespace p2p
-} // namespace blocxxi
+} // namespace blocxxi::p2p::kademlia

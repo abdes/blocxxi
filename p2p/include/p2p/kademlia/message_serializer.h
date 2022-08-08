@@ -1,7 +1,8 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #pragma once
 
@@ -30,12 +31,12 @@ public:
   /// Not copyable
   MessageSerializer(MessageSerializer const &) = delete;
   /// Not copyable
-  MessageSerializer &operator=(MessageSerializer const &) = delete;
+  auto operator=(MessageSerializer const &) -> MessageSerializer & = delete;
 
   /// Movable (default)
   MessageSerializer(MessageSerializer &&) = default;
   /// Movable (default)
-  MessageSerializer &operator=(MessageSerializer &&) = default;
+  auto operator=(MessageSerializer &&) -> MessageSerializer & = default;
   //@}
 
   /*!
@@ -47,8 +48,8 @@ public:
    * @return a buffer containing the serialized message body.
    */
   template <typename TMessage>
-  Buffer Serialize(
-      TMessage const &message, blocxxi::crypto::Hash160 const &token);
+  auto Serialize(TMessage const &message, blocxxi::crypto::Hash160 const &token)
+      -> Buffer;
 
   /*!
    * Serialize a Kademlia protocol message header for the given message type.
@@ -57,8 +58,8 @@ public:
    * @param token the random correlation token to be used in the header.
    * @return a buffer containing the serialized message header.
    */
-  Buffer Serialize(
-      Header::MessageType const &type, blocxxi::crypto::Hash160 const &token);
+  auto Serialize(Header::MessageType const &type,
+      blocxxi::crypto::Hash160 const &token) -> Buffer;
 
 private:
   /*!
@@ -69,17 +70,16 @@ private:
    * @param token the random correlation token to be used in the header.
    * @return a fully populated Header object.
    */
-  Header MakeHeader(
-      Header::MessageType const &type, blocxxi::crypto::Hash160 const &token);
+  auto MakeHeader(Header::MessageType const &type,
+      blocxxi::crypto::Hash160 const &token) -> Header;
 
-private:
   /// This node's id, used in serialized headers.
   Node::IdType const my_id_;
 };
 
 template <typename TMessage>
-inline Buffer MessageSerializer::Serialize(
-    TMessage const &message, blocxxi::crypto::Hash160 const &token) {
+inline auto MessageSerializer::Serialize(
+    TMessage const &message, blocxxi::crypto::Hash160 const &token) -> Buffer {
   auto const type = MessageTraits<TMessage>::TYPE_ID;
   auto const header = MakeHeader(type, token);
 

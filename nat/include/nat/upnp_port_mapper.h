@@ -27,8 +27,8 @@ class BLOCXXI_NAT_API UpnpPortMapper final : protected PortMapper
 //  , asap::logging::Loggable<asap::logging::Id::NAT>
 {
 public:
-  static auto Discover(
-      std::chrono::milliseconds timeout) -> std::unique_ptr<PortMapper>;
+  static auto Discover(std::chrono::milliseconds timeout)
+      -> std::unique_ptr<PortMapper>;
 
   /// @name Constructors etc.
   //@{
@@ -52,13 +52,13 @@ public:
   //@}
 
   /// @copydoc PortMapper::AddMapping()
-  auto AddMapping(Protocol protocol,
-      unsigned short external_port, unsigned short internal_port,
-      std::string const &name, std::chrono::seconds lease_time) -> std::error_condition override;
+  auto AddMapping(Protocol protocol, unsigned external_port,
+      unsigned internal_port, std::string const &name,
+      std::chrono::seconds lease_time) -> std::error_condition override;
 
   /// @copydoc PortMapper::DeleteMapping()
-  auto DeleteMapping(
-      Protocol protocol, unsigned short external_port) -> std::error_condition override;
+  auto DeleteMapping(Protocol protocol, unsigned external_port)
+      -> std::error_condition override;
 
   /// @copydoc PortMapper::ToString()
   /// Always returns "upnp".

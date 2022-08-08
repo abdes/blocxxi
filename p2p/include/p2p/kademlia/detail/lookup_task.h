@@ -1,26 +1,35 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #pragma once
+
+#include <logging/logging.h>
+
+#include <p2p/kademlia/node.h>
 
 #include <map>
 #include <ostream>
 #include <utility>
 #include <vector>
 
-// #include <common/logging.h>
-#include <p2p/kademlia/node.h>
-
 namespace blocxxi::p2p::kademlia::detail {
 
-/*!
- *
- */
-class BaseLookupTask
-    : protected asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
+class BaseLookupTask : protected asap::logging::Loggable<BaseLookupTask> {
 public:
+  /// The logger id used for logging within this class.
+  static constexpr const char *LOGGER_NAME = "p2p-kademlia";
+
+  // We need to import the internal logger retrieval method symbol in this
+  // context to avoid g++ complaining about the method not being declared before
+  // being used. THis is due to the fact that the current class is a template
+  // class and that method does not take any template argument that will enable
+  // the compiler to resolve it unambiguously.
+  using asap::logging::Loggable<
+      BaseLookupTask>::internal_log_do_not_use_read_comment;
+
   /// Get a string representing the task for debugging
   [[nodiscard]] auto Name() const -> std::string {
     return std::string("[")
@@ -28,18 +37,12 @@ public:
         .append("/")
         .append(std::to_string(in_flight_requests_count_))
         .append("]");
-  };
+  }
 
 protected:
-  /*!
-   *
-   * @tparam Nodes
-   * @param key
-   * @param initial_peers
-   */
   template <typename TNodes>
   BaseLookupTask(Node::IdType key, TNodes initial_peers, std::string task_name)
-      : key_{std::move(key)}, , task_name_(std::move(task_name)) {
+      : key_{std::move(key)}, task_name_(std::move(task_name)) {
     for (auto peer : initial_peers) {
       AddCandidate(peer);
     }
@@ -48,10 +51,6 @@ protected:
   /// Default
   ~BaseLookupTask() = default;
 
-  /*!
-   *
-   * @param candidate_id
-   */
   void MarkCandidateAsValid(Node::IdType const &candidate_id) {
     auto candidate = FindCandidate(candidate_id);
     if (candidate == candidates_.end()) {
@@ -64,10 +63,6 @@ protected:
         candidate_id.ToHex());
   }
 
-  /*!
-   *
-   * @param candidate_id
-   */
   void MarkCandidateAsInvalid(Node::IdType const &candidate_id) {
     auto candidate = FindCandidate(candidate_id);
     if (candidate == candidates_.end()) {
@@ -80,11 +75,6 @@ protected:
         candidate_id.ToHex());
   }
 
-  /*!
-   *
-   * @param max_count
-   * @return
-   */
   auto SelectUnContactedCandidates(std::size_t max_count) -> std::vector<Node> {
     std::vector<Node> selection;
 
@@ -108,11 +98,6 @@ protected:
     return selection;
   }
 
-  /*!
-   *
-   * @param max_count
-   * @return
-   */
   auto GetValidCandidates(std::size_t max_count) -> std::vector<Node> {
     std::vector<Node> selection;
 
@@ -166,8 +151,8 @@ private:
 
   void AddCandidate(Node const &peer) {
     auto const dist = Distance(peer.Id(), key_);
-    Candidate const c{peer, Candidate::STATE_UNKNOWN};
-    candidates_.emplace(dist, c);
+    Candidate const candidate{peer, Candidate::STATE_UNKNOWN};
+    candidates_.emplace(dist, candidate);
   }
 
   auto FindCandidate(Node::IdType const &candidate_id)
@@ -176,13 +161,9 @@ private:
     return candidates_.find(dist);
   }
 
-  ///
   Node::IdType key_;
-  ///
   std::size_t in_flight_requests_count_{};
-  ///
   CandidatesCollection candidates_;
-  ///
   std::string task_name_;
 };
 

@@ -51,12 +51,12 @@ TEST(HashTest, AtThrowsOutOfRange) {
   ASSERT_EQ(32 / 8, h.Size());
   for (auto i = 0U; i < Hash<32>::Size(); ++i) {
     // NOLINTNEXTLINE
-    ASSERT_NO_THROW(h.At(i));
+    ASSERT_NO_THROW(auto ret = h.At(i));
   }
   // NOLINTNEXTLINE
-  ASSERT_THROW(h.At(h.Size()), std::out_of_range);
+  ASSERT_THROW(auto ret = h.At(h.Size()), std::out_of_range);
   // NOLINTNEXTLINE
-  ASSERT_THROW(h.At(h.Size() + 3), std::out_of_range);
+  ASSERT_THROW(auto ret = h.At(h.Size() + 3), std::out_of_range);
 }
 ASAP_DIAGNOSTIC_POP
 
@@ -100,7 +100,8 @@ TEST(HashTest, AssignContentFromSpan) {
 
   // Assign with buffer size bigger than hash size will assert fail
   h.Clear();
-#if ASAP_USE_ASSERTS
+  // TODO(Abdessattar): add this back when assertions are implemented
+#if defined(ASAP_USE_ASSERTS)
   ASSERT_DEATH(
       h.Assign(gsl::make_span<uint8_t>(source), h.begin()), "A precondition.*");
 #else
@@ -135,7 +136,7 @@ TEST(HashTest, ConstructFromSpan) {
 
   // TODO(Abdessattar): make this a separate death test
   // source size > hash size : fatal assertion
-#if ASAP_USE_ASSERTS
+#if defined(ASAP_USE_ASSERTS)
   ASSERT_DEATH(Hash<64> h3(gsl::make_span(source)), "A precondition.*");
 #else
   ASSERT_NO_FATAL_FAILURE(Hash<64> h3(gsl::make_span(source)));

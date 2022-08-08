@@ -7,8 +7,9 @@
 
 #include <crypto/blocxxi_crypto_api.h>
 
-#include <array>    // for std::array
-#include <bitset>   // for std::bitset
+#include <array>  // for std::array
+#include <bitset> // for std::bitset
+#include <cstddef>
 #include <cstdint>  // for standard int types
 #include <cstring>  // for std::memcpy
 #include <iosfwd>   // for implementation of operator<<
@@ -32,7 +33,7 @@ BLOCXXI_CRYPTO_API auto NetworkToHost(std::uint32_t) -> std::uint32_t;
 /// Count the number of leading zero bits in a buffer of contiguous 32-bit
 /// integers.
 BLOCXXI_CRYPTO_API auto CountLeadingZeroBits(gsl::span<std::uint32_t const> buf)
-    -> int;
+    -> size_t;
 
 } // namespace detail
 
@@ -108,9 +109,9 @@ public:
   /// \brief Returns an all-1 hash, i.e. the biggest value representable by an N
   /// bit number (N/8 bytes).
   static auto Max() noexcept -> Hash {
-    Hash h;
-    h.storage_.fill(0xffffffffU);
-    return h;
+    Hash hash;
+    hash.storage_.fill(0xffffffffU);
+    return hash;
   }
 
   /// \brief Returns an all-0 hash, i.e. the smallest value representable by an
@@ -158,7 +159,7 @@ public:
     }
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     return reinterpret_cast<const_pointer>(storage_.data())[pos];
-  };
+  }
   //@}
 
   /// @name Unchecked element access
@@ -274,12 +275,12 @@ public:
   /// The size of the hash in bytes.
   constexpr static auto Size() -> std::size_t {
     return BITS / 8;
-  };
+  }
 
   /// The size of the hash in bytes.
   constexpr static auto BitSize() -> std::size_t {
     return BITS;
-  };
+  }
 
   // Operations
 
@@ -290,8 +291,8 @@ public:
 
   /// Return true if all bits are set to 0.
   [[nodiscard]] auto IsAllZero() const -> bool {
-    for (auto v : storage_) {
-      if (v != 0) {
+    for (auto chunk : storage_) {
+      if (chunk != 0) {
         return false;
       }
     }
@@ -305,7 +306,7 @@ public:
   }
 
   /// Count leading zero bits.
-  [[nodiscard]] auto LeadingZeroBits() const -> int {
+  [[nodiscard]] auto LeadingZeroBits() const -> size_t {
     return detail::CountLeadingZeroBits(gsl::make_span(storage_));
   }
 
@@ -364,13 +365,13 @@ public:
   */
   void Assign(gsl::span<std::uint8_t const> buf, iterator start) noexcept {
     size_type src_size = buf.size();
-    size_type dst_size = end() - start;
+    auto dst_size = static_cast<size_type>(end() - start);
     // TODO(Abdessattar): replace with contract
     // ASAP_ASSERT_PRECOND(src_size <= dst_size);
     std::memcpy(start, buf.data(), std::min(src_size, dst_size));
   }
 
-  // TODO: Replace the parameters with a span
+  // TODO(Abdessattar): Replace the parameters with a span
   void Randomize() {
     random::GenerateBlock(Data(), Size());
   }
@@ -380,15 +381,15 @@ public:
   }
 
   auto ToBitSet() const -> std::bitset<BITS> {
-    std::bitset<BITS> bs; // [0,0,...,0]
-    int shift_left = BITS;
+    std::bitset<BITS> bits; // [0,0,...,0]
+    std::size_t shift_left = BITS;
     for (uint32_t num_part : storage_) {
       shift_left -= 32;
       num_part = detail::HostToNetwork(num_part);
       std::bitset<BITS> bs_part(num_part);
-      bs |= bs_part << shift_left;
+      bits |= bs_part << shift_left;
     }
-    return bs;
+    return bits;
   }
 
   [[nodiscard]] auto ToBitStringShort(std::size_t length = 32U) const

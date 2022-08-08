@@ -1,7 +1,8 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #include <p2p/kademlia/timer.h>
 
@@ -15,11 +16,13 @@ void Timer::ScheduleNextTick(TimePointType const &expiration_time) {
 
   timer_.async_wait([this](boost::system::error_code const &failure) {
     // If the deadline timer has been cancelled, just stop right there.
-    if (failure == boost::asio::error::operation_aborted)
+    if (failure == boost::asio::error::operation_aborted) {
       return;
+    }
 
-    if (failure)
+    if (failure) {
       throw std::system_error{detail::make_error_code(TIMER_MALFUNCTION)};
+    }
 
     // Call the user callbacks.
     // The callbacks to execute are the first n callbacks expiring at a time

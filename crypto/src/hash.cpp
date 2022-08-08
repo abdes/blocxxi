@@ -3,20 +3,27 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
+#include <common/compilers.h>
+
 #include <crypto/config.h>
 #include <crypto/hash.h>
 
+ASAP_DIAGNOSTIC_PUSH
+#if defined(ASAP_GNUC_VERSION)
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
+#endif
 #include <boost/endian/conversion.hpp>
+ASAP_DIAGNOSTIC_POP
 
 #include <common/platform.h>
 
 namespace blocxxi::crypto::detail {
 
-std::uint32_t HostToNetwork(std::uint32_t number) {
+auto HostToNetwork(std::uint32_t number) -> std::uint32_t {
   return boost::endian::native_to_big(number);
 }
 
-std::uint32_t NetworkToHost(std::uint32_t number) {
+auto NetworkToHost(std::uint32_t number) -> std::uint32_t {
   return boost::endian::big_to_native(number);
 }
 
@@ -27,17 +34,19 @@ std::uint32_t NetworkToHost(std::uint32_t number) {
 ///
 /// These functions expect the range to be in big-endian byte order.
 
-int CountLeadingZeroBits_SW(gsl::span<std::uint32_t const> buf) {
-  auto const num = int(buf.size());
+inline auto CountLeadingZeroBits_SW(gsl::span<std::uint32_t const> buf)
+    -> size_t {
+  auto const num = buf.size();
   std::uint32_t const *ptr = buf.data();
 
-  for (int i = 0; i < num; i++) {
-    if (ptr[i] == 0)
+  for (size_t i = 0; i < num; i++) {
+    if (ptr[i] == 0) {
       continue;
+    }
     std::uint32_t v = NetworkToHost(ptr[i]);
 
     // http://graphics.stanford.edu/~seander/bithacks.html#IntegerLogObvious
-    static const int MultiplyDeBruijnBitPosition[32] = {0, 9, 1, 10, 13, 21, 2,
+    constexpr size_t MultiplyDeBruijnBitPosition[32] = {0, 9, 1, 10, 13, 21, 2,
         29, 11, 14, 16, 18, 22, 25, 3, 30, 8, 12, 20, 28, 15, 17, 24, 7, 19, 27,
         23, 6, 26, 5, 4, 31};
 
@@ -55,17 +64,19 @@ int CountLeadingZeroBits_SW(gsl::span<std::uint32_t const> buf) {
   return num * 32;
 }
 
-int CountLeadingZeroBits_HW(gsl::span<std::uint32_t const> buf) {
-  auto const num = int(buf.size());
+inline auto CountLeadingZeroBits_HW(gsl::span<std::uint32_t const> buf)
+    -> size_t {
+  auto const num = buf.size();
   std::uint32_t const *ptr = buf.data();
 
-  for (int i = 0; i < num; i++) {
-    if (ptr[i] == 0)
+  for (size_t i = 0; i < num; i++) {
+    if (ptr[i] == 0) {
       continue;
+    }
     std::uint32_t v = NetworkToHost(ptr[i]);
 
 #if BLOCXXI_HAS_BUILTIN_CLZ
-    return i * 32 + __builtin_clz(v);
+    return i * 32 + static_cast<size_t>(__builtin_clz(v));
 #elif BLOCXXI_HAS_BITSCAN_REVERSE
     unsigned long pos;
     _BitScanReverse(&pos, v);
@@ -76,7 +87,7 @@ int CountLeadingZeroBits_HW(gsl::span<std::uint32_t const> buf) {
   return num * 32;
 }
 
-int CountLeadingZeroBits(gsl::span<std::uint32_t const> buf) {
+auto CountLeadingZeroBits(gsl::span<std::uint32_t const> buf) -> size_t {
 #if BLOCXXI_HAS_BUILTIN_CLZ || BLOCXXI_HAS_BITSCAN_REVERSE
   return CountLeadingZeroBits_HW(buf);
 #else

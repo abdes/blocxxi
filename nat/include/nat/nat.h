@@ -51,14 +51,14 @@ public:
   //@}
 
   /// Does nothing.
-  auto AddMapping(Protocol /*protocol*/, unsigned short /*external_port*/,
-      unsigned short /*internal_port*/, std::string const & /*name*/,
+  auto AddMapping(Protocol /*protocol*/, unsigned /*external_port*/,
+      unsigned /*internal_port*/, std::string const & /*name*/,
       std::chrono::seconds /*lease_time*/) -> std::error_condition override {
     return {};
   }
 
   /// Does nothing.
-  auto DeleteMapping(Protocol /*protocol*/, unsigned short /*external_port*/)
+  auto DeleteMapping(Protocol /*protocol*/, unsigned /*external_port*/)
       -> std::error_condition override {
     return {};
   }

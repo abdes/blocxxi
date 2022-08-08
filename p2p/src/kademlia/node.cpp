@@ -1,7 +1,8 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #include <p2p/kademlia/node.h>
 
@@ -9,7 +10,7 @@ namespace blocxxi::p2p::kademlia {
 
 namespace {
 // table of leading zero counts for bytes [0..255]
-constexpr int lzcount[256]{
+constexpr unsigned int lzcount[256]{
     // clang-format off
     8, 7, 6, 6, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 3, 3, 3,
     3, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
@@ -28,7 +29,7 @@ constexpr int lzcount[256]{
 
 // Find the number of common prefix bits in the id of the nodes within the given
 // iterator range.
-auto SharedPrefixSize(const Node &a, const Node &b) -> unsigned int {
+inline auto SharedPrefixSize(const Node &a, const Node &b) -> unsigned int {
   auto lz = 0U;
   auto ida = a.Id();
   auto idb = b.Id();
@@ -45,31 +46,33 @@ auto SharedPrefixSize(const Node &a, const Node &b) -> unsigned int {
   return lz;
 }
 
-auto Node::LogDistanceTo(blocxxi::crypto::Hash160 const &hash) const -> int {
+auto Node::LogDistanceTo(blocxxi::crypto::Hash160 const &hash) const -> size_t {
   auto dist = DistanceTo(hash);
   auto lzc = dist.LeadingZeroBits();
   return (Node::IdType::BitSize() - 1 - lzc);
 }
 
-std::string const &Node::ToString() const {
-  if (url_)
+auto Node::ToString() const -> std::string const & {
+  // TODO(Abdessattar): use std::optional instead of a pointer
+  if (url_) {
     return *url_;
+  }
 
   url_ = new std::string();
   url_->append("knode://")
-      .append(id_.ToHex())
+      .append(node_id_.ToHex())
       .append("@")
       .append(endpoint_.Address().to_string())
       .append(":")
-      .append(std::to_string(endpoint_.Port()));
+      .append(std::to_string(static_cast<unsigned int>(endpoint_.Port())));
   return *url_;
 }
 
-Node Node::FromUrlString(const std::string &url) {
+auto Node::FromUrlString(const std::string &url) -> Node {
   // Validate the URL string and extract the different parts out of it
   auto pos = url.find("://");
   if (pos != std::string::npos) {
-    auto start = 0;
+    auto start = 0U;
     auto url_type = url.substr(start, pos - start);
     if (url_type == "knode") {
       start = pos + 3;
@@ -83,8 +86,8 @@ Node Node::FromUrlString(const std::string &url) {
             auto address = url.substr(start, pos - start);
             auto port = url.substr(pos + 1);
 
-            return Node(IdType::FromHex(id), address,
-                static_cast<unsigned short>(std::stoi(port)));
+            return {IdType::FromHex(id), address,
+                static_cast<unsigned short>(std::stoi(port))};
           }
         }
       }

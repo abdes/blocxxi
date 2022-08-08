@@ -1,7 +1,8 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #pragma once
 
@@ -12,11 +13,9 @@
 #include <p2p/kademlia/message.h>
 #include <p2p/kademlia/timer.h>
 
-#include <p2p/kademlia/detail/error_impl.h>
+#include "detail/error_impl.h"
 
-namespace blocxxi {
-namespace p2p {
-namespace kademlia {
+namespace blocxxi::p2p::kademlia {
 
 /*!
  * @brief ResponseDispatcher manages the association between response callbacks
@@ -44,25 +43,24 @@ public:
   //@{
   using EndpointType = IpEndpoint;
 
-  using OnResponseCallbackType = std::function<void(
-      EndpointType const &sender, Header const &h, BufferReader const &buffer)>;
+  using OnResponseCallbackType = std::function<void(EndpointType const &sender,
+      Header const &header, BufferReader const &buffer)>;
 
   using OnErrorCallbackType = std::function<void(std::error_code)>;
   //@}
 
-public:
   /// @name Constructors, etc.
   //@{
   explicit ResponseDispatcher(boost::asio::io_context &io_context)
-      : callbacks_(), timer_(io_context) {
+      : timer_(io_context) {
     ASLOG(debug, "Creating ResponseDispatcher DONE");
   }
 
   ResponseDispatcher(ResponseDispatcher const &) = delete;
-  ResponseDispatcher &operator=(ResponseDispatcher const &) = delete;
+  auto operator=(ResponseDispatcher const &) -> ResponseDispatcher & = delete;
 
   ResponseDispatcher(ResponseDispatcher &&) = default;
-  ResponseDispatcher &operator=(ResponseDispatcher &&) = default;
+  auto operator=(ResponseDispatcher &&) -> ResponseDispatcher & = default;
 
   ~ResponseDispatcher() {
     ASLOG(debug, "Destroy ResponseDispatcher");
@@ -97,12 +95,6 @@ public:
    * period of time as per callback_ttl. If no response is received within that
    * period of time, the callback is removed.
    *
-   * @tparam OnResponseReceived type of the callback to be invoked when the
-   * response is
-   * received.
-   * @tparam OnError type of the callback to be invoked if a an error occurs or
-   * the timeout
-   * period expires.
    * @param [in] response_id the response id for which this callback will be
    * registered.
    * @param [in] callback_ttl std::chrono duration for which the callback will
@@ -121,7 +113,7 @@ public:
     AddCallback(response_id, on_response_received);
 
     // Start the timer waiting for the response.
-    timer_.ExpiresFromNow(callback_ttl, [this, on_error, response_id](void) {
+    timer_.ExpiresFromNow(callback_ttl, [this, on_error, response_id]() {
       // If a callback is still in the map after the timeout, then it will
       // actually be removed by the next call to RemoveCallback indicating that
       // a response has never been received.
@@ -160,7 +152,7 @@ private:
    * be removed.
    * @return \em true if a callback was found and removed; \em false otherwise.
    */
-  bool RemoveCallback(KeyType const &response_id) {
+  auto RemoveCallback(KeyType const &response_id) -> bool {
     auto removed = callbacks_.erase(response_id);
     return (removed > 0);
   }
@@ -177,8 +169,8 @@ private:
    * @return 0 (no error) if the dispatch was successful; otherwise if no
    * callback was associated to the response id, UNASSOCIATED_MESSAGE_ID error.
    */
-  std::error_code DispatchResponse(EndpointType const &sender,
-      Header const &header, BufferReader const &buffer) {
+  auto DispatchResponse(EndpointType const &sender, Header const &header,
+      BufferReader const &buffer) -> std::error_code {
     auto callback = callbacks_.find(header.random_token_);
     if (callback == callbacks_.end()) {
       return detail::make_error_code(UNASSOCIATED_MESSAGE_ID);
@@ -192,16 +184,12 @@ private:
     return std::error_code{};
   }
 
-private:
   /// The collection type for storing all registered response callbacks
   using CallbackCollectionType =
       std::map<blocxxi::crypto::Hash160, OnResponseCallbackType>;
   /// The collection of registered callbacks
   CallbackCollectionType callbacks_;
-  ///
   Timer timer_;
 };
 
-} // namespace kademlia
-} // namespace p2p
-} // namespace blocxxi
+} // namespace blocxxi::p2p::kademlia

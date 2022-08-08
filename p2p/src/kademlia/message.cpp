@@ -1,7 +1,8 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #include <iostream>
 #include <vector>
@@ -186,8 +187,8 @@ inline auto Deserialize(BufferReader const &buffer, Node &node) -> std::size_t {
 
 } // anonymous namespace
 
-auto operator<<(std::ostream &out, Header::MessageType const &message_type)
-    -> std::ostream & {
+inline auto operator<<(std::ostream &out,
+    Header::MessageType const &message_type) -> std::ostream & {
   switch (message_type) {
   case Header::MessageType::PING_REQUEST:
     return out << "ping_request";
@@ -207,7 +208,8 @@ auto operator<<(std::ostream &out, Header::MessageType const &message_type)
   return out << "unknown_message";
 }
 
-auto operator<<(std::ostream &out, Header const &header) -> std::ostream & {
+inline auto operator<<(std::ostream &out, Header const &header)
+    -> std::ostream & {
   return out << header.type_;
 }
 
@@ -239,8 +241,9 @@ void Serialize(FindNodeResponseBody const &body, Buffer &b) {
   std::size_t size = body.peers_.size();
   SerializeInteger(size, b);
 
-  for (auto const &n : body.peers_)
+  for (auto const &n : body.peers_) {
     Serialize(n, b);
+}
 }
 
 auto Deserialize(BufferReader const &buffer, FindNodeResponseBody &body)

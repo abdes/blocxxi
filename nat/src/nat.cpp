@@ -123,14 +123,18 @@ auto FindBestAddress() -> std::string {
     char address[45];
     if (ifa->ifa_addr->sa_family == AF_INET) {
       auto res = inet_ntop(ifa->ifa_addr->sa_family,
-          &(((struct sockaddr_in *)(ifa->ifa_addr))->sin_addr), address, 32);
+          &((reinterpret_cast<struct sockaddr_in *>(ifa->ifa_addr))->sin_addr),
+          address, 32);
       if (!res)
         perror("inet_ntop");
     } else {
       auto res = inet_ntop(ifa->ifa_addr->sa_family,
-          &(((struct sockaddr_in6 *)(ifa->ifa_addr))->sin6_addr), address, 32);
-      if (!res)
+          &((reinterpret_cast<struct sockaddr_in6 *>(ifa->ifa_addr))
+                  ->sin6_addr),
+          address, 32);
+      if (!res) {
         perror("inet_ntop");
+      }
     }
 
     AddressInfo addr_info{address,
@@ -247,7 +251,7 @@ auto GetPortMapper(std::string const &spec) -> std::unique_ptr<PortMapper> {
       return upnp;
     }
 
-    // TODO: Try PMP
+    // TODO(Abdessattar): Try PMP
 
     ASLOG_TO_LOGGER(logger, warn, "Could not discover external IP address.");
     ASLOG_TO_LOGGER(

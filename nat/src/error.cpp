@@ -36,12 +36,12 @@ struct nat_error_category : std::error_category {
 
 } // namespace
 
-auto error_category() -> std::error_category const & {
+inline auto error_category() -> std::error_category const & {
   static const nat_error_category category_{};
   return category_;
 }
 
-auto make_error_code(error_type code) -> std::error_code {
+inline auto make_error_code(error_type code) -> std::error_code {
   return std::error_code{static_cast<int>(code), error_category()};
 }
 

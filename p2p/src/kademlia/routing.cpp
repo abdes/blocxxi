@@ -1,17 +1,24 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
+
+#include <common/compilers.h>
 
 #include <sstream> // for ToString() implementation
 
-#include <boost/multiprecision/cpp_int.hpp>
-
 #include <p2p/kademlia/routing.h>
 
-namespace blocxxi {
-namespace p2p {
-namespace kademlia {
+ASAP_DIAGNOSTIC_PUSH
+#if defined(ASAP_GNUC_VERSION)
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#pragma GCC diagnostic ignored "-Wold-style-cast"
+#endif
+#include <boost/multiprecision/cpp_int.hpp>
+ASAP_DIAGNOSTIC_POP
+
+namespace blocxxi::p2p::kademlia {
 
 using boost::multiprecision::cpp_int_backend;
 using boost::multiprecision::number;
@@ -26,18 +33,19 @@ RoutingTable::RoutingTable(Node node, std::size_t ksize)
   AddInitialBucket();
 }
 
-std::size_t RoutingTable::NodesCount() const {
+auto RoutingTable::NodesCount() const -> std::size_t {
   std::size_t total = 0;
-  for (auto &kb : buckets_)
-    total += kb.Size().first;
+  for (const auto &bucket : buckets_) {
+    total += bucket.Size().first;
+  }
   return total;
 }
 
-std::size_t RoutingTable::BucketsCount() const {
+auto RoutingTable::BucketsCount() const -> std::size_t {
   return buckets_.size();
 }
 
-bool RoutingTable::Empty() const {
+auto RoutingTable::Empty() const -> bool {
   return buckets_.front().Empty();
 }
 
@@ -50,7 +58,8 @@ bool RoutingTable::Empty() const {
 // 160 buckets, the target bucket index will be calculated as the min(i,
 // num_buckets - 1), favoring to push new nodes to the bucket with the biggest
 // distance from our node unless they are actually closer.
-std::size_t RoutingTable::GetBucketIndexFor(const Node::IdType &id) const {
+auto RoutingTable::GetBucketIndexFor(const Node::IdType &node_id) const
+    -> std::size_t {
   // When we get here, the routing table should have been properly initialized
   // and thus has at least the initial bucket.
   auto num_buckets = buckets_.size();
@@ -58,10 +67,10 @@ std::size_t RoutingTable::GetBucketIndexFor(const Node::IdType &id) const {
 
   auto bucket = buckets_.begin();
   while (bucket != buckets_.end()) {
-    if (bucket->CanHoldNode(id)) {
-      std::size_t bucket_index =
+    if (bucket->CanHoldNode(node_id)) {
+      auto bucket_index =
           static_cast<std::size_t>(std::distance(buckets_.begin(), bucket));
-      ASLOG(trace, "{} belongs to bucket index={}", id.ToBitStringShort(),
+      ASLOG(trace, "{} belongs to bucket index={}", node_id.ToBitStringShort(),
           bucket_index);
       return bucket_index;
     }
@@ -71,21 +80,21 @@ std::size_t RoutingTable::GetBucketIndexFor(const Node::IdType &id) const {
   return num_buckets - 1;
 }
 
-bool RoutingTable::AddPeer(Node &&node) {
+auto RoutingTable::AddPeer(Node &&peer) -> bool {
   ASLOG(trace, "ADD CONTACT [ {} ]: {} / logdist: {}", this->ToString(),
-      node.Id().ToBitStringShort(), my_node_.LogDistanceTo(node));
+      peer.Id().ToBitStringShort(), my_node_.LogDistanceTo(peer));
   // Don't add our node
-  if (my_node_ == node) {
+  if (my_node_ == peer) {
     ASLOG(debug, "Unexpected attempt to add our node to the routing table.");
     return true;
   }
-  auto bucket_index = GetBucketIndexFor(node.Id());
+  auto bucket_index = GetBucketIndexFor(peer.Id());
   auto bucket = buckets_.begin();
   std::advance(bucket, bucket_index);
   // bucket->DumpBucketToLog();
 
   // This will return true unless the bucket is full
-  if (bucket->AddNode(std::move(node))) {
+  if (bucket->AddNode(std::move(peer))) {
     ASLOG(trace, "Buckets [ {}]", this->ToString());
     return true;
   }
@@ -131,14 +140,14 @@ bool RoutingTable::AddPeer(Node &&node) {
   return false;
 }
 
-void RoutingTable::RemovePeer(const Node &node) {
-  auto bucket_index = GetBucketIndexFor(node.Id());
+void RoutingTable::RemovePeer(const Node &peer) {
+  auto bucket_index = GetBucketIndexFor(peer.Id());
   auto bucket = buckets_.begin();
   std::advance(bucket, bucket_index);
-  bucket->RemoveNode(node);
+  bucket->RemoveNode(peer);
 }
 
-bool RoutingTable::PeerTimedOut(Node const &peer) {
+auto RoutingTable::PeerTimedOut(Node const &peer) -> bool {
   // Find the peer in the routing table, starting from the last bucket as it is
   // most likely to contain the peer
   for (auto bucket = buckets_.rbegin(); bucket != buckets_.rend(); ++bucket) {
@@ -150,26 +159,25 @@ bool RoutingTable::PeerTimedOut(Node const &peer) {
         if (bn->IsStale()) {
           bucket->RemoveNode(bn);
           return true;
-        } else {
-          return false;
         }
+        return false;
       }
     }
   }
   return false;
 }
 
-std::vector<Node> RoutingTable::FindNeighbors(
-    Node::IdType const &id, std::size_t k) const {
-  ASLOG(
-      trace, "try to find up to {} neighbors for {}", k, id.ToBitStringShort());
-  auto cmp = [&id](Node const &a, Node const &b) {
-    return a.DistanceTo(id) < b.DistanceTo(id);
+auto RoutingTable::FindNeighbors(Node::IdType const &node_id,
+    std::size_t max_number) const -> std::vector<Node> {
+  ASLOG(trace, "try to find up to {} neighbors for {}", max_number,
+      node_id.ToBitStringShort());
+  auto cmp = [&node_id](Node const &lhs, Node const &rhs) {
+    return lhs.DistanceTo(node_id) < rhs.DistanceTo(node_id);
   };
   auto neighbors = std::set<Node, decltype(cmp)>(cmp);
   auto count = 0U;
 
-  auto bucket_index = GetBucketIndexFor(id);
+  auto bucket_index = GetBucketIndexFor(node_id);
   auto bucket = buckets_.begin();
   std::advance(bucket, bucket_index);
   auto left = bucket;
@@ -183,13 +191,14 @@ std::vector<Node> RoutingTable::FindNeighbors(
     has_more = false;
     for (auto const &neighbor : *current_bucket) {
       // Exclude the node
-      if (neighbor.Id() != id) {
+      if (neighbor.Id() != node_id) {
         ++count;
         ASLOG(debug, "found neighbor(count={}) {}", count,
             neighbor.Id().ToBitStringShort());
         neighbors.insert(neighbor);
-        if (count == k)
+        if (count == max_number) {
           goto Done;
+        }
       } else {
         ASLOG(debug, "skip caller node from neighbors list");
       }
@@ -197,8 +206,9 @@ std::vector<Node> RoutingTable::FindNeighbors(
 
     // If one bucket does not have enough, fill by alternating left and right
     // buckets until we collect the requested number of neighbors
-    if (right == buckets_.end())
+    if (right == buckets_.end()) {
       use_left = true;
+    }
     if (left != buckets_.begin()) {
       has_more = true;
       if (use_left) {
@@ -218,34 +228,33 @@ std::vector<Node> RoutingTable::FindNeighbors(
 Done:
   ASLOG(debug, "found {} neighbors out of {} non-replacement nodes I know",
       neighbors.size(), this->NodesCount());
-  return std::vector<Node>(neighbors.begin(), neighbors.end());
+  return {neighbors.begin(), neighbors.end()};
 }
 
-std::string RoutingTable::ToString() const {
-  auto os = std::stringstream();
-  for (auto &b : buckets_) {
-    os << b.Size().first << " ";
+auto RoutingTable::ToString() const -> std::string {
+  auto out = std::stringstream();
+  for (const auto &bucket : buckets_) {
+    out << bucket.Size().first << " ";
   }
-  return os.str();
+  return out.str();
 }
 
 void RoutingTable::DumpToLog() const {
   ASLOG(trace, "START----------------------------------------------------");
-  for (auto &b : buckets_) {
-    b.DumpBucketToLog();
+  for (const auto &bucket : buckets_) {
+    bucket.DumpBucketToLog();
   }
   ASLOG(trace, "END------------------------------------------------------");
 }
 
-std::ostream &operator<<(std::ostream &out, RoutingTable const &rt) {
+auto operator<<(std::ostream &out, RoutingTable const &routing_table)
+    -> std::ostream & {
   out << "[ ";
-  for (auto &kb : rt) {
-    out << kb << " ";
+  for (const auto &bucket : routing_table) {
+    out << bucket << " ";
   }
   out << "]";
   return out;
 }
 
-} // namespace kademlia
-} // namespace p2p
-} // namespace blocxxi
+} // namespace blocxxi::p2p::kademlia

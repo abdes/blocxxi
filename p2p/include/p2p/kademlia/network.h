@@ -1,13 +1,15 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #pragma once
 
 #include <memory>
 
 #include <boost/asio/io_context.hpp>
+#include <utility>
 
 // #include <common/assert.h>
 #include <logging/logging.h>
@@ -33,6 +35,14 @@ public:
   /// The logger id used for logging within this class.
   static constexpr const char *LOGGER_NAME = "p2p-kademlia";
 
+  // We need to import the internal logger retrieval method symbol in this
+  // context to avoid g++ complaining about the method not being declared before
+  // being used. THis is due to the fact that the current class is a template
+  // class and that method does not take any template argument that will enable
+  // the compiler to resolve it unambiguously.
+  using asap::logging::Loggable<Network<TChannel,
+      TMessageSerializer>>::internal_log_do_not_use_read_comment;
+
   /// @name Type shortcuts
   //@{
   using EndpointType = IpEndpoint;
@@ -45,7 +55,6 @@ public:
       EndpointType const &sender, BufferReader const &buffer)>;
   //@}
 
-public:
   /// @name Constructors, etc.
   //@{
   /*!
@@ -61,25 +70,26 @@ public:
    */
   Network(boost::asio::io_context &io_context,
       std::unique_ptr<TMessageSerializer> message_serializer,
-      std::unique_ptr<TChannel> chan_ipv4, std::unique_ptr<TChannel> chan_ipv6)
+      std::unique_ptr<TChannel> chan_ipv4,
+      std::unique_ptr<TChannel> chan_ipv6 = {})
       : io_context_(io_context),
         message_serializer_(std::move(message_serializer)),
         chan_ipv4_(std::move(chan_ipv4)), chan_ipv6_(std::move(chan_ipv6)),
         response_dispatcher_(io_context) {
     ASLOG(debug, "Creating Network DONE at '{}' and '{}'",
         chan_ipv4_->LocalEndpoint().ToString(),
-        chan_ipv6_->LocalEndpoint().ToString());
-  };
+        chan_ipv6_ ? chan_ipv6_->LocalEndpoint().ToString() : "NO-IPV6");
+  }
 
   /// Not copyable.
   Network(Network const &) = delete;
   /// Not copyable.
-  Network &operator=(Network const &) = delete;
+  auto operator=(Network const &) -> Network & = delete;
 
   /// Default trivial move constructor.
-  Network(Network &&) = default;
+  Network(Network &&) noexcept = default;
   /// Default trivial assignment constructor.
-  Network &operator=(Network &&) = default;
+  auto operator=(Network &&) noexcept -> Network & = default;
 
   ~Network() {
     ASLOG(debug, "Destroy Network");
@@ -106,7 +116,7 @@ public:
    */
   void OnMessageReceived(MessageHandlerCallbackType handler) {
     // ASAP_ASSERT(handler != nullptr);
-    receive_handler_ = handler;
+    receive_handler_ = std::move(handler);
   }
 
   /// Start receiving messsage from the network. MUST be called after a message
@@ -118,7 +128,9 @@ public:
     static auto started = false;
     if (!started) {
       ScheduleReceive(*chan_ipv4_);
-      ScheduleReceive(*chan_ipv6_);
+      if (chan_ipv6_) {
+        ScheduleReceive(*chan_ipv6_);
+      }
       started = true;
     }
   }
@@ -158,8 +170,8 @@ public:
    * @return A list of endpoint entries. A successful call to this function is
    * guaranteed to return a non-empty range.
    */
-  std::vector<EndpointType> ResolveEndpoint(
-      std::string const &host, std::string const &service) {
+  auto ResolveEndpoint(std::string const &host, std::string const &service)
+      -> std::vector<EndpointType> {
     return ChannelType::ResolveEndpoint(io_context_, host, service);
   }
 
@@ -261,7 +273,7 @@ public:
   }
 
 private:
-  TChannel &GetChannelFor(IpEndpoint const &endpoint) {
+  auto GetChannelFor(IpEndpoint const &endpoint) -> TChannel & {
     return (endpoint.address_.is_v4()) ? *chan_ipv4_ : *chan_ipv6_;
   }
 
@@ -280,14 +292,13 @@ private:
             receive_handler_(sender, buffer);
           } else {
             ASLOG(error, "{}", failure.message());
-            // TODO: figure out how to handle receive errors if needed
-            // throw std::system_error{failure};
+            // TODO(Abdessattar): figure out how to handle receive errors if
+            // needed throw std::system_error{failure};
           }
           ScheduleReceive(chan);
         });
   }
 
-private:
   /// Message serializer type
   using MessageSerializerType = TMessageSerializer;
 

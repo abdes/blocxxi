@@ -3,6 +3,7 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
+#include <cstring>
 #ifdef WIN32
 #include <winsock2.h>
 #endif
@@ -49,9 +50,8 @@ void UpnpPortMapper::Swap(UpnpPortMapper &other) noexcept {
 }
 
 auto UpnpPortMapper::AddMapping(PortMapper::Protocol protocol,
-    unsigned short external_port, unsigned short internal_port,
-    std::string const &name, std::chrono::seconds lease_time)
-    -> std::error_condition {
+    unsigned external_port, unsigned internal_port, std::string const &name,
+    std::chrono::seconds lease_time) -> std::error_condition {
   // ASLOG(debug, "UPNP add mapping ({}/{}) -> ({}, {})", protocol,
   // external_port,
   //     internal_ip_, internal_port);
@@ -78,7 +78,7 @@ auto UpnpPortMapper::AddMapping(PortMapper::Protocol protocol,
   return {};
 }
 auto UpnpPortMapper::DeleteMapping(PortMapper::Protocol protocol,
-    unsigned short external_port) -> std::error_condition {
+    unsigned external_port) -> std::error_condition {
   // ASLOG(info, "UPNP delete mapping ({}/{})", protocol, external_port);
   if (urls_->controlURL[0] == '\0') {
     // ASLOG(error, "UPNP discovery was not done!");
@@ -121,8 +121,8 @@ auto UpnpPortMapper::Discover(std::chrono::milliseconds timeout)
   if (devlist) {
     // Find a valid IGD and get our internal IP
     char lanaddr[16];
-    int idg_was_found = UPNP_GetValidIGD(
-        devlist, mapper->urls_, mapper->data_, (char *)&lanaddr, 16);
+    int idg_was_found = UPNP_GetValidIGD(devlist, mapper->urls_, mapper->data_,
+        reinterpret_cast<char *>(&lanaddr), 16);
     if (idg_was_found) {
       // ASLOG(debug, "UPNP found valid IGD device (status: {}) desc: {}",
       //     idg_was_found, mapper->urls_->rootdescURL);
@@ -132,7 +132,8 @@ auto UpnpPortMapper::Discover(std::chrono::milliseconds timeout)
       // get external IP adress
       char ip[16];
       if (0 == UPNP_GetExternalIPAddress(mapper->urls_->controlURL,
-                   mapper->data_->CIF.servicetype, (char *)&ip)) {
+                   mapper->data_->CIF.servicetype,
+                   reinterpret_cast<char *>(&ip))) {
         mapper->external_ip_ = std::string(ip);
         freeUPNPDevlist(devlist);
         return std::unique_ptr<PortMapper>(mapper);

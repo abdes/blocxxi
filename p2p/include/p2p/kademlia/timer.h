@@ -1,20 +1,30 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #pragma once
 
-#include "p2p/blocxxi_p2p_export.h"
+#include <p2p/blocxxi_p2p_api.h>
+
+#include <common/compilers.h>
+#include <logging/logging.h>
+
 #include <chrono>     // for std:: time related types
 #include <functional> // for std::function (callbacks)
 #include <map>        // for multimap storing timers<->callbacks
 
+ASAP_DIAGNOSTIC_PUSH
+#if defined(ASAP_GNUC_VERSION)
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
+#pragma GCC diagnostic ignored "-Woverloaded-virtual"
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#pragma GCC diagnostic ignored "-Wold-style-cast"
+#endif
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <boost/asio/io_service.hpp>
-
-#include <logging/logging.h>
-#include <p2p/blocxxi_p2p_api.h>
+ASAP_DIAGNOSTIC_POP
 
 namespace blocxxi::p2p::kademlia {
 
@@ -33,7 +43,6 @@ public:
   /// (nanoseconds, microseconds, milliseconds, seconds, minutes and hours).
   using DurationType = ClockType::duration;
 
-public:
   /// @name Constructors etc.
   //@{
   /*!
@@ -45,8 +54,7 @@ public:
    * @param io_context the boost::asio::io_context to be used for the management
    * of timeouts.
    */
-  explicit Timer(boost::asio::io_context &io_context)
-      : timer_{io_context}, timeouts_{} {
+  explicit Timer(boost::asio::io_context &io_context) : timer_{io_context} {
     ASLOG(debug, "Creating Timer DONE");
   }
 
@@ -59,11 +67,11 @@ public:
   /// Deleted
   Timer(Timer const &) = delete;
   /// Deleted
-  Timer &operator=(Timer const &) = delete;
+  auto operator=(Timer const &) -> Timer & = delete;
 
   /// Move constructor cancels other deadline timer, moves all timeouts and
   /// starts a new deadline timer waiting for them.
-  Timer(Timer &&other)
+  Timer(Timer &&other) noexcept
       : timer_(std::move(other.timer_)), timeouts_(std::move(other.timeouts_)) {
     other.timer_.cancel();
     if (!timeouts_.empty()) {
@@ -73,7 +81,7 @@ public:
 
   /// Move assignments cancels both deadline timers, moves all timeouts and
   /// starts a new deadline timer waiting for them.
-  Timer &operator=(Timer &&other) {
+  auto operator=(Timer &&other) noexcept -> Timer & {
     timer_.cancel();
     other.timer_.cancel();
     timeouts_ = std::move(other.timeouts_);
@@ -125,20 +133,22 @@ private:
   struct ClockTypeWaitTraits {
     // Determine how long until the clock should be next polled to determine
     // whether the duration has elapsed.
-    static ClockType::duration to_wait_duration(const ClockType::duration &d) {
-      if (d > boost::asio::chrono::seconds(1))
-        return d - boost::asio::chrono::seconds(1);
-      else if (d > boost::asio::chrono::seconds(0))
+    static auto to_wait_duration(const ClockType::duration &duration)
+        -> ClockType::duration {
+      if (duration > boost::asio::chrono::seconds(1)) {
+        return duration - boost::asio::chrono::seconds(1);
+      }
+      if (duration > boost::asio::chrono::seconds(0)) {
         return boost::asio::chrono::milliseconds(10);
-      else
-        return boost::asio::chrono::seconds(0);
+      }
+      return boost::asio::chrono::seconds(0);
     }
 
     // Determine how long until the clock should be next polled to determine
     // whether the absolute time has been reached.
-    static ClockType::duration to_wait_duration(
-        const ClockType::time_point &t) {
-      return to_wait_duration(t - ClockType::now());
+    static auto to_wait_duration(const ClockType::time_point &until)
+        -> ClockType::duration {
+      return to_wait_duration(until - ClockType::now());
     }
   };
 
@@ -148,10 +158,8 @@ private:
   using DeadlineTimerType =
       boost::asio::basic_waitable_timer<ClockType, ClockTypeWaitTraits>;
 
-private:
   void ScheduleNextTick(TimePointType const &expiration_time);
 
-private:
   /// The deadline timer used to wait for all registered timeouts.
   DeadlineTimerType timer_;
   /// The collection of registered timeouts. Key is the point in time, value is

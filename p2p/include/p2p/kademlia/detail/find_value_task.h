@@ -60,25 +60,14 @@ template <typename TValueHandler, typename TNetwork, typename TRoutingTable,
     typename TData>
 class FindValueTask final : public BaseLookupTask {
 public:
-  ///
   using HandlerType = TValueHandler;
-
-  ///
   using NetworkType = TNetwork;
-  ///
   using RoutingTableType = TRoutingTable;
-  ///
   using EndpointType = typename NetworkType::EndpointType;
-
-  ///
   using DataType = TData;
 
   constexpr static char const *TASK_NAME = "FIND_VALUE";
 
-public:
-  /**
-   *
-   */
   static void Start(KeyType const &key, NetworkType &network,
       RoutingTableType &routing_table, HandlerType handler,
       std::string const &task_name) {
@@ -90,9 +79,6 @@ public:
   }
 
 private:
-  /**
-   *
-   */
   FindValueTask(KeyType const &searched_key, NetworkType &network,
       TRoutingTable &routing_table, HandlerType load_handler,
       std::string const &task_name)
@@ -100,38 +86,26 @@ private:
             routing_table.FindNeighbors(searched_key, PARALLELISM_ALPHA),
             task_name),
         network_(network), routing_table_(routing_table),
-        handler_(std::move(load_handler)), is_finished_() {
+        handler_(std::move(load_handler)) {
     ASLOG(debug, "{} create new task for '{}'", this->Name(), searched_key);
   }
 
-  /**
-   *
-   */
   void NotifyCaller(DataType const &data) {
     ASAP_ASSERT(!IsCallerNotified());
     handler_(std::error_code(), data);
     is_finished_ = true;
   }
 
-  /**
-   *
-   */
   void NotifyCaller(std::error_code const &failure) {
     ASAP_ASSERT(!IsCallerNotified());
     handler_(failure, DataType{});
     is_finished_ = true;
   }
 
-  /**
-   *
-   */
   [[nodiscard]] auto IsCallerNotified() const -> bool {
     return is_finished_;
   }
 
-  /**
-   *
-   */
   static void TryCandidates(std::shared_ptr<FindValueTask> task) {
     auto const closest_candidates =
         task->SelectUnContactedCandidates(PARALLELISM_ALPHA);
@@ -146,9 +120,6 @@ private:
     }
   }
 
-  /**
-   *
-   */
   static void SendFindValueRequest(FindValueRequestBody const &request,
       Node const &current_candidate, std::shared_ptr<FindValueTask> task) {
     ASLOG(debug, "{} sending find '{}' value request to '{}'", task->Name(),
@@ -168,8 +139,9 @@ private:
 
     // On error, retry with another endpoint.
     auto on_error = [task, current_candidate](std::error_code const &) {
-      if (task->IsCallerNotified())
+      if (task->IsCallerNotified()) {
         return;
+      }
 
       // Invalidate the candidate
       task->MarkCandidateAsInvalid(current_candidate.Id());
@@ -183,9 +155,9 @@ private:
         REQUEST_TIMEOUT, on_message_received, on_error);
   }
 
-  /**
-   *  @brief This method is called while searching for
-   *         the peer owner of the value.
+  /*!
+   * \brief This method is called while searching for the peer owner of the
+   * value.
    */
   static void HandleFindValueResponse(EndpointType const &sender,
       Header const &header, BufferReader const &buffer,
@@ -203,12 +175,10 @@ private:
     }
   }
 
-  /**
-   *  @brief This method is called when closest peers
-   *         to the value we are looking are discovered.
-   *         It recursively query new discovered peers
-   *         or report an error to the use handler if
-   *         all peers have been tried.
+  /*!
+   * \brief This method is called when closest peers to the value we are looking
+   * are discovered. It recursively query new discovered peers or report an
+   * error to the use handler if all peers have been tried.
    */
   static void SendFindValueRequestsOnCloserPeers(
       BufferReader const &buffer, std::shared_ptr<FindValueTask> task) {
@@ -236,10 +206,9 @@ private:
     TryCandidates(task);
   }
 
-  /**
-   *  @brief This method is called once the searched value
-   *         has been found. It forwards the value to
-   *         the user handler.
+  /*!
+   * \brief This method is called once the searched value has been found. It
+   * forwards the value to the user handler.
    */
   static void ProcessFoundValue(
       BufferReader const &buffer, std::shared_ptr<FindValueTask> task) {
@@ -257,15 +226,10 @@ private:
     task->NotifyCaller(response.data_);
   }
 
-private:
-  ///
   NetworkType &network_;
-  ///
   RoutingTableType &routing_table_;
-  ///
   HandlerType handler_;
-  ///
-  bool is_finished_;
+  bool is_finished_{};
 };
 
 /**

@@ -3,71 +3,79 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
+#include <common/compilers.h>
+
 #include <gtest/gtest.h>
 
 #include <forward_list>
 
-#include <boost/multiprecision/cpp_int.hpp>
-
 #include <p2p/kademlia/node.h>
 
-using namespace boost::multiprecision;
+ASAP_DIAGNOSTIC_PUSH
+#if defined(ASAP_GNUC_VERSION)
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#pragma GCC diagnostic ignored "-Wold-style-cast"
+#endif
+#include <boost/multiprecision/cpp_int.hpp>
+ASAP_DIAGNOSTIC_POP
 
-namespace blocxxi {
-namespace p2p {
-namespace kademlia {
+namespace blocxxi::p2p::kademlia {
 
 namespace {
 
 using uint256_t =
-    number<cpp_int_backend<256, 256, unsigned_magnitude, unchecked, void>>;
+    boost::multiprecision::number<boost::multiprecision::cpp_int_backend<256,
+        256, boost::multiprecision::unsigned_magnitude,
+        boost::multiprecision::unchecked, void>>;
 
-}  // anonymous namespace
+} // anonymous namespace
 
+// NOLINTNEXTLINE
 TEST(NodeTest, Construction) {
-  auto n1 = Node(Node::IdType::RandomHash(), "1.1.1.1", 3030);
-  auto n2 = Node(n1);
-  ASSERT_EQ(n1.Id(), n2.Id());
-  ASSERT_EQ(n1.Endpoint(), n2.Endpoint());
-  ASSERT_EQ(n1.ToString(), n2.ToString());
+  auto node_1 = Node(Node::IdType::RandomHash(), "1.1.1.1", 3030);
+  auto node_2 = Node(node_1);
+  ASSERT_EQ(node_1.Id(), node_2.Id());
+  ASSERT_EQ(node_1.Endpoint(), node_2.Endpoint());
+  ASSERT_EQ(node_1.ToString(), node_2.ToString());
 
-  auto n3 = std::move(n1);
-  ASSERT_EQ(n2.Id(), n3.Id());
-  ASSERT_EQ(n2.Endpoint(), n3.Endpoint());
-  ASSERT_EQ(n2.ToString(), n3.ToString());
+  auto node_3 = std::move(node_1);
+  ASSERT_EQ(node_2.Id(), node_3.Id());
+  ASSERT_EQ(node_2.Endpoint(), node_3.Endpoint());
+  ASSERT_EQ(node_2.ToString(), node_3.ToString());
 
-  auto n4(std::move(n3));
-  ASSERT_EQ(n2.Id(), n4.Id());
-  ASSERT_EQ(n2.Endpoint(), n4.Endpoint());
-  ASSERT_EQ(n2.ToString(), n4.ToString());
+  auto node_4(std::move(node_3));
+  ASSERT_EQ(node_2.Id(), node_4.Id());
+  ASSERT_EQ(node_2.Endpoint(), node_4.Endpoint());
+  ASSERT_EQ(node_2.ToString(), node_4.ToString());
 
-  auto n5 = n4;
-  ASSERT_EQ(n4.Id(), n5.Id());
-  ASSERT_EQ(n4.Endpoint(), n5.Endpoint());
-  ASSERT_EQ(n4.ToString(), n5.ToString());
+  auto node_5 = node_4;
+  ASSERT_EQ(node_4.Id(), node_5.Id());
+  ASSERT_EQ(node_4.Endpoint(), node_5.Endpoint());
+  ASSERT_EQ(node_4.ToString(), node_5.ToString());
 }
 
+// NOLINTNEXTLINE
 TEST(NodeTest, LogDistance) {
   // LogDistance same id is -1
-  auto ah = Node::IdType::RandomHash();
-  auto an = Node(ah, "::1", 1);
-  auto dist = LogDistance(an, an);
+  auto a_node_hash = Node::IdType::RandomHash();
+  auto a_node = Node(a_node_hash, "::1", 1);
+  auto dist = LogDistance(a_node, a_node);
   ASSERT_EQ(-1, dist);
 
   // LogDistance first bits are different = 159
-  auto bh = ah;
-  bh[0] = ah[0] ^ 0x80;
-  auto bn = Node(bh, "::1", 2);
-  dist = LogDistance(an, bn);
+  auto b_node_hash = a_node_hash;
+  b_node_hash[0] = a_node_hash[0] ^ 0x80;
+  auto b_node = Node(b_node_hash, "::1", 2);
+  dist = LogDistance(a_node, b_node);
   ASSERT_EQ(159, dist);
 
   for (int i = 0; i < 10; ++i) {
-    auto a = Node(Node::IdType::RandomHash(), "::1", 0);
-    auto b = Node(Node::IdType::RandomHash(), "::1", 0);
+    a_node = Node(Node::IdType::RandomHash(), "::1", 0);
+    b_node = Node(Node::IdType::RandomHash(), "::1", 0);
 
-    auto logdist = LogDistance(a, b);
+    auto logdist = LogDistance(a_node, b_node);
 
-    auto distanceRaw = Distance(a, b);
+    auto distanceRaw = Distance(a_node, b_node);
     uint256_t distance;
     import_bits(distance, distanceRaw.begin(), distanceRaw.end());
 
@@ -82,24 +90,25 @@ TEST(NodeTest, LogDistance) {
   }
 }
 
+// NOLINTNEXTLINE
 TEST(NodeTest, FromUrlString) {
-  auto id = Node::IdType::RandomHash().ToHex();
-  auto address = "192.168.1.35";
-  auto port = "4242";
+  auto node_id = Node::IdType::RandomHash().ToHex();
+  const auto *address = "192.168.1.35";
+  const auto *port = "4242";
   auto str = std::string("knode://")
-                 .append(id)
+                 .append(node_id)
                  .append("@")
                  .append(address)
                  .append(":")
                  .append(port);
 
   Node node;
+  // NOLINTNEXTLINE
   ASSERT_NO_THROW(node = Node::FromUrlString(str));
-  ASSERT_EQ(id, node.Id().ToHex());
+  ASSERT_EQ(node_id, node.Id().ToHex());
   ASSERT_EQ(address, node.Endpoint().Address().to_string());
-  ASSERT_EQ(port, std::to_string(node.Endpoint().Port()));
+  ASSERT_EQ(
+      port, std::to_string(static_cast<unsigned int>(node.Endpoint().Port())));
 }
 
-}  // namespace kademlia
-}  // namespace p2p
-}  // namespace blocxxi
+} // namespace blocxxi::p2p::kademlia

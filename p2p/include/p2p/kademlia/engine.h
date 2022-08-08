@@ -1,16 +1,17 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #pragma once
 
-#include "p2p/kademlia/buffer.h"
-#include <vector>
+#include <logging/logging.h>
 
 #include <boost/asio/io_context.hpp>
+#include <boost/asio/steady_timer.hpp>
 
-// #include <common/logging.h>
+#include <p2p/kademlia/buffer.h>
 #include <p2p/kademlia/detail/bootstrap_procedure.h>
 #include <p2p/kademlia/detail/find_node_task.h>
 #include <p2p/kademlia/detail/find_value_task.h>
@@ -23,47 +24,51 @@
 #include <p2p/kademlia/routing.h>
 #include <p2p/kademlia/value_store.h>
 
-namespace blocxxi {
-namespace p2p {
-namespace kademlia {
+#include <vector>
 
-// TODO: when new node is discovered, transfer to it key/values (where this node
-// id is closer to the key than are the IDs of other nodes)
+namespace blocxxi::p2p::kademlia {
+
+// TODO(Abdessattar): when new node is discovered, transfer to it key/values
+// (where this node id is closer to the key than are the IDs of other nodes)
 
 template <typename TRoutingTable, typename TNetwork>
-class Engine final : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
+class Engine final : asap::logging::Loggable<Engine<TRoutingTable, TNetwork>> {
 public:
-  ///
+  /// The logger id used for logging within this class.
+  static constexpr const char *LOGGER_NAME = "p2p-kademlia";
+
+  // We need to import the internal logger retrieval method symbol in this
+  // context to avoid g++ complaining about the method not being declared before
+  // being used. THis is due to the fact that the current class is a template
+  // class and that method does not take any template argument that will enable
+  // the compiler to resolve it unambiguously.
+  using asap::logging::Loggable<
+      Engine<TRoutingTable, TNetwork>>::internal_log_do_not_use_read_comment;
+
   using DataType = std::vector<std::uint8_t>;
-  ///
   using RoutingTableType = TRoutingTable;
-  ///
   using NetworkType = TNetwork;
-  ///
   using EndpointType = typename NetworkType::EndpointType;
-  ///
   using ValueStoreType = ValueStore<KeyType, DataType>;
 
-public:
   Engine(boost::asio::io_context &io_context, RoutingTableType &&routing_table,
       NetworkType &&network)
       : io_context_(io_context), routing_table_(std::move(routing_table)),
-        network_(std::move(network)), value_store_(),
-        refresh_timer_(io_context) {
+        network_(std::move(network)), refresh_timer_(io_context) {
     ASLOG(debug, "Creating Engine DONE");
   }
 
   Engine(Engine const &) = delete;
-  Engine &operator=(Engine const &) = delete;
+  auto operator=(Engine const &) -> Engine & = delete;
 
-  Engine(Engine &&) = default;
-  Engine &operator=(Engine &&) = default;
+  Engine(Engine &&) noexcept = default;
+  auto operator=(Engine &&) noexcept -> Engine & = default;
 
   ~Engine() {
     ASLOG(debug, "Destroy Engine");
   }
 
-  RoutingTable const &GetRoutingTable() const {
+  auto GetRoutingTable() const -> RoutingTable const & {
     return routing_table_;
   }
 
@@ -101,11 +106,13 @@ public:
         std::chrono::steady_clock::now() + PERIODIC_REFRESH_TIMER);
     refresh_timer_.async_wait([this](boost::system::error_code const &failure) {
       // If the deadline timer has been cancelled, just stop right there.
-      if (failure == boost::asio::error::operation_aborted)
+      if (failure == boost::asio::error::operation_aborted) {
         return;
+      }
 
-      if (failure)
+      if (failure) {
         throw std::system_error{detail::make_error_code(TIMER_MALFUNCTION)};
+      }
 
       ASLOG(debug, "[REFRESH] periodic bucket refresh timer expired");
 
@@ -135,9 +142,6 @@ public:
     });
   }
 
-  /**
-   *
-   */
   template <typename THandler>
   void AsyncFindValue(KeyType const &key, THandler &handler) {
     io_context_.post([this, key, handler]() {
@@ -162,9 +166,6 @@ public:
   }
 
 private:
-  /**
-   *
-   */
   void ProcessNewMessage(EndpointType const &sender, Header const &header,
       BufferReader const &buffer) {
     switch (header.type_) {
@@ -186,9 +187,6 @@ private:
     }
   }
 
-  /**
-   *
-   */
   void HandlePingRequest(EndpointType const &sender, Header const &header) {
     ASLOG(debug, "handling ping request");
 
@@ -196,9 +194,6 @@ private:
         header.random_token_, Header::MessageType::PING_RESPONSE, sender);
   }
 
-  /**
-   *
-   */
   void HandleStoreRequest(EndpointType const &sender, Header const & /*header*/,
       BufferReader const &buffer) {
     ASLOG(debug, "handling store request from {}", sender);
@@ -222,9 +217,6 @@ private:
     // the recipient will not republish the key-value pair in the next hour.
   }
 
-  /**
-   *
-   */
   void HandleFindPeerRequest(EndpointType const &sender, Header const &header,
       BufferReader const &buffer) {
     ASLOG(debug, "handling find peer request from {}", sender);
@@ -241,9 +233,6 @@ private:
     SendFindPeerResponse(sender, header.random_token_, request.node_id_);
   }
 
-  /**
-   *
-   */
   void SendFindPeerResponse(EndpointType const &sender,
       blocxxi::crypto::Hash160 const &random_token,
       Node::IdType const &peer_to_find_id) {
@@ -255,7 +244,7 @@ private:
 
     for (auto node : neighbors) {
       response.peers_.push_back(node);
-    };
+    }
 
     // Now send the response.
     ASLOG(debug, "sending find peer response");
@@ -278,9 +267,9 @@ private:
     }
 
     auto found = value_store_.find(request.value_key_);
-    if (found == value_store_.end())
+    if (found == value_store_.end()) {
       SendFindPeerResponse(sender, header.random_token_, request.value_key_);
-    else {
+    } else {
       FindValueResponseBody const response{found->second};
       network_.SendResponse(header.random_token_, response, sender);
     }
@@ -295,7 +284,7 @@ private:
     detail::StartBootstrapProcedure(network_, routing_table_);
   }
 
-  Node::IdType GetClosestNeighborId(void) {
+  auto GetClosestNeighborId() -> Node::IdType {
     // Find our closest neighbor.
     auto closest_neighbor = routing_table_.GetClosestNeighbor();
     return closest_neighbor.Id();
@@ -336,9 +325,11 @@ private:
       }
     }
 
-    // TODO: Queue a task to store relevant key/value pairs to the new contact
+    // TODO(Abdessattar): Queue a task to store relevant key/value pairs to the
+    // new contact
 
-    // TODO: Optimize things here by passing Node reference instead of sender
+    // TODO(Abdessattar): Optimize things here by passing Node reference instead
+    // of sender
     ProcessNewMessage(sender, header, buffer.subspan(consumed));
   }
 
@@ -382,17 +373,11 @@ private:
   /// io_context used for the name resolution. Must be run by the caller.
   boost::asio::io_context &io_context_;
 
-  ///
   RoutingTableType routing_table_;
-  ///
   NetworkType network_;
-  ///
   ValueStoreType value_store_;
 
-  ///
   boost::asio::steady_timer refresh_timer_;
 };
 
-} // namespace kademlia
-} // namespace p2p
-} // namespace blocxxi
+} // namespace blocxxi::p2p::kademlia

@@ -1,13 +1,22 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #pragma once
 
-#include <memory>
+#include <common/compilers.h>
 
+ASAP_DIAGNOSTIC_PUSH
+#if defined(ASAP_GNUC_VERSION)
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
+#pragma GCC diagnostic ignored "-Woverloaded-virtual"
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#pragma GCC diagnostic ignored "-Wold-style-cast"
+#endif
 #include <boost/asio.hpp>
+ASAP_DIAGNOSTIC_POP
 
 // #include <common/assert.h>
 #include <logging/logging.h>
@@ -16,6 +25,8 @@
 #include <p2p/kademlia/endpoint.h>
 
 #include <p2p/kademlia/detail/error_impl.h>
+
+#include <memory>
 
 namespace blocxxi::p2p::kademlia {
 
@@ -30,6 +41,14 @@ class Channel final : asap::logging::Loggable<Channel<TUnderlyingSocket>> {
 public:
   /// The logger id used for logging within this class.
   static constexpr const char *LOGGER_NAME = "p2p-kademlia";
+
+  // We need to import the internal logger retrieval method symbol in this
+  // context to avoid g++ complaining about the method not being declared before
+  // being used. THis is due to the fact that the current class is a template
+  // class and that method does not take any template argument that will enable
+  // the compiler to resolve it unambiguously.
+  using asap::logging::Loggable<
+      Channel<TUnderlyingSocket>>::internal_log_do_not_use_read_comment;
 
   /// @name Type shortcuts
   ///@{
@@ -50,12 +69,12 @@ public:
    * corresponding to the given endpoint (IPv4 or IPv6) and the socket is bound.
    *
    * @param io_context io_context to be used for the socket operations.
-   * @param ep the endpoint to which the underlying socket must be bound.
+   * @param endpoint the endpoint to which the underlying socket must be bound.
    */
-  Channel(boost::asio::io_context &io_context, EndpointType const &ep)
+  Channel(boost::asio::io_context &io_context, EndpointType const &endpoint)
       : reception_buffer_(SAFE_PAYLOAD_SIZE), current_message_sender_(),
-        socket_(CreateUnderlyingSocket(io_context, ep)) {
-    ASLOG(debug, "Creating channel {} DONE", ep.ToString());
+        socket_(CreateUnderlyingSocket(io_context, endpoint)) {
+    ASLOG(debug, "Creating channel {} DONE", endpoint.ToString());
   }
 
   /*!
@@ -78,9 +97,9 @@ public:
   auto operator=(Channel const &) -> Channel & = delete;
 
   /// Default
-  Channel(Channel &&) = default;
+  Channel(Channel &&) noexcept = default;
   /// Default
-  auto operator=(Channel &&) -> Channel & = default;
+  auto operator=(Channel &&) noexcept -> Channel & = default;
 
   /*!
    * @brief Create a channel for the IPv4 protocol.
@@ -104,9 +123,9 @@ public:
     try {
       auto endpoints = ResolveEndpoint(io_context, host, service);
 
-      for (auto const &ep : endpoints) {
-        if (ep.address_.is_v4()) {
-          return std::make_unique<Channel>(io_context, ep);
+      for (auto const &endpoint : endpoints) {
+        if (endpoint.address_.is_v4()) {
+          return std::make_unique<Channel>(io_context, endpoint);
         }
       }
     } catch (std::exception const &) {
@@ -140,9 +159,9 @@ public:
     try {
       auto endpoints = ResolveEndpoint(io_context, host, service);
 
-      for (auto const &ep : endpoints) {
-        if (ep.address_.is_v6()) {
-          return std::make_unique<Channel>(io_context, ep);
+      for (auto const &endpoint : endpoints) {
+        if (endpoint.address_.is_v6()) {
+          return std::make_unique<Channel>(io_context, endpoint);
         }
       }
     } catch (std::exception const &) {
@@ -191,8 +210,7 @@ public:
         return AsyncReceive(callback);
       }
 #endif
-      callback(detail::BoostToStdError(failure),
-          ConvertEndpoint(current_message_sender_),
+      callback(failure, ConvertEndpoint(current_message_sender_),
           BufferReader(reception_buffer_.data(), bytes_received));
     };
 
@@ -214,7 +232,7 @@ public:
    * @param [in] message the data buffer to be sent (result of message
    * serialization). The passed object must survive until the completion
    * callback is invoked.
-   * @param [in] to the destination endpoint.
+   * @param [in] endpoint the destination endpoint.
    * @param [in] callback the completion callback. The callback is invoked with
    * the following arguments:
    *   - std::system_error indicating success or failure
@@ -223,7 +241,7 @@ public:
    * @see AsyncReceive()
    */
   template <typename TSendCallback>
-  void AsyncSend(Buffer const &message, IpEndpoint const &to,
+  void AsyncSend(Buffer const &message, IpEndpoint const &endpoint,
       TSendCallback const &callback) {
     if (message.size() > SAFE_PAYLOAD_SIZE) {
       callback(make_error_code(std::errc::value_too_large));
@@ -233,13 +251,14 @@ public:
       auto on_completion = [callback, message_copy](
                                boost::system::error_code const &failure,
                                std::size_t /* bytes_sent */) {
-        if (failure)
+        if (failure) {
           ASLOG(error, "{}", failure.message());
-        callback(detail::BoostToStdError(failure));
+        }
+        callback(failure);
       };
 
       socket_.async_send_to(boost::asio::buffer(*message_copy),
-          ConvertEndpoint(to), on_completion);
+          ConvertEndpoint(endpoint), on_completion);
     }
   }
 
@@ -274,13 +293,13 @@ public:
       -> std::vector<IpEndpoint> {
     using protocol_type = typename UnderlyingSocketType::protocol_type;
 
-    typename protocol_type::resolver r{io_context};
+    typename protocol_type::resolver resolver{io_context};
     // One raw endpoint (e.g. localhost) can be resolved to
     // multiple endpoints (e.g. IPv4 / IPv6 address).
     std::vector<EndpointType> endpoints;
 
     try {
-      auto results_iter = r.resolve(host, service);
+      auto results_iter = resolver.resolve(host, service);
       for (decltype(results_iter) end; results_iter != end; ++results_iter) {
         // Convert from underlying_endpoint_type to endpoint_type.
         endpoints.push_back(ConvertEndpoint(*results_iter));
@@ -288,7 +307,7 @@ public:
       return endpoints;
     } catch (boost::system::system_error const &failure) {
       ASLOG(error, "{}", failure.what());
-      throw(std::system_error(detail::BoostToStdError(failure.code())));
+      throw(std::system_error(failure.code()));
     }
   }
 
@@ -311,14 +330,14 @@ private:
    *
    * @param [in] io_context io_context used for the socket operations. Must be
    * run by the caller.
-   * @param [in] ep endpoint to which the underlying socket will be bound.
+   * @param [in] endpoint endpoint to which the underlying socket will be bound.
    * @return a socket object properly setup and bound to the endpoint.
    *
    * @throw std::system_error if the resolution fails.
    */
   static auto CreateUnderlyingSocket(boost::asio::io_context &io_context,
-      EndpointType const &ep) -> UnderlyingSocketType {
-    UnderlyingEndpointType const uep = ConvertEndpoint(ep);
+      EndpointType const &endpoint) -> UnderlyingSocketType {
+    UnderlyingEndpointType const uep = ConvertEndpoint(endpoint);
 
     try {
       UnderlyingSocketType new_socket{io_context, uep.protocol()};
@@ -330,10 +349,10 @@ private:
       new_socket.set_option(option);
       new_socket.bind(uep);
 
-      return std::move(new_socket);
+      return new_socket;
     } catch (boost::system::system_error const &failure) {
       ASLOG(error, "{}", failure.what());
-      throw(std::system_error(detail::BoostToStdError(failure.code())));
+      throw(std::system_error(failure.code()));
     }
   }
 
@@ -350,12 +369,12 @@ private:
 
   /*!
    * Convert a generic endpoint into the equivalent underlying endpoint.
-   * @param [in] ep generic endpoint.
+   * @param [in] endpoint generic endpoint.
    * @return the equivalent underlying endpoint.
    */
-  static auto ConvertEndpoint(EndpointType const &ep)
+  static auto ConvertEndpoint(EndpointType const &endpoint)
       -> UnderlyingEndpointType {
-    return UnderlyingEndpointType{ep.Address(), ep.Port()};
+    return UnderlyingEndpointType{endpoint.Address(), endpoint.Port()};
   }
 
   /// The pre-allocated buffer used for receiving messages from the socket.

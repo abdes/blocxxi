@@ -1,7 +1,8 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #include <string>
 
@@ -17,7 +18,8 @@ struct kademlia_error_category : std::error_category {
     return "kademlia";
   }
 
-  std::string message(int condition) const noexcept override {
+  [[nodiscard]] auto message(int condition) const noexcept
+      -> std::string override {
     switch (condition) {
     case INITIAL_PEER_FAILED_TO_RESPOND:
       return "initial peer failed to respond";
@@ -39,12 +41,12 @@ struct kademlia_error_category : std::error_category {
 
 } // namespace
 
-std::error_category const &error_category() {
+auto error_category() -> std::error_category const & {
   static const kademlia_error_category category_{};
   return category_;
 }
 
-std::error_code make_error_code(error_type code) {
+auto make_error_code(error_type code) -> std::error_code {
   return std::error_code{static_cast<int>(code), error_category()};
 }
 

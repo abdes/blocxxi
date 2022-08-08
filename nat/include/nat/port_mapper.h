@@ -85,8 +85,8 @@ public:
    * will be removed, unless a control point refreshes the mapping.
    * @return An error status indicating success or failure.
    */
-  virtual auto AddMapping(Protocol protocol, unsigned short external_port,
-      unsigned short internal_port, std::string const &name,
+  virtual auto AddMapping(Protocol protocol, unsigned external_port,
+      unsigned internal_port, std::string const &name,
       std::chrono::seconds lease_time) -> std::error_condition = 0;
 
   /*!
@@ -97,7 +97,7 @@ public:
    * @param [in] external_port the external port value of a port mapping.
    * @return An error status indicating success or failure.
    */
-  virtual auto DeleteMapping(Protocol protocol, unsigned short external_port)
+  virtual auto DeleteMapping(Protocol protocol, unsigned external_port)
       -> std::error_condition = 0;
 
   /// This method should return the external (Internet-facing)

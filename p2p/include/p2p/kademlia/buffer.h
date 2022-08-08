@@ -1,12 +1,14 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #pragma once
 
-#include <cstdint> // for std::uint8_t
 #include <gsl/gsl> // for gsl::span<std::uint8_t>
+
+#include <cstdint> // for std::uint8_t
 #include <vector>  // for std::vector<std::uint8_t>
 
 namespace blocxxi::p2p::kademlia {

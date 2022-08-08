@@ -1,7 +1,8 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #pragma once
 
@@ -9,37 +10,27 @@
 #include <system_error>
 
 // #include <common/logging.h>
+#include <p2p/kademlia/error.h>
 #include <p2p/kademlia/key.h>
 #include <p2p/kademlia/message.h>
 
+#include "error_impl.h"
 #include "lookup_task.h"
 
 namespace blocxxi::p2p::kademlia::detail {
 
-///
 template <typename TValueHandler, typename TNetwork, typename TRoutingTable,
     typename TData>
 class StoreValueTask final : public BaseLookupTask {
 public:
-  ///
   using HandlerType = TValueHandler;
-
-  ///
   using NetworkType = TNetwork;
-  ///
   using RoutingTableType = TRoutingTable;
-  ///
   using EndpointType = typename NetworkType::EndpointType;
-
-  ///
   using DataType = TData;
 
-  ///
   constexpr static char const *TASK_NAME = "STORE_VALUE";
 
-  /**
-   *
-   */
   static void Start(KeyType const &key, DataType const &data,
       NetworkType &network, RoutingTableType &routing_table,
       HandlerType handler, std::string const &task_name) {
@@ -70,9 +61,6 @@ private:
     return data_;
   }
 
-  /**
-   *
-   */
   static void TryToStoreValue(std::shared_ptr<StoreValueTask> task,
       std::size_t concurrent_requests_count = PARALLELISM_ALPHA) {
     ASLOG(debug, "{} trying to find closer peer to store '{}' value",
@@ -96,9 +84,6 @@ private:
     }
   }
 
-  /**
-   *
-   */
   static void SendFindPeerRequest(FindNodeRequestBody const &request,
       Node const &current_candidate, std::shared_ptr<StoreValueTask> task) {
     ASLOG(debug, "{} sending find peer request to store '{}' to '{}'",
@@ -127,9 +112,6 @@ private:
         REQUEST_TIMEOUT, on_message_received, on_error);
   }
 
-  /**
-   *
-   */
   static void HandleFindPeerResponse(EndpointType const &sender,
       Header const &header, BufferReader const &buffer,
       std::shared_ptr<StoreValueTask> task) {
@@ -143,7 +125,7 @@ private:
       task->MarkCandidateAsInvalid(header.source_id_);
       TryToStoreValue(task);
       return;
-    };
+    }
 
     FindNodeResponseBody response;
     try {

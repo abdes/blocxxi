@@ -1,7 +1,8 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #pragma once
 
@@ -11,16 +12,21 @@
 #include <deque>
 #include <utility> // for std::pair
 
-#include <boost/iterator/iterator_adaptor.hpp>
-#include <boost/iterator/reverse_iterator.hpp>
-
 #include <logging/logging.h>
 #include <p2p/kademlia/node.h>
 #include <p2p/kademlia/parameters.h>
 
-namespace blocxxi {
-namespace p2p {
-namespace kademlia {
+ASAP_DIAGNOSTIC_PUSH
+#if defined(ASAP_GNUC_VERSION)
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#pragma GCC diagnostic ignored "-Wold-style-cast"
+#endif
+#include <boost/iterator/iterator_adaptor.hpp>
+#include <boost/iterator/reverse_iterator.hpp>
+ASAP_DIAGNOSTIC_POP
+
+namespace blocxxi::p2p::kademlia {
 
 /*!
  * Represents a kademlia bucket of nodes within the kademlia routing table.
@@ -58,8 +64,8 @@ public:
     /// Conversion constructor mainly between const and non-const iterators.
     template <class OtherValue>
     NodeIterator(NodeIterator<OtherValue, TIterator> const &other,
-        typename std::enable_if<
-            std::is_convertible<OtherValue *, TValue *>::value>::type)
+        typename std::enable_if<std::is_convertible<OtherValue *,
+            TValue *>::value>::type /*unused*/)
         : NodeIterator::iterator_adaptor_(other.base()) {
     }
   };
@@ -70,7 +76,6 @@ public:
   using reverse_iterator = boost::reverse_iterator<iterator>;
   using const_reverse_iterator = boost::reverse_iterator<const_iterator>;
 
-public:
   /// @name Constructors etc.
   //@{
   /*!
@@ -85,53 +90,53 @@ public:
   /// Not copyable
   KBucket(const KBucket &) = delete;
   /// Not copyable
-  KBucket &operator=(const KBucket &) = delete;
+  auto operator=(const KBucket &) -> KBucket & = delete;
   /// Move assignable
   KBucket(KBucket &&) = default;
   /// Movable
-  KBucket &operator=(KBucket &&) = default;
+  auto operator=(KBucket &&) -> KBucket & = default;
   /// Default destructor
   ~KBucket() = default;
   //@}
 
   /// @name Iteration
   //@{
-  iterator begin() noexcept {
+  auto begin() noexcept -> iterator {
     return iterator(nodes_.begin());
-  };
-  const_iterator begin() const noexcept {
+  }
+  auto begin() const noexcept -> const_iterator {
     return const_iterator(nodes_.cbegin());
   }
-  iterator end() noexcept {
+  auto end() noexcept -> iterator {
     return iterator(nodes_.end());
   }
-  const_iterator end() const noexcept {
+  auto end() const noexcept -> const_iterator {
     return const_iterator(nodes_.cend());
   }
 
-  reverse_iterator rbegin() noexcept {
+  auto rbegin() noexcept -> reverse_iterator {
     return reverse_iterator(end());
   }
-  const_reverse_iterator rbegin() const noexcept {
+  auto rbegin() const noexcept -> const_reverse_iterator {
     return const_reverse_iterator(cend());
   }
-  reverse_iterator rend() noexcept {
+  auto rend() noexcept -> reverse_iterator {
     return reverse_iterator(begin());
   }
-  const_reverse_iterator rend() const noexcept {
+  auto rend() const noexcept -> const_reverse_iterator {
     return const_reverse_iterator(cbegin());
   }
 
-  const_iterator cbegin() const noexcept {
+  auto cbegin() const noexcept -> const_iterator {
     return const_iterator(nodes_.cbegin());
   }
-  const_iterator cend() const noexcept {
+  auto cend() const noexcept -> const_iterator {
     return const_iterator(nodes_.cend());
   }
-  const_reverse_iterator crbegin() const noexcept {
+  auto crbegin() const noexcept -> const_reverse_iterator {
     return const_reverse_iterator(cend());
   }
-  const_reverse_iterator crend() const noexcept {
+  auto crend() const noexcept -> const_reverse_iterator {
     return const_reverse_iterator(cbegin());
   }
   //@}
@@ -142,16 +147,16 @@ public:
   /// Return a pair of values where the first value refers to the number of
   /// nodes in the bucket, while the second one refers to the number of nodes in
   /// the replacements list.
-  std::pair<unsigned int, unsigned int> Size() const;
+  auto Size() const -> std::pair<unsigned int, unsigned int>;
 
   /// Check if the bucket is empty (no nodes in the bucket).
   /// Naturally if a bucket is empty, it also does not have any replacement
   /// nodes.
-  bool Empty() const;
+  auto Empty() const -> bool;
 
   /// Check if the bucket cannot hold anymore active nodes. It can still store
   /// nodes as replacements though.
-  bool Full() const;
+  auto Full() const -> bool;
 
   /*!
    * @brief Get the bucket depth.
@@ -162,18 +167,18 @@ public:
    *
    * @return the bucket depth.
    */
-  unsigned int Depth() const;
+  auto Depth() const -> unsigned int;
 
   /// Get the time duration since this bucket has been last updated (i.e. nodes
   /// have been added, removed or moved around).
-  std::chrono::seconds TimeSinceLastUpdated() const;
+  auto TimeSinceLastUpdated() const -> std::chrono::seconds;
 
   /// Check if this bucket's range can hold the given node, i.e. the node's id
   /// has the same prefix than this bucket.
-  bool CanHoldNode(const Node::IdType &node) const;
+  auto CanHoldNode(const Node::IdType &node) const -> bool;
 
   /// Get the shared prefix (bits) with the router node
-  std::string SharedPrefix() const {
+  auto SharedPrefix() const -> std::string {
     return prefix_.to_string().substr(0, prefix_size_);
   }
   //@}
@@ -181,15 +186,15 @@ public:
   /// @name Node accessors and manipulators
   //@{
   /// Get the least recently seen node in the bucket.
-  Node &LeastRecentlySeenNode() {
+  auto LeastRecentlySeenNode() -> Node & {
     return nodes_.front();
   }
   /// Get the least recently seen node in the bucket.
-  Node const &LeastRecentlySeenNode() const {
+  auto LeastRecentlySeenNode() const -> Node const & {
     return nodes_.front();
   }
   /// Select a random node from the bucket.
-  Node const &SelectRandomNode() const;
+  auto SelectRandomNode() const -> Node const &;
 
   /*!
    * @brief Add the node to the bucket.
@@ -205,7 +210,7 @@ public:
    * @return true if the node has been added to the bucket, false if the bucket
    * is full.
    */
-  bool AddNode(Node &&node);
+  auto AddNode(Node &&node) -> bool;
 
   /*!
    * @brief Remove a node from the bucket.
@@ -232,7 +237,7 @@ public:
    * within the lower half of the original KBucket range and \em two contains
    * the nodes which id is within the upper half of the original KBucket range.
    */
-  std::pair<KBucket, KBucket> Split();
+  auto Split() -> std::pair<KBucket, KBucket>;
   //@}
 
   /// Print debug logs with the bucket contents.
@@ -260,7 +265,7 @@ private:
    */
   std::deque<Node> replacement_nodes_{};
   /// Check if this bucket has replacement nodes.
-  bool HasReplacements() const;
+  auto HasReplacements() const -> bool;
 
   /// @brief The bucket depth.
   /// Each bucket covers a keyspace region. E.g. from 0x0000simplified
@@ -284,8 +289,6 @@ private:
 };
 
 /// Output this bucket to the given stream.
-std::ostream &operator<<(std::ostream &out, KBucket const &kb);
+auto operator<<(std::ostream &out, KBucket const &bucket) -> std::ostream &;
 
-} // namespace kademlia
-} // namespace p2p
-} // namespace blocxxi
+} // namespace blocxxi::p2p::kademlia

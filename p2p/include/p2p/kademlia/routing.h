@@ -1,24 +1,32 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #pragma once
 
-#include "p2p/blocxxi_p2p_export.h"
+#include <p2p/blocxxi_p2p_api.h>
+
+#include <common/compilers.h>
+
 #include <chrono>
 #include <deque>
 #include <forward_list>
 #include <set>     // for std::set (neighbors)
 #include <utility> // for std::pair
 
-#include <boost/iterator/reverse_iterator.hpp>
-
 #include <logging/logging.h>
-#include <p2p/blocxxi_p2p_api.h>
 #include <p2p/kademlia/kbucket.h>
 #include <p2p/kademlia/node.h>
 #include <p2p/kademlia/parameters.h>
+
+ASAP_DIAGNOSTIC_PUSH
+#if defined(ASAP_GNUC_VERSION)
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+#include <boost/iterator/reverse_iterator.hpp>
+ASAP_DIAGNOSTIC_POP
 
 namespace blocxxi::p2p::kademlia {
 
@@ -79,7 +87,6 @@ public:
   using reverse_iterator = boost::reverse_iterator<iterator>;
   using const_reverse_iterator = boost::reverse_iterator<const_iterator>;
 
-public:
   /// @name Constructors etc.
   //@{
   /*!
@@ -107,7 +114,7 @@ public:
   //@{
   auto begin() noexcept -> iterator {
     return iterator(buckets_.begin());
-  };
+  }
   [[nodiscard]] auto begin() const noexcept -> const_iterator {
     return const_iterator(buckets_.cbegin());
   }
@@ -199,10 +206,10 @@ public:
 
   /// Find the closest \em k nodes to the given id. If the routing table does
   /// not have enough nodes to satisfy k, all nodes will be returned.
-  [[nodiscard]] auto FindNeighbors(Node::IdType const &id) const
+  [[nodiscard]] auto FindNeighbors(Node::IdType const &node_id) const
       -> std::vector<Node> {
-    return FindNeighbors(id, ksize_);
-  };
+    return FindNeighbors(node_id, ksize_);
+  }
 
   /*!
    * Find up to max_number neighbors to the given id in the routing table.
@@ -214,17 +221,17 @@ public:
    * nodes to provide max_number of neighbors, then it will return all of its
    * known nodes.
    *
-   * @param [in] id the id for which neighbors are to be found.
+   * @param [in] node_id the id for which neighbors are to be found.
    * @param [in] max_number the number of neigbors to find, unless the routing
    * table does not have enough nodes.
    *
    * @return up to max_number nodes representing the closest nodes to the given
    * id known by this routing table.
    */
-  [[nodiscard]] auto FindNeighbors(Node::IdType const &id,
+  [[nodiscard]] auto FindNeighbors(Node::IdType const &node_id,
       std::size_t max_number) const -> std::vector<Node>;
 
-  // TODO: refactor this
+  // TODO(Abdessattar): refactor this
   [[nodiscard]] auto GetBucketIndexFor(const Node::IdType &node) const
       -> size_t;
 
@@ -254,6 +261,7 @@ private:
 };
 
 /// Output this routing table to the given stream.
-auto operator<<(std::ostream &out, RoutingTable const &rt) -> std::ostream &;
+auto operator<<(std::ostream &out, RoutingTable const &routing_table)
+    -> std::ostream &;
 
 } // namespace blocxxi::p2p::kademlia

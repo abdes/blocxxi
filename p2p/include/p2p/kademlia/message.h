@@ -1,7 +1,8 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #pragma once
 
@@ -68,7 +69,8 @@ struct Header final {
  * e_value.
  */
 template <typename TEnum>
-constexpr std::underlying_type_t<TEnum> ToUnderlying(TEnum e_value) noexcept {
+constexpr auto ToUnderlying(TEnum e_value) noexcept
+    -> std::underlying_type_t<TEnum> {
   return static_cast<std::underlying_type_t<TEnum>>(e_value);
 }
 
@@ -102,7 +104,7 @@ void Serialize(Header const &header, Buffer &buffer);
  * @param [out] header the deserialized resulting header object.
  * @return an error code indicating success or failure of the deserialization.
  */
-std::size_t Deserialize(BufferReader const &buffer, Header &header);
+auto Deserialize(BufferReader const &buffer, Header &header) -> std::size_t;
 
 /// FIND_NODE request message body.
 struct FindNodeRequestBody final {
@@ -132,7 +134,8 @@ void Serialize(FindNodeRequestBody const &body, Buffer &buffer);
  * @return the number of consumed bytes from the input buffer. Subsequent
  * deserialization from the buffer need to start after the consumed bytes.
  */
-std::size_t Deserialize(BufferReader const &buffer, FindNodeRequestBody &body);
+auto Deserialize(BufferReader const &buffer, FindNodeRequestBody &body)
+    -> std::size_t;
 
 /// FIND_NODE response message body.
 struct FindNodeResponseBody final {
@@ -162,7 +165,8 @@ void Serialize(FindNodeResponseBody const &body, Buffer &buffer);
  * @return the number of consumed bytes from the input buffer. Subsequent
  * deserialization from the buffer need to start after the consumed bytes.
  */
-std::size_t Deserialize(BufferReader const &buffer, FindNodeResponseBody &body);
+auto Deserialize(BufferReader const &buffer, FindNodeResponseBody &body)
+    -> std::size_t;
 
 /// FIND_VALUE request message body.
 struct FindValueRequestBody final {
@@ -192,7 +196,8 @@ void Serialize(FindValueRequestBody const &body, Buffer &buffer);
  * @return the number of consumed bytes from the input buffer. Subsequent
  * deserialization from the buffer need to start after the consumed bytes.
  */
-std::size_t Deserialize(BufferReader const &buffer, FindValueRequestBody &body);
+auto Deserialize(BufferReader const &buffer, FindValueRequestBody &body)
+    -> std::size_t;
 
 /// FIND_VALUE response message body.
 struct FindValueResponseBody final {
@@ -222,8 +227,8 @@ void Serialize(FindValueResponseBody const &body, Buffer &buffer);
  * @return the number of consumed bytes from the input buffer. Subsequent
  * deserialization from the buffer need to start after the consumed bytes.
  */
-std::size_t Deserialize(
-    BufferReader const &buffer, FindValueResponseBody &body);
+auto Deserialize(BufferReader const &buffer, FindValueResponseBody &body)
+    -> std::size_t;
 
 /// STORE_VALUE request message body.
 struct StoreValueRequestBody final {
@@ -255,7 +260,7 @@ void Serialize(StoreValueRequestBody const &body, Buffer &buffer);
  * @return the number of consumed bytes from the input buffer. Subsequent
  * deserialization from the buffer need to start after the consumed bytes.
  */
-std::size_t Deserialize(
-    BufferReader const &buffer, StoreValueRequestBody &body);
+auto Deserialize(BufferReader const &buffer, StoreValueRequestBody &body)
+    -> std::size_t;
 
 } // namespace blocxxi::p2p::kademlia

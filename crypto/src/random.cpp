@@ -5,17 +5,13 @@
 
 #include <crypto/random.h>
 
-#include <osrng.h>  // for random number generation
+#include <osrng.h> // for random number generation
 
-namespace blocxxi {
-namespace crypto {
-namespace random {
+namespace blocxxi::crypto::random {
 
 void GenerateBlock(std::uint8_t *output, std::size_t size) {
   CryptoPP::AutoSeededRandomPool rng;
   rng.GenerateBlock(output, size);
 }
 
-}  // namespace random
-}  // namespace crypto
-}  // namespace blocxxi
+} // namespace blocxxi::crypto::random

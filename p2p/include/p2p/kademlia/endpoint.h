@@ -1,15 +1,26 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #pragma once
 
+#include <common/compilers.h>
+
 #include <p2p/blocxxi_p2p_api.h>
 
-#include <iostream>
-
+ASAP_DIAGNOSTIC_PUSH
+#if defined(ASAP_GNUC_VERSION)
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
+#pragma GCC diagnostic ignored "-Woverloaded-virtual"
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#pragma GCC diagnostic ignored "-Wold-style-cast"
+#endif
 #include <boost/asio.hpp>
+ASAP_DIAGNOSTIC_POP
+
+#include <iostream>
 #include <utility>
 
 namespace blocxxi::p2p::kademlia {
@@ -49,25 +60,26 @@ public:
   }
 
   [[nodiscard]] auto ToString() const -> std::string {
-    return address_.to_string() + ":" + std::to_string(port_);
+    return address_.to_string() + ":" +
+           std::to_string(static_cast<unsigned int>(port_));
   }
 
   boost::asio::ip::address address_;
   std::uint16_t port_{0};
 };
 
-inline auto operator==(IpEndpoint const &a, IpEndpoint const &b) -> bool {
-  return a.address_ == b.address_ && a.port_ == b.port_;
+inline auto operator==(IpEndpoint const &lhs, IpEndpoint const &rhs) -> bool {
+  return lhs.address_ == rhs.address_ && lhs.port_ == rhs.port_;
 }
 
-inline auto operator!=(IpEndpoint const &a, IpEndpoint const &b) -> bool {
-  return !(a == b);
+inline auto operator!=(IpEndpoint const &lhs, IpEndpoint const &rhs) -> bool {
+  return !(lhs == rhs);
 }
 
-inline auto operator<<(std::ostream &os, IpEndpoint const &ep)
+inline auto operator<<(std::ostream &out, IpEndpoint const &endpoint)
     -> std::ostream & {
-  os << ep.Address().to_string() << ":" << ep.Port();
-  return os;
+  out << endpoint.Address().to_string() << ":" << endpoint.Port();
+  return out;
 }
 
 } // namespace blocxxi::p2p::kademlia

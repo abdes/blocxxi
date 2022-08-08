@@ -1,7 +1,8 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #pragma once
 
@@ -17,24 +18,15 @@
 
 namespace blocxxi::p2p::kademlia::detail {
 
-///
 template <typename TNetwork, typename TRoutingTable,
     typename TOnCompleteCallback>
 class FindNodeTask final : public BaseLookupTask {
 public:
-  ///
   using NetworkType = TNetwork;
-  ///
   using RoutingTableType = TRoutingTable;
-  ///
   using EndpointType = typename NetworkType::EndpointType;
-  ///
   using OnCompleteCallbackType = TOnCompleteCallback;
 
-public:
-  /**
-   *
-   */
   static void Start(Node::IdType const &key, NetworkType &network,
       RoutingTableType &routing_table, OnCompleteCallbackType on_complete,
       std::string const &task_name) {
@@ -50,9 +42,6 @@ public:
   constexpr static char const *TASK_NAME = "FIND_NODE";
 
 private:
-  /**
-   *
-   */
   FindNodeTask(Node::IdType const &key, NetworkType &network,
       RoutingTableType &routing_table, OnCompleteCallbackType on_complete,
       std::string const &task_name)
@@ -63,9 +52,6 @@ private:
     ASLOG(debug, "{} find node task on key={}", this->Name(), key);
   }
 
-  /**
-   *
-   */
   static void QueryUncontactedNeighbors(std::shared_ptr<FindNodeTask> task) {
     FindNodeRequestBody const request{task->Key()};
 
@@ -81,17 +67,14 @@ private:
     }
   }
 
-  /**
-   *
-   */
   static void SendFindPeerRequest(FindNodeRequestBody const &request,
       Node const &current_peer, std::shared_ptr<FindNodeTask> task) {
-    auto on_message_received = [task, current_peer](EndpointType const &s,
-                                   Header const &h,
-                                   BufferReader const &buffer) {
-      task->MarkCandidateAsValid(current_peer.Id());
-      HandleFindPeerResponse(s, h, buffer, task);
-    };
+    auto on_message_received =
+        [task, current_peer](EndpointType const &endpoint, Header const &host,
+            BufferReader const &buffer) {
+          task->MarkCandidateAsValid(current_peer.Id());
+          HandleFindPeerResponse(endpoint, host, buffer, task);
+        };
 
     auto on_error = [task, current_peer](std::error_code const &) {
       // Invalidate the peer
@@ -106,9 +89,6 @@ private:
         REQUEST_TIMEOUT, on_message_received, on_error);
   }
 
-  /**
-   *
-   */
   static void HandleFindPeerResponse(EndpointType const &sender,
       Header const & /*header*/, BufferReader const &buffer,
       std::shared_ptr<FindNodeTask> task) {
@@ -137,18 +117,11 @@ private:
     QueryUncontactedNeighbors(task);
   }
 
-private:
-  ///
   NetworkType &network_;
-  ///
   RoutingTableType &routing_table_;
-  ///
   OnCompleteCallbackType on_complete_;
 };
 
-/**
- *
- */
 template <typename TNetwork, typename TRoutingTable,
     typename TOnCompleteCallback>
 void StartFindNodeTask(Node::IdType const &key, TNetwork &network,
