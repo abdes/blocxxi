@@ -43,16 +43,6 @@ if(cryptopp_ADDED)
       CACHE PATH "Crypto++ project directory")
   # Let cmake do the rest using the cryptopp-cmake CMakeLists.txt
   add_cryptopp_subdir()
-
-  # Add the include directory
-  if(BUILD_STATIC)
-    target_include_directories(cryptopp-static SYSTEM
-                               PUBLIC ${cryptopp_SOURCE_DIR})
-  endif()
-  if(BUILD_SHARED)
-    target_include_directories(cryptopp-shared SYSTEM
-                               PUBLIC ${cryptopp_SOURCE_DIR})
-  endif()
 endif()
 
 # ------------------------------------------------------------------------------
