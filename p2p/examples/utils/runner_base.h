@@ -13,8 +13,6 @@
 
 namespace asap {
 
-class AbstractApplication;
-
 class RunnerBase : public asap::logging::Loggable<RunnerBase> {
 public:
   /// The logger id used for logging within this class.
@@ -27,6 +25,12 @@ public:
   }
 
   virtual ~RunnerBase() = default;
+
+  RunnerBase(const RunnerBase &) = delete;
+  auto operator=(const RunnerBase &) -> RunnerBase & = delete;
+
+  RunnerBase(RunnerBase &&) = delete;
+  auto operator=(RunnerBase &&) -> RunnerBase & = delete;
 
   virtual void Run() = 0;
 

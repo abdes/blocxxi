@@ -32,6 +32,9 @@ public:
   ConsoleRunner(const ConsoleRunner &) = delete;
   auto operator=(const ConsoleRunner &) -> ConsoleRunner & = delete;
 
+  ConsoleRunner(ConsoleRunner &&) = delete;
+  auto operator=(ConsoleRunner &&) -> ConsoleRunner & = delete;
+
   void Run() override;
 
 private:
