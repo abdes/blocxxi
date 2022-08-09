@@ -16,7 +16,6 @@ ASAP_DIAGNOSTIC_PUSH
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 #include <boost/algorithm/string/join.hpp> // for string join
-#include <boost/asio.hpp>
 #include <boost/program_options.hpp>
 #include <boost/thread.hpp>
 ASAP_DIAGNOSTIC_POP
