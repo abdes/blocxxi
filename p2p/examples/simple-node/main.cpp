@@ -182,7 +182,7 @@ auto main(int argc, char **argv) -> int {
     //
     // Start the console runner
     //
-    asap::ConsoleRunner runner(Shutdown);
+    blocxxi::ConsoleRunner runner(Shutdown);
     runner.Run();
 
     // Shutdown

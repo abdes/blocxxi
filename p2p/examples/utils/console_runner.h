@@ -22,7 +22,7 @@ ASAP_DIAGNOSTIC_POP
 
 #include "runner_base.h"
 
-namespace asap {
+namespace blocxxi {
 
 class ConsoleRunner : public RunnerBase {
 public:
@@ -43,4 +43,4 @@ private:
   boost::asio::signal_set signals_;
 };
 
-} // namespace asap
+} // namespace blocxxi

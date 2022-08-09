@@ -6,7 +6,7 @@
 
 #include "console_runner.h"
 
-namespace asap {
+namespace blocxxi {
 
 ConsoleRunner::ConsoleRunner(
     RunnerBase::shutdown_function_type shutdown_function)
@@ -37,4 +37,4 @@ void ConsoleRunner::Run() {
   io_context_.run();
 }
 
-} // namespace asap
+} // namespace blocxxi

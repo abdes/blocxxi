@@ -11,7 +11,7 @@
 
 #include <logging/logging.h>
 
-namespace asap {
+namespace blocxxi {
 
 class RunnerBase : public asap::logging::Loggable<RunnerBase> {
 public:
@@ -43,4 +43,4 @@ private:
   shutdown_function_type shutdown_function_;
 };
 
-} // namespace asap
+} // namespace blocxxi
