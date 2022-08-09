@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <p2p/blocxxi_p2p_api.h>
+
 #include <cstdint>     // for std::uint8_t etc.
 #include <type_traits> // for std::underlying_type_t<>
 
@@ -94,7 +96,7 @@ template <typename TMessageBody> struct MessageTraits;
  * @param [in] header header object to be serialized.
  * @param [out] buffer destination buffer for the header serialized binary form.
  */
-void Serialize(Header const &header, Buffer &buffer);
+BLOCXXI_P2P_API void Serialize(Header const &header, Buffer &buffer);
 
 /*!
  * @brief Deserialize the contents of the buffer into a Header object.
@@ -104,7 +106,8 @@ void Serialize(Header const &header, Buffer &buffer);
  * @param [out] header the deserialized resulting header object.
  * @return an error code indicating success or failure of the deserialization.
  */
-auto Deserialize(BufferReader const &buffer, Header &header) -> std::size_t;
+BLOCXXI_P2P_API auto Deserialize(BufferReader const &buffer, Header &header)
+    -> std::size_t;
 
 /// FIND_NODE request message body.
 struct FindNodeRequestBody final {
@@ -124,7 +127,7 @@ template <> struct MessageTraits<FindNodeRequestBody> {
  * @param [in] body the request body.
  * @param [out] buffer the destination buffer.
  */
-void Serialize(FindNodeRequestBody const &body, Buffer &buffer);
+BLOCXXI_P2P_API void Serialize(FindNodeRequestBody const &body, Buffer &buffer);
 
 /*!
  * @brief Deserialize a FIND_NODE request body from the given buffer.
@@ -134,8 +137,8 @@ void Serialize(FindNodeRequestBody const &body, Buffer &buffer);
  * @return the number of consumed bytes from the input buffer. Subsequent
  * deserialization from the buffer need to start after the consumed bytes.
  */
-auto Deserialize(BufferReader const &buffer, FindNodeRequestBody &body)
-    -> std::size_t;
+BLOCXXI_P2P_API auto Deserialize(
+    BufferReader const &buffer, FindNodeRequestBody &body) -> std::size_t;
 
 /// FIND_NODE response message body.
 struct FindNodeResponseBody final {
@@ -155,7 +158,8 @@ template <> struct MessageTraits<FindNodeResponseBody> {
  * @param [in] body the response body.
  * @param [out] buffer the destination buffer.
  */
-void Serialize(FindNodeResponseBody const &body, Buffer &buffer);
+BLOCXXI_P2P_API void Serialize(
+    FindNodeResponseBody const &body, Buffer &buffer);
 
 /*!
  * @brief Deserialize a FIND_NODE response body from the given buffer.
@@ -165,8 +169,8 @@ void Serialize(FindNodeResponseBody const &body, Buffer &buffer);
  * @return the number of consumed bytes from the input buffer. Subsequent
  * deserialization from the buffer need to start after the consumed bytes.
  */
-auto Deserialize(BufferReader const &buffer, FindNodeResponseBody &body)
-    -> std::size_t;
+BLOCXXI_P2P_API auto Deserialize(
+    BufferReader const &buffer, FindNodeResponseBody &body) -> std::size_t;
 
 /// FIND_VALUE request message body.
 struct FindValueRequestBody final {
@@ -186,7 +190,8 @@ template <> struct MessageTraits<FindValueRequestBody> {
  * @param [in] body the request body.
  * @param [out] buffer the destination buffer.
  */
-void Serialize(FindValueRequestBody const &body, Buffer &buffer);
+BLOCXXI_P2P_API void Serialize(
+    FindValueRequestBody const &body, Buffer &buffer);
 
 /*!
  * @brief Deserialize a FIND_VALUE request body from the given buffer.
@@ -196,8 +201,8 @@ void Serialize(FindValueRequestBody const &body, Buffer &buffer);
  * @return the number of consumed bytes from the input buffer. Subsequent
  * deserialization from the buffer need to start after the consumed bytes.
  */
-auto Deserialize(BufferReader const &buffer, FindValueRequestBody &body)
-    -> std::size_t;
+BLOCXXI_P2P_API auto Deserialize(
+    BufferReader const &buffer, FindValueRequestBody &body) -> std::size_t;
 
 /// FIND_VALUE response message body.
 struct FindValueResponseBody final {
@@ -217,7 +222,8 @@ template <> struct MessageTraits<FindValueResponseBody> {
  * @param [in] body the response body.
  * @param [out] buffer the destination buffer.
  */
-void Serialize(FindValueResponseBody const &body, Buffer &buffer);
+BLOCXXI_P2P_API void Serialize(
+    FindValueResponseBody const &body, Buffer &buffer);
 
 /*!
  * @brief Deserialize a FIND_VALUE response body from the given buffer.
@@ -227,8 +233,8 @@ void Serialize(FindValueResponseBody const &body, Buffer &buffer);
  * @return the number of consumed bytes from the input buffer. Subsequent
  * deserialization from the buffer need to start after the consumed bytes.
  */
-auto Deserialize(BufferReader const &buffer, FindValueResponseBody &body)
-    -> std::size_t;
+BLOCXXI_P2P_API auto Deserialize(
+    BufferReader const &buffer, FindValueResponseBody &body) -> std::size_t;
 
 /// STORE_VALUE request message body.
 struct StoreValueRequestBody final {
@@ -250,7 +256,8 @@ template <> struct MessageTraits<StoreValueRequestBody> {
  * @param [in] body the request body.
  * @param [out] buffer the destination buffer.
  */
-void Serialize(StoreValueRequestBody const &body, Buffer &buffer);
+BLOCXXI_P2P_API void Serialize(
+    StoreValueRequestBody const &body, Buffer &buffer);
 
 /*!
  * @brief Deserialize a STORE_VALUE request body from the given buffer.
@@ -260,7 +267,7 @@ void Serialize(StoreValueRequestBody const &body, Buffer &buffer);
  * @return the number of consumed bytes from the input buffer. Subsequent
  * deserialization from the buffer need to start after the consumed bytes.
  */
-auto Deserialize(BufferReader const &buffer, StoreValueRequestBody &body)
-    -> std::size_t;
+BLOCXXI_P2P_API auto Deserialize(
+    BufferReader const &buffer, StoreValueRequestBody &body) -> std::size_t;
 
 } // namespace blocxxi::p2p::kademlia

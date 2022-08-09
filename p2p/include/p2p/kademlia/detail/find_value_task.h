@@ -87,17 +87,18 @@ private:
             task_name),
         network_(network), routing_table_(routing_table),
         handler_(std::move(load_handler)) {
-    ASLOG(debug, "{} create new task for '{}'", this->Name(), searched_key);
+    ASLOG(debug, "{} create new task for '{}'", this->Name(),
+        searched_key.ToHex());
   }
 
   void NotifyCaller(DataType const &data) {
-    ASAP_ASSERT(!IsCallerNotified());
+    // ASAP_ASSERT(!IsCallerNotified());
     handler_(std::error_code(), data);
     is_finished_ = true;
   }
 
   void NotifyCaller(std::error_code const &failure) {
-    ASAP_ASSERT(!IsCallerNotified());
+    // ASAP_ASSERT(!IsCallerNotified());
     handler_(failure, DataType{});
     is_finished_ = true;
   }
@@ -123,7 +124,7 @@ private:
   static void SendFindValueRequest(FindValueRequestBody const &request,
       Node const &current_candidate, std::shared_ptr<FindValueTask> task) {
     ASLOG(debug, "{} sending find '{}' value request to '{}'", task->Name(),
-        task->Key(), current_candidate);
+        task->Key().ToHex(), current_candidate.ToString());
 
     // On message received, process it.
     auto on_message_received =
@@ -163,7 +164,7 @@ private:
       Header const &header, BufferReader const &buffer,
       std::shared_ptr<FindValueTask> task) {
     ASLOG(debug, "{} handling response from '{}' to find '{}'", task->Name(),
-        sender, task->Key());
+        sender.ToString(), task->Key().ToHex());
 
     if (header.type_ == Header::MessageType::FIND_NODE_RESPONSE) {
       // The current peer didn't know the value
@@ -183,7 +184,7 @@ private:
   static void SendFindValueRequestsOnCloserPeers(
       BufferReader const &buffer, std::shared_ptr<FindValueTask> task) {
     ASLOG(debug, "{} checking if found closer peers to '{}' value",
-        task->Name(), task->Key());
+        task->Name(), task->Key().ToHex());
 
     FindNodeResponseBody response;
     try {
@@ -212,7 +213,8 @@ private:
    */
   static void ProcessFoundValue(
       BufferReader const &buffer, std::shared_ptr<FindValueTask> task) {
-    ASLOG(debug, "{} found value for key '{}'", task->Name(), task->Key());
+    ASLOG(debug, "{} found value for key '{}'", task->Name(),
+        task->Key().ToHex());
 
     FindValueResponseBody response;
     try {

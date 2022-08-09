@@ -49,7 +49,7 @@ private:
             task_name),
         network_(network), routing_table_(routing_table),
         on_complete_(on_complete) {
-    ASLOG(debug, "{} find node task on key={}", this->Name(), key);
+    ASLOG(debug, "{} find node task on key={}", this->Name(), key.ToHex());
   }
 
   static void QueryUncontactedNeighbors(std::shared_ptr<FindNodeTask> task) {
@@ -92,8 +92,8 @@ private:
   static void HandleFindPeerResponse(EndpointType const &sender,
       Header const & /*header*/, BufferReader const &buffer,
       std::shared_ptr<FindNodeTask> task) {
-    ASLOG(
-        debug, "{} handle find peer response from '{}'", task->Name(), sender);
+    ASLOG(debug, "{} handle find peer response from '{}'", task->Name(),
+        sender.ToString());
     FindNodeResponseBody response;
 
     try {

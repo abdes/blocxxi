@@ -64,7 +64,7 @@ private:
   static void TryToStoreValue(std::shared_ptr<StoreValueTask> task,
       std::size_t concurrent_requests_count = PARALLELISM_ALPHA) {
     ASLOG(debug, "{} trying to find closer peer to store '{}' value",
-        task->Name(), task->Key());
+        task->Name(), task->Key().ToHex());
 
     FindNodeRequestBody const request{task->Key()};
 
@@ -87,7 +87,7 @@ private:
   static void SendFindPeerRequest(FindNodeRequestBody const &request,
       Node const &current_candidate, std::shared_ptr<StoreValueTask> task) {
     ASLOG(debug, "{} sending find peer request to store '{}' to '{}'",
-        task->Name(), task->Key(), current_candidate);
+        task->Name(), task->Key().ToHex(), current_candidate.ToString());
 
     // On message received, process it.
     auto on_message_received = [task](EndpointType const &sender,
@@ -99,7 +99,7 @@ private:
     // On error, retry with another endpoint.
     auto on_error = [task, current_candidate](std::error_code const &) {
       ASLOG(debug, "{} peer {} timed out on find peer request for store value",
-          task->Name(), current_candidate);
+          task->Name(), current_candidate.ToString());
       // Invalidate the candidate
       task->MarkCandidateAsInvalid(current_candidate.Id());
       // Also increment the number of failed requests in the routing table node
@@ -116,7 +116,7 @@ private:
       Header const &header, BufferReader const &buffer,
       std::shared_ptr<StoreValueTask> task) {
     ASLOG(debug, "{} handle response from '{}@{}'", task->Name(),
-        header.source_id_, sender);
+        header.source_id_.ToHex(), sender.ToString());
 
     if (header.type_ != Header::MessageType::FIND_NODE_RESPONSE) {
       ASLOG(debug, "{} unexpected find peer response (type={})", task->Name(),
@@ -171,7 +171,7 @@ private:
   static void SendStoreRequest(
       Node const &current_candidate, std::shared_ptr<StoreValueTask> task) {
     ASLOG(debug, "{} send store request of '{}' to '{}'", task->Name(),
-        task->Key(), current_candidate);
+        task->Key().ToHex(), current_candidate.ToString());
 
     StoreValueRequestBody const request{task->Key(), task->GetData()};
     task->network_.SendUniRequest(request, current_candidate.Endpoint());

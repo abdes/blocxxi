@@ -204,7 +204,7 @@ public:
       Timer::DurationType const &timeout,
       OnResponseCallbackType const &on_response_received,
       OnErrorCallbackType const &on_error) {
-    ASLOG(debug, "SendConvRequest to {}", destination);
+    ASLOG(debug, "SendConvRequest to {}", destination.ToString());
     // Generate a random request/response id
     auto const correlation_id = blocxxi::crypto::Hash160::RandomHash();
     // Generate the request Buffer.

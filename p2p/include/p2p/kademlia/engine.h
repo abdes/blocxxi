@@ -77,7 +77,7 @@ public:
     ASLOG(debug, "Destroy Engine");
   }
 
-  auto GetRoutingTable() const -> RoutingTable const & {
+  [[nodiscard]] auto GetRoutingTable() const -> RoutingTable const & {
     return routing_table_;
   }
 
@@ -86,7 +86,7 @@ public:
   }
 
   void AddBootstrapNode(Node &&bnode) {
-    ASLOG(debug, "adding bootstrap node at {}", bnode.Endpoint());
+    ASLOG(debug, "adding bootstrap node at {}", bnode.Endpoint().ToString());
     routing_table_.AddPeer(std::move(bnode));
   }
 
@@ -154,7 +154,7 @@ public:
   template <typename THandler>
   void AsyncFindValue(KeyType const &key, THandler &handler) {
     io_context_.post([this, key, handler]() {
-      ASLOG(debug, "executing async load of key '{}'", key);
+      ASLOG(debug, "executing async load of key '{}'", key.ToHex());
       detail::StartFindValueTask<DataType>(
           key, network_, routing_table_, handler);
     });
@@ -165,11 +165,11 @@ public:
       KeyType const &key, DataType const &data, THandler &handler) {
     io_context_.post([this, key, data, handler]() {
       // Put in the value store
-      ASLOG(debug, "saving key '{}' in my own store", key);
+      ASLOG(debug, "saving key '{}' in my own store", key.ToHex());
       value_store_[key] = data;
 
       // Publish the key/value
-      ASLOG(debug, "publishing key '{}' and its value", key);
+      ASLOG(debug, "publishing key '{}' and its value", key.ToHex());
       detail::StartStoreValueTask(key, data, network_, routing_table_, handler);
     });
   }
@@ -205,7 +205,7 @@ private:
 
   void HandleStoreRequest(EndpointType const &sender, Header const & /*header*/,
       BufferReader const &buffer) {
-    ASLOG(debug, "handling store request from {}", sender);
+    ASLOG(debug, "handling store request from {}", sender.ToString());
 
     StoreValueRequestBody request;
     try {
@@ -215,7 +215,7 @@ private:
       return;
     }
     // Save the key and its value
-    ASLOG(debug, "saving key '{}' in my own store", request.data_key_);
+    ASLOG(debug, "saving key '{}' in my own store", request.data_key_.ToHex());
     value_store_[request.data_key_] = std::move(request.data_value_);
     // Do not republish - Republishing will be done after at least one hour
     // as per the kademlia optimized key republishing
@@ -228,7 +228,7 @@ private:
 
   void HandleFindPeerRequest(EndpointType const &sender, Header const &header,
       BufferReader const &buffer) {
-    ASLOG(debug, "handling find peer request from {}", sender);
+    ASLOG(debug, "handling find peer request from {}", sender.ToString());
 
     // Ensure the request is valid.
     FindNodeRequestBody request;
@@ -303,7 +303,7 @@ private:
    *
    */
   void HandleNewMessage(IpEndpoint const &sender, BufferReader const &buffer) {
-    ASLOG(debug, "received new message from '{}'", sender);
+    ASLOG(debug, "received new message from '{}'", sender.ToString());
 
     Header header;
     std::size_t consumed = 0;
@@ -358,15 +358,15 @@ private:
         // Select a random id in the bucket
         if (!bucket.Empty()) {
           auto const &node = bucket.SelectRandomNode();
-          auto const &id = node.Id();
+          auto const &node_id = node.Id();
 
           ASLOG(debug,
               "periodic bucket refresh -> lookup for random peer with id {}",
-              id.ToHex());
+              node_id.ToHex());
 
-          io_context_.post([this, id]() {
+          io_context_.post([this, node_id]() {
             detail::StartFindNodeTask(
-                id, network_, routing_table_,
+                node_id, network_, routing_table_,
                 [this]() {
                   ASLOG(debug, "periodic bucket refresh completed");
                   routing_table_.DumpToLog();

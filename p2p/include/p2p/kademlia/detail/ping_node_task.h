@@ -66,7 +66,7 @@ private:
       std::string task_name)
       : task_name_(std::move(task_name)), peer_(node), network_(network),
         routing_table_(routing_table), on_complete_(on_complete) {
-    ASLOG(debug, "{} ping node task peer={}", this->Name(), node);
+    ASLOG(debug, "{} ping node task peer={}", this->Name(), node.ToString());
   }
 
   /**
@@ -77,12 +77,13 @@ private:
                                    Header const & /*header*/,
                                    BufferReader const & /*buffer*/) {
       // Nothing special to do - the peer is alive
-      ASLOG(debug, "{} received ping response peer={}", task->Name(), sender);
+      ASLOG(debug, "{} received ping response peer={}", task->Name(),
+          sender.ToString());
       task->on_complete_();
     };
 
     auto on_error = [task](std::error_code const &) {
-      ASLOG(debug, "{} ping failed {}", task->Name(), task->peer_);
+      ASLOG(debug, "{} ping failed {}", task->Name(), task->peer_.ToString());
       // Also increment the number of failed requests in the routing table node
       auto evicted = task->routing_table_.PeerTimedOut(task->peer_);
       if (!evicted) {
