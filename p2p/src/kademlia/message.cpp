@@ -243,7 +243,7 @@ void Serialize(FindNodeResponseBody const &body, Buffer &b) {
 
   for (auto const &n : body.peers_) {
     Serialize(n, b);
-}
+  }
 }
 
 auto Deserialize(BufferReader const &buffer, FindNodeResponseBody &body)

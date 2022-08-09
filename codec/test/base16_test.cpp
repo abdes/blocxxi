@@ -29,8 +29,7 @@ namespace blocxxi::codec::hex {
 struct EncodeTestParams {
   EncodeTestParams(std::vector<uint8_t> binary, bool reverse, bool lower_case,
       std::string hex)
-      : binary_(binary), reverse_(reverse), lower_case_(lower_case),
-        hex_(hex) {
+      : binary_(binary), reverse_(reverse), lower_case_(lower_case), hex_(hex) {
   }
 
   ~EncodeTestParams() {
@@ -88,8 +87,7 @@ const std::vector<EncodeTestParams> test_values{
 };
 
 // NOLINTNEXTLINE
-INSTANTIATE_TEST_SUITE_P(Base16, CoDecTest,
-    ::testing::ValuesIn(test_values));
+INSTANTIATE_TEST_SUITE_P(Base16, CoDecTest, ::testing::ValuesIn(test_values));
 
 // NOLINTNEXTLINE
 TEST_P(CoDecTest, EncodeCorrectness) {
