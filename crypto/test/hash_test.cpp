@@ -7,6 +7,9 @@
 
 #include <common/compilers.h>
 
+#if defined(ASAP_MSVC_VERSION) && !defined(ASAP_CLANG_VERSION)
+#include <iso646.h>
+#endif
 
 // Disable compiler and linter warnings originating from the unit test framework
 // and for which we cannot do anything. Additionally, every TEST or TEST_X macro
@@ -212,7 +215,8 @@ TEST(HashTest, BitWiseXor) {
   std::uint8_t h1[]{1, 2, 3, 4, 5, 6, 7, 8};
   std::uint8_t h2[]{7, 0, 6, 6, 150, 65, 23, 12};
 
-  std::uint8_t x[]{1 xor 7, 2 xor 0, 3 xor 6, 4 xor 6, 5 xor 150, 6 xor 65, 7 xor 23, 8 xor 12};
+  std::uint8_t x[]{1 xor 7, 2 xor 0, 3 xor 6, 4 xor 6, 5 xor 150, 6 xor 65,
+      7 xor 23, 8 xor 12};
 
   auto res = Hash<64>(h1) xor Hash<64>(h2);
   ASSERT_EQ(res, Hash<64>(x));
