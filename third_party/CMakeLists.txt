@@ -160,8 +160,7 @@ if(miniupnp_ADDED)
   # Let cmake do the rest using the cryptopp-cmake CMakeLists.txt
   add_miniupnpc_subdir()
 
-  # Add the include directory
-  include_directories(SYSTEM ${MINIUPNPC_CMAKE_DIR}/include)
+  # target_compile_definitions(libminiupnpc-static PRIVATE DEBUG)
 endif()
 
 # ------------------------------------------------------------------------------

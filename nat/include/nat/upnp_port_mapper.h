@@ -9,7 +9,7 @@
 
 #include <memory> // for unique_ptr
 
-// #include <common/logging.h>
+#include <logging/logging.h>
 #include <nat/port_mapper.h>
 
 /// @name Forward declaration of types from miniupnp library.
@@ -23,10 +23,13 @@ namespace blocxxi::nat {
 /*!
  * Implements port mapping following the UPNP method.
  */
-class BLOCXXI_NAT_API UpnpPortMapper final : protected PortMapper
-//  , asap::logging::Loggable<asap::logging::Id::NAT>
-{
+class BLOCXXI_NAT_API UpnpPortMapper final
+    : protected PortMapper,
+      asap::logging::Loggable<UpnpPortMapper> {
 public:
+  /// The logger id used for logging within this class.
+  static constexpr const char *LOGGER_NAME = "nat";
+
   static auto Discover(std::chrono::milliseconds timeout)
       -> std::unique_ptr<PortMapper>;
 
