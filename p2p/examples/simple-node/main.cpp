@@ -13,6 +13,7 @@ ASAP_DIAGNOSTIC_PUSH
 #pragma GCC diagnostic ignored "-Wsign-conversion"
 #pragma GCC diagnostic ignored "-Wold-style-cast"
 #pragma GCC diagnostic ignored "-Wredundant-decls"
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 #include <boost/algorithm/string/join.hpp> // for string join
 #include <boost/asio.hpp>
