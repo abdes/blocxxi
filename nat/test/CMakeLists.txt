@@ -18,6 +18,7 @@ asap_add_test(
   "portfwd_test.cpp"
   "main.cpp"
   LINK
+  asap::logging
   blocxxi::nat
   gtest
   gmock

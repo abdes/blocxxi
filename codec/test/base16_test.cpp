@@ -20,7 +20,6 @@ ASAP_DIAGNOSTIC_PUSH
 #pragma clang diagnostic ignored "-Wused-but-marked-unused"
 #pragma clang diagnostic ignored "-Wglobal-constructors"
 #pragma clang diagnostic ignored "-Wexit-time-destructors"
-#pragma clang diagnostic ignored "-Wunused-member-function"
 #pragma clang diagnostic ignored "-Wweak-vtables"
 #endif
 
@@ -30,9 +29,6 @@ struct EncodeTestParams {
   EncodeTestParams(std::vector<uint8_t> binary, bool reverse, bool lower_case,
       std::string hex)
       : binary_(binary), reverse_(reverse), lower_case_(lower_case), hex_(hex) {
-  }
-
-  ~EncodeTestParams() {
   }
 
   std::vector<uint8_t> binary_;

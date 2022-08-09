@@ -7,6 +7,22 @@
 
 #include <common/compilers.h>
 
+
+// Disable compiler and linter warnings originating from the unit test framework
+// and for which we cannot do anything. Additionally, every TEST or TEST_X macro
+// usage must be preceded by a '// NOLINTNEXTLINE'.
+ASAP_DIAGNOSTIC_PUSH
+#if defined(ASAP_CLANG_VERSION)
+#pragma clang diagnostic ignored "-Wglobal-constructors"
+#pragma clang diagnostic ignored "-Wunused-result"
+#endif
+#if defined(ASAP_GNUC_VERSION)
+#pragma GCC diagnostic ignored "-Wunused-result"
+#endif
+#if defined(ASAP_MSVC_VERSION)
+#pragma warning(disable : 4834)
+#endif
+
 #include <gtest/gtest.h>
 
 namespace blocxxi::crypto {
@@ -39,26 +55,19 @@ TEST(HashTest, MaxIsAllSetToOne) {
   }
 }
 
-// For the next test, we wanna ignore the return value to keep the test code
-// simple.
-ASAP_DIAGNOSTIC_PUSH
-#if defined(ASAP_MSVC_VERSION)
-#pragma warning(disable : 4834)
-#endif
 // NOLINTNEXTLINE
 TEST(HashTest, AtThrowsOutOfRange) {
   auto const &h = Hash<32>();
   ASSERT_EQ(32 / 8, h.Size());
   for (auto i = 0U; i < Hash<32>::Size(); ++i) {
     // NOLINTNEXTLINE
-    ASSERT_NO_THROW(auto ret = h.At(i));
+    ASSERT_NO_THROW(h.At(i));
   }
   // NOLINTNEXTLINE
-  ASSERT_THROW(auto ret = h.At(h.Size()), std::out_of_range);
+  ASSERT_THROW(h.At(h.Size()), std::out_of_range);
   // NOLINTNEXTLINE
-  ASSERT_THROW(auto ret = h.At(h.Size() + 3), std::out_of_range);
+  ASSERT_THROW(h.At(h.Size() + 3), std::out_of_range);
 }
-ASAP_DIAGNOSTIC_POP
 
 // NOLINTNEXTLINE
 TEST(HashTest, CountLeadingZeroBits) {
@@ -203,11 +212,11 @@ TEST(HashTest, BitWiseXor) {
   std::uint8_t h1[]{1, 2, 3, 4, 5, 6, 7, 8};
   std::uint8_t h2[]{7, 0, 6, 6, 150, 65, 23, 12};
 
-  std::uint8_t x[]{1 ^ 7, 2 ^ 0, 3 ^ 6, 4 ^ 6, 5 ^ 150, 6 ^ 65, 7 ^ 23, 8 ^ 12};
+  std::uint8_t x[]{1 xor 7, 2 xor 0, 3 xor 6, 4 xor 6, 5 xor 150, 6 xor 65, 7 xor 23, 8 xor 12};
 
-  auto res = Hash<64>(h1) ^ Hash<64>(h2);
+  auto res = Hash<64>(h1) xor Hash<64>(h2);
   ASSERT_EQ(res, Hash<64>(x));
-  ASSERT_EQ(Hash<64>(h1) ^ Hash<64>(h2), Hash<64>(h2) ^ Hash<64>(h1));
+  ASSERT_EQ(Hash<64>(h1) xor Hash<64>(h2), Hash<64>(h2) xor Hash<64>(h1));
 }
 
 // NOLINTNEXTLINE
