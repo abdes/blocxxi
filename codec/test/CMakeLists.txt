@@ -19,6 +19,7 @@ asap_add_test(
   "main.cpp"
   LINK
   asap::common
+  asap::contract-ut
   GSL
   blocxxi::codec
   gtest

@@ -177,6 +177,19 @@ cpmaddpackage(
   "ASAP_COMMON_INSTALL TRUE")
 
 # ------------------------------------------------------------------------------
+# asap::contract
+# ------------------------------------------------------------------------------
+cpmaddpackage(
+  NAME
+  asap_contract
+  GIT_TAG
+  master
+  GITHUB_REPOSITORY
+  asap-projects/asap-contract
+  OPTIONS
+  "ASAP_CONTRACT_INSTALL TRUE")
+
+# ------------------------------------------------------------------------------
 # asap::logging
 # ------------------------------------------------------------------------------
 cpmaddpackage(

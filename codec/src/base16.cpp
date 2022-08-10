@@ -12,14 +12,13 @@
 
 #include <codec/base16.h>
 
-#include <common/compilers.h>
-
 #include <array>
-#include <cctype> // for isxdigit
+#include <cctype>
 #include <cstdint>
-#include <stdexcept> // for std::runtime_exception
+#include <stdexcept>
 
-namespace blocxxi::codec::hex {
+#include <common/compilers.h>
+#include <contract/contract.h>
 
 namespace {
 /* Range generation,from
@@ -129,8 +128,8 @@ const DecLookupTable<c_lookup_table_size> DEC_LOOKUP_TABLE =
 
 } // namespace
 
-auto Encode(gsl::span<const uint8_t> src, bool reverse, bool lower_case)
-    -> std::string {
+auto blocxxi::codec::hex::Encode(gsl::span<const uint8_t> src, bool reverse,
+    bool lower_case) -> std::string {
   const HexLookupTable<c_lookup_table_size> &table =
       (lower_case) ? HEX_LOOKUP_TABLE_LC : HEX_LOOKUP_TABLE_UC;
 
@@ -150,9 +149,13 @@ auto Encode(gsl::span<const uint8_t> src, bool reverse, bool lower_case)
   return out;
 }
 
-void Decode(gsl::span<const char> src, gsl::span<uint8_t> dest, bool reverse) {
-  Expects(src.size() % 2 == 0);
-  Expects(dest.size() >= src.size() / 2);
+void blocxxi::codec::hex::Decode(
+    gsl::span<const char> src, gsl::span<uint8_t> dest, bool reverse) {
+  ASAP_EXPECT((src.size() % 2 == 0) &&
+              "the encoded data must contain an even number of hex digits");
+  ASAP_EXPECT((dest.size() >= src.size() / 2) &&
+              "buffer to receive the decoded data must be at least half the "
+              "size of the encoded data");
 
   // Do nothing if the source string is empty
   if (src.empty()) {
@@ -163,7 +166,7 @@ void Decode(gsl::span<const char> src, gsl::span<uint8_t> dest, bool reverse) {
   if (reverse) {
     auto src_begin = src.rbegin();
     auto src_end = src.rend();
-    while (src_begin != src_end) {
+    while ((src_begin != src_end) && (out != dest.end())) {
       uint8_t lookup =
           DEC_LOOKUP_TABLE.dec_.at(static_cast<uint8_t>(*src_begin));
       if (lookup == c_invalid_value) {
@@ -184,7 +187,7 @@ void Decode(gsl::span<const char> src, gsl::span<uint8_t> dest, bool reverse) {
   } else {
     auto src_begin = src.begin();
     auto src_end = src.end();
-    while (src_begin != src_end) {
+    while ((src_begin != src_end) && (out != dest.end())) {
       uint8_t lookup =
           DEC_LOOKUP_TABLE.dec_.at(static_cast<uint8_t>(*src_begin));
       if (lookup == c_invalid_value) {
@@ -208,5 +211,3 @@ void Decode(gsl::span<const char> src, gsl::span<uint8_t> dest, bool reverse) {
     *out++ = 0;
   }
 }
-
-} // namespace blocxxi::codec::hex

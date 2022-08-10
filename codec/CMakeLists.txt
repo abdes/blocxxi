@@ -47,8 +47,8 @@ asap_add_library(
 
 target_link_libraries(
   ${MODULE_TARGET_NAME}
-  PRIVATE
-  PUBLIC asap::common GSL)
+  PRIVATE 
+  PUBLIC asap::common asap::contract GSL)
 
 target_include_directories(
   ${MODULE_TARGET_NAME}

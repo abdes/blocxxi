@@ -4,18 +4,15 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
 
-// #include <contract/ut/gtest.h>
-// #include <logging/logging.h>
+#include <gtest/gtest.h>
 
-#include <gmock/gmock.h>
+#include <contract/ut/gtest.h>
 
 auto main(int argc, char *argv[]) -> int {
-  // asap::logging::Registry::instance().SetLogLevel(
-  //     asap::logging::Logger::Level::off);
-
-  // asap::contract::PrepareForTesting();
+  // We're doing unit tests with contract checks which require initializing the
+  // asap::contract library before running the tests.
+  asap::contract::PrepareForTesting();
 
   testing::InitGoogleTest(&argc, argv);
-  testing::InitGoogleMock(&argc, argv);
   return RUN_ALL_TESTS();
 }
