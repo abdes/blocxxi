@@ -117,6 +117,7 @@ TEST_P(Base16DecodeTest, ProperlyDecodesHexString) {
   }
 }
 
+#if !defined(ASAP_CONTRACT_OFF)
 // NOLINTNEXTLINE
 TEST(Base16DecodeContractCheckTest, AbortsOnOddSizedInput) {
   constexpr auto c_output_buffer_size = 16;
@@ -137,6 +138,7 @@ TEST(Base16DecodeContractCheckTest, AbortsOnSmallerThenNeededOutputBuffer) {
   EXPECT_VIOLATES_CONTRACT(
       Decode(std::string_view("FF23AED2"), gsl::make_span(small_buf), false));
 }
+#endif
 
 // NOLINTNEXTLINE
 TEST(Base16DecodeInvalidInputTest, ThrowsDomainError) {
