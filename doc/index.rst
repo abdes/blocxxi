@@ -32,10 +32,22 @@ system and follows its development workflow.
 Parts of the documentation
 ==========================
 
-.. :doc:`clap <clap:api>`
-.. ----------------------
-..   *start here to understand the classes provided by the library and how to use
-..   them.*
+:doc:`codec <codec:api>`
+------------------------
+  *start here to understand the codec utility module APIs.*
+
+:doc:`crypto <crypto:api>`
+--------------------------
+  *start here to understand the crypto utility module APIs.*
+
+:doc:`nat <nat:api>`
+--------------------
+  *start here to understand the NAT and port mapping utility module APIs.*
+
+:doc:`p2p <p2p:api>`
+--------------------
+  *start here to understand the core of the blocxxi project: its implementation
+  of a Kademlia based DHT.*
 
 `Developer Guides <https://abdes.github.io/asap/asap_master/html/project-development/index.html>`_
 --------------------------------------------------------------------------------------------------

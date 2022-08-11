@@ -6,9 +6,9 @@
      ^ for sub-subsections
      " for paragraphs
 
-##########################
-ASAP logging documentation
-##########################
+########################
+Blocxxi crypto utilities
+########################
 
 .. |date| date::
 

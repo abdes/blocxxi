@@ -6,9 +6,9 @@
      ^ for sub-subsections
      " for paragraphs
 
-##########################
-ASAP logging documentation
-##########################
+###############
+Blocxxi P2P DHT
+###############
 
 .. |date| date::
 

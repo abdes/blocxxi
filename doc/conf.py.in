@@ -123,9 +123,27 @@ html_theme_options = {
 # -- Options for intersphinx extension ---------------------------------------
 
 intersphinx_mapping = {
-    # 'common': (
-    #     'https://asap-projects.github.io/asap-common/asap_common/html',
-    #     'https://asap-projects.github.io/asap-common/asap_common/html/objects.inv')
+    'common': (
+        'https://asap-projects.github.io/asap-common/asap_common/html',
+        'https://asap-projects.github.io/asap-common/asap_common/html/objects.inv'),
+    'contract': (
+        'https://asap-projects.github.io/asap-contract/asap_contract/html',
+        'https://asap-projects.github.io/asap-contract/asap_contract/html/objects.inv'),
+    'logging': (
+        'https://asap-projects.github.io/asap-logging/asap_logging/html',
+        'https://asap-projects.github.io/asap-logging/asap_logging/html/objects.inv'),
+    'codec': (
+        'https://abdes.github.io/blocxxi/blocxxi_codec/html',
+        'https://abdes.github.io/blocxxi/blocxxi_codec/html/objects.inv'),
+    'crypto': (
+        'https://abdes.github.io/blocxxi/blocxxi_crypto/html',
+        'https://abdes.github.io/blocxxi/blocxxi_crypto/html/objects.inv'),
+    'nat': (
+        'https://abdes.github.io/blocxxi/blocxxi_nat/html',
+        'https://abdes.github.io/blocxxi/blocxxi_nat/html/objects.inv'),
+    'p2p': (
+        'https://abdes.github.io/blocxxi/blocxxi_p2p/html',
+        'https://abdes.github.io/blocxxi/blocxxi_p2p/html/objects.inv')
 }
 
 # -- Options for todo extension ----------------------------------------------
