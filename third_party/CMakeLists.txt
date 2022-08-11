@@ -15,6 +15,20 @@ set(GSL_INSTALL
 cpmaddpackage(NAME gsl GIT_TAG main GITHUB_REPOSITORY microsoft/GSL)
 
 # ------------------------------------------------------------------------------
+# magic_enum
+# ------------------------------------------------------------------------------
+
+cpmaddpackage(
+  NAME
+  magic_enum
+  GIT_TAG
+  master
+  GITHUB_REPOSITORY
+  abdes/magic_enum
+  OPTIONS
+  "MAGIC_ENUM_OPT_INSTALL ON")
+
+# ------------------------------------------------------------------------------
 # Crypto++
 # ------------------------------------------------------------------------------
 cpmaddpackage(

@@ -26,23 +26,24 @@ using blocxxi::nat::PortMapper;
 TEST(PortFwdTest, Example) {
   auto &logger = Registry::GetLogger("testing");
 
-  auto pf = GetPortMapper("");
-  if (!pf) {
+  auto mapper = GetPortMapper("");
+  if (!mapper) {
     ASLOG_TO_LOGGER(logger, debug, "port forwarder init failed.");
   } else {
-    ASLOG_TO_LOGGER(logger, info, "External IP : {}", pf->ExternalIP());
-    ASLOG_TO_LOGGER(logger, info, "Internal IP : {}", pf->InternalIP());
+    ASLOG_TO_LOGGER(logger, info, "External IP : {}", mapper->ExternalIP());
+    ASLOG_TO_LOGGER(logger, info, "Internal IP : {}", mapper->InternalIP());
 
-    unsigned short port = 7272;
-    auto failure = pf->AddMapping(
-        PortMapper::Protocol::UDP, port, port, "test", std::chrono::seconds(0));
+    constexpr uint16_t c_port = 7272;
+    auto failure =
+        mapper->AddMapping({PortMapper::Protocol::UDP, c_port, c_port, "test"},
+            std::chrono::seconds(0));
     if (failure) {
-      ASLOG_TO_LOGGER(logger, debug, "port ({}) forwarding failed.", port);
+      ASLOG_TO_LOGGER(logger, debug, "port ({}) forwarding failed.", c_port);
     } else {
-      failure = pf->DeleteMapping(PortMapper::Protocol::UDP, port);
+      failure = mapper->DeleteMapping(PortMapper::Protocol::UDP, c_port);
       if (failure) {
         ASLOG_TO_LOGGER(
-            logger, debug, "port ({}) forwarding removal failed.", port);
+            logger, debug, "port ({}) forwarding removal failed.", c_port);
       }
     }
   }

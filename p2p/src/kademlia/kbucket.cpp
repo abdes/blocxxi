@@ -211,7 +211,7 @@ auto KBucket::Empty() const -> bool {
 auto KBucket::Full() const -> bool {
   return nodes_.size() == ksize_;
 }
-auto KBucket::Size() const -> std::pair<unsigned int, unsigned int> {
+auto KBucket::Size() const -> std::pair<size_t, size_t> {
   return std::make_pair(nodes_.size(), replacement_nodes_.size());
 }
 auto KBucket::TimeSinceLastUpdated() const -> std::chrono::seconds {

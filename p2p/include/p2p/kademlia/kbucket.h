@@ -147,7 +147,7 @@ public:
   /// Return a pair of values where the first value refers to the number of
   /// nodes in the bucket, while the second one refers to the number of nodes in
   /// the replacements list.
-  auto Size() const -> std::pair<unsigned int, unsigned int>;
+  auto Size() const -> std::pair<size_t, size_t>;
 
   /// Check if the bucket is empty (no nodes in the bucket).
   /// Naturally if a bucket is empty, it also does not have any replacement

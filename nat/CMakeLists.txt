@@ -53,8 +53,10 @@ asap_add_library(
   "src/nat.cpp"
   "src/upnp_port_mapper.cpp")
 
-target_link_libraries(${MODULE_TARGET_NAME}
-                      PRIVATE asap::common libminiupnpc-static asap::logging)
+target_link_libraries(
+  ${MODULE_TARGET_NAME}
+  PRIVATE asap::common libminiupnpc-static asap::logging
+  PUBLIC magic_enum)
 
 target_include_directories(
   ${MODULE_TARGET_NAME}

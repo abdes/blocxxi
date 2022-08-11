@@ -16,7 +16,7 @@ namespace blocxxi::p2p::kademlia {
 // NOLINTNEXTLINE
 TEST(KBucketTest, AddNode) {
   auto bucket = KBucket(Node(Node::IdType::RandomHash(), "::1", 0), 0, 4);
-  ASSERT_EQ(bucket.Size().first, 0);
+  ASSERT_EQ(0U, bucket.Size().first);
 
   auto first = Node(Node::IdType::RandomHash(), "::1", 0);
   auto node_id = first.Id();

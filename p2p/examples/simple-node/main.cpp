@@ -68,6 +68,7 @@ auto main(int argc, char **argv) -> int {
   bool show_debug_gui{false};
   try {
     // Command line arguments
+    // TODO(Abdessattar): replace with asap-clap
     bpo::options_description desc("Allowed options");
     // clang-format off
     desc.add_options()
@@ -116,8 +117,9 @@ auto main(int argc, char **argv) -> int {
           "using the 'extip:' NAT spec.");
       return -1;
     }
-    mapper->AddMapping(PortMapper::Protocol::UDP, port, port,
-        "ndagent kademlia", std::chrono::seconds(0));
+    mapper->AddMapping(
+        {PortMapper::Protocol::UDP, port, port, "simple-node kademlia"},
+        std::chrono::seconds(0));
 
     boost::asio::io_context io_context;
 

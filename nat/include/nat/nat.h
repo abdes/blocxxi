@@ -1,7 +1,14 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
+
+/*!
+ * \file
+ *
+ * \brief Port mapping and upnp support for blocxxi.
+ */
 
 #pragma once
 
@@ -47,13 +54,12 @@ public:
   /// Move assignable
   auto operator=(NoPortMapper &&) -> NoPortMapper & = default;
   /// Default
-  ~NoPortMapper() override = default;
+  ~NoPortMapper() override;
   //@}
 
   /// Does nothing.
-  auto AddMapping(Protocol /*protocol*/, unsigned /*external_port*/,
-      unsigned /*internal_port*/, std::string const & /*name*/,
-      std::chrono::seconds /*lease_time*/) -> std::error_condition override {
+  auto AddMapping(Mapping /*mapping*/, std::chrono::seconds /*lease_time*/)
+      -> std::error_condition override {
     return {};
   }
 
@@ -64,12 +70,8 @@ public:
   }
 
   /// @copydoc PortMapper::ToString()
-  [[nodiscard]] auto ToString() const -> std::string override {
-    return std::string("NoPortMapper(ext=")
-        .append(ExternalIP())
-        .append(", int=")
-        .append(InternalIP())
-        .append(")");
+  [[nodiscard]] auto MapperType() const -> std::string override {
+    return "nomap";
   }
 };
 
@@ -78,22 +80,23 @@ public:
  * meet the nat spec passed as an argument.
  *
  * The currently supported formats for the spec are:
- *   - "upnp" : attempt to dicover the IGD using UPNP and dynamically setup the
- *   port mapping and obtain the internal and external addresses through UPNP.
+ *   - "upnp" : attempt to dicover the IGD using UPNP and dynamically setup
+ * the port mapping and obtain the internal and external addresses through
+ * UPNP.
  *   - "extip:1.2.3.4" : Use the address provided as both the internal and
  *   external address. No port mapping is required.
  *   - "extip:1.2.3.4:192.168.1.42" : Use the first address as the external
- *   address and the second one as the internal address. Assume port forwarding
- *   has already been separately done.
+ *   address and the second one as the internal address. Assume port
+ * forwarding has already been separately done.
  *   - "" : attempt to discover the environment automatically. If UPNP is
  *   available it will be used, otherwise some best effort heuristics will be
  *   used to detect the available interfaces and select the most suitable
- *   address to use. Preference goes for an external IP address, if not, it goes
- *   for the most likely internal IP address to be associated with the main
+ *   address to use. Preference goes for an external IP address, if not, it
+ * goes for the most likely internal IP address to be associated with the main
  *   interface.
  *
- * @param [in] spec a string specifying the requested nat environment as per the
- * format described in the details above.
+ * @param [in] spec a string specifying the requested nat environment as per
+ * the format described in the details above.
  * @return a unique_ptr to a suitable PortMapper if one has been successfully
  * made; nullptr otherwise.
  */

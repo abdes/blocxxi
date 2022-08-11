@@ -25,6 +25,18 @@ using asap::logging::Registry;
 
 namespace blocxxi::nat {
 
+// Define here to avoid compiler warning about no out-of-line virtual method
+// definitions
+PortMapper::~PortMapper() = default;
+
+// Define here to avoid compiler warning about no out-of-line virtual method
+// definitions
+NoPortMapper::~NoPortMapper() = default;
+
+auto PortMapper::ProtocolString(PortMapper::Protocol protocol) noexcept
+    -> std::string_view {
+  return magic_enum::enum_name(protocol);
+}
 namespace {
 
 /**!
@@ -51,7 +63,10 @@ auto IsLocal(std::string address, bool ipv6 = false) -> bool {
     return true;
   }
   if (ipv6) {
-    std::transform(address.begin(), address.end(), address.begin(), ::tolower);
+    std::transform(address.begin(), address.end(), address.begin(),
+        // wrap the tolower function so that we can avoid the compiler warning
+        // regarding conversion from int to char
+        [](char input) { return static_cast<char>(::tolower(input)); });
     return address.substr(0, 4) == "fe80";
   }
   if (address.substr(0, 3) == "10.") {
@@ -102,7 +117,8 @@ auto FindBestAddress() -> std::string {
 #ifdef WIN32
 // TODO: Implement network interface enumeration for Windows
 #else  // WIN32
-  struct ifaddrs *ifaddr, *ifa;
+  struct ifaddrs *ifaddr = nullptr;
+  struct ifaddrs *ifa = nullptr;
 
   ASLOG_TO_LOGGER(
       logger, debug, "enumerating network interfaces and IP addresses");
@@ -117,22 +133,24 @@ auto FindBestAddress() -> std::string {
   // later
   for (ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
     if (ifa->ifa_addr == nullptr || (ifa->ifa_addr->sa_family != AF_INET &&
-                                        ifa->ifa_addr->sa_family != AF_INET6))
+                                        ifa->ifa_addr->sa_family != AF_INET6)) {
       continue;
+    }
 
     char address[45];
     if (ifa->ifa_addr->sa_family == AF_INET) {
-      auto res = inet_ntop(ifa->ifa_addr->sa_family,
+      const auto *res = inet_ntop(ifa->ifa_addr->sa_family,
           &((reinterpret_cast<struct sockaddr_in *>(ifa->ifa_addr))->sin_addr),
           address, 32);
-      if (!res)
+      if (res == nullptr) {
         perror("inet_ntop");
+      }
     } else {
-      auto res = inet_ntop(ifa->ifa_addr->sa_family,
+      const auto *res = inet_ntop(ifa->ifa_addr->sa_family,
           &((reinterpret_cast<struct sockaddr_in6 *>(ifa->ifa_addr))
                   ->sin6_addr),
           address, 32);
-      if (!res) {
+      if (res == nullptr) {
         perror("inet_ntop");
       }
     }
@@ -227,14 +245,13 @@ auto GetPortMapper(std::string const &spec) -> std::unique_ptr<PortMapper> {
       ASLOG_TO_LOGGER(
           logger, debug, "Missing explicit external IP in 'extip' nat spec");
     }
-    ASLOG_TO_LOGGER(logger, debug, "Using mapper {}", mapper->ToString());
     return std::unique_ptr<PortMapper>(mapper);
   }
   if (mechanism == "upnp") {
     return DiscoverUPNP(std::chrono::milliseconds(2000));
   }
   if (mechanism == "pmp") {
-    // TODO: Not implemented yet (pmp)
+    // TODO(Abdessattar): Not implemented yet (pmp)
     ASLOG_TO_LOGGER(logger, error, "PMP port mapper is not implemented yet");
     return nullptr;
   }

@@ -33,7 +33,7 @@ inline auto SharedPrefixSize(const Node &a, const Node &b) -> unsigned int {
   auto lz = 0U;
   auto ida = a.Id();
   auto idb = b.Id();
-  auto size = Node::IdType::Size();
+  constexpr auto size = Node::IdType::Size();
   for (auto i = 0U; i < size; ++i) {
     auto x = ida[i] ^ idb[i];
     if (x == 0) {
@@ -72,7 +72,7 @@ auto Node::FromUrlString(const std::string &url) -> Node {
   // Validate the URL string and extract the different parts out of it
   auto pos = url.find("://");
   if (pos != std::string::npos) {
-    auto start = 0U;
+    size_t start = 0;
     auto url_type = url.substr(start, pos - start);
     if (url_type == "knode") {
       start = pos + 3;
