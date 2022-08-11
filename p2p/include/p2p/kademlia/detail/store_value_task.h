@@ -1,85 +1,70 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #pragma once
 
 #include <memory>
 #include <system_error>
 
-#include <common/logging.h>
+// #include <common/logging.h>
+#include <p2p/kademlia/error.h>
 #include <p2p/kademlia/key.h>
 #include <p2p/kademlia/message.h>
 
+#include "error_impl.h"
 #include "lookup_task.h"
 
-namespace blocxxi {
-namespace p2p {
-namespace kademlia {
-namespace detail {
+namespace blocxxi::p2p::kademlia::detail {
 
-///
 template <typename TValueHandler, typename TNetwork, typename TRoutingTable,
-          typename TData>
+    typename TData>
 class StoreValueTask final : public BaseLookupTask {
- public:
-  ///
+public:
   using HandlerType = TValueHandler;
-
-  ///
   using NetworkType = TNetwork;
-  ///
   using RoutingTableType = TRoutingTable;
-  ///
   using EndpointType = typename NetworkType::EndpointType;
-
-  ///
   using DataType = TData;
 
- public:
-  ///
   constexpr static char const *TASK_NAME = "STORE_VALUE";
 
-  /**
-   *
-   */
   static void Start(KeyType const &key, DataType const &data,
-                    NetworkType &network, RoutingTableType &routing_table,
-                    HandlerType handler, std::string const &task_name) {
+      NetworkType &network, RoutingTableType &routing_table,
+      HandlerType handler, std::string const &task_name) {
     std::shared_ptr<StoreValueTask> task;
-    task.reset(new StoreValueTask(key, data, network, routing_table,
-                                  std::move(handler), task_name));
+    task.reset(new StoreValueTask(
+        key, data, network, routing_table, std::move(handler), task_name));
 
     TryToStoreValue(task);
   }
 
- private:
+private:
   StoreValueTask(KeyType const &key, DataType const &data, NetworkType &network,
-                 RoutingTableType &routing_table, HandlerType &&save_handler,
-                 std::string const &task_name)
+      RoutingTableType &routing_table, HandlerType &&save_handler,
+      std::string const &task_name)
       : BaseLookupTask(key, routing_table.FindNeighbors(key, PARALLELISM_ALPHA),
-                       task_name),
-        network_(network),
-        routing_table_(routing_table),
-        data_(data),
+            task_name),
+        network_(network), routing_table_(routing_table), data_(data),
         save_handler_(std::forward<HandlerType>(save_handler)) {
     ASLOG(debug, "{} create store value task for '{}'", this->Name(),
-          key.ToHex());
+        key.ToHex());
   }
 
-  void NotifyCaller(std::error_code const &failure) { save_handler_(failure); }
+  void NotifyCaller(std::error_code const &failure) {
+    save_handler_(failure);
+  }
 
-  DataType const &GetData() const { return data_; }
+  auto GetData() const -> DataType const & {
+    return data_;
+  }
 
-  /**
-   *
-   */
-  static void TryToStoreValue(
-      std::shared_ptr<StoreValueTask> task,
+  static void TryToStoreValue(std::shared_ptr<StoreValueTask> task,
       std::size_t concurrent_requests_count = PARALLELISM_ALPHA) {
     ASLOG(debug, "{} trying to find closer peer to store '{}' value",
-          task->Name(), task->Key());
+        task->Name(), task->Key().ToHex());
 
     FindNodeRequestBody const request{task->Key()};
 
@@ -99,26 +84,22 @@ class StoreValueTask final : public BaseLookupTask {
     }
   }
 
-  /**
-   *
-   */
   static void SendFindPeerRequest(FindNodeRequestBody const &request,
-                                  Node const &current_candidate,
-                                  std::shared_ptr<StoreValueTask> task) {
+      Node const &current_candidate, std::shared_ptr<StoreValueTask> task) {
     ASLOG(debug, "{} sending find peer request to store '{}' to '{}'",
-          task->Name(), task->Key(), current_candidate);
+        task->Name(), task->Key().ToHex(), current_candidate.ToString());
 
     // On message received, process it.
     auto on_message_received = [task](EndpointType const &sender,
-                                      Header const &header,
-                                      BufferReader const &buffer) {
+                                   Header const &header,
+                                   BufferReader const &buffer) {
       HandleFindPeerResponse(sender, header, buffer, task);
     };
 
     // On error, retry with another endpoint.
     auto on_error = [task, current_candidate](std::error_code const &) {
       ASLOG(debug, "{} peer {} timed out on find peer request for store value",
-            task->Name(), current_candidate);
+          task->Name(), current_candidate.ToString());
       // Invalidate the candidate
       task->MarkCandidateAsInvalid(current_candidate.Id());
       // Also increment the number of failed requests in the routing table node
@@ -128,28 +109,23 @@ class StoreValueTask final : public BaseLookupTask {
     };
 
     task->network_.SendConvRequest(request, current_candidate.Endpoint(),
-                                   REQUEST_TIMEOUT, on_message_received,
-                                   on_error);
+        REQUEST_TIMEOUT, on_message_received, on_error);
   }
 
-  /**
-   *
-   */
   static void HandleFindPeerResponse(EndpointType const &sender,
-                                     Header const &header,
-                                     BufferReader const &buffer,
-                                     std::shared_ptr<StoreValueTask> task) {
+      Header const &header, BufferReader const &buffer,
+      std::shared_ptr<StoreValueTask> task) {
     ASLOG(debug, "{} handle response from '{}@{}'", task->Name(),
-          header.source_id_, sender);
+        header.source_id_.ToHex(), sender.ToString());
 
     if (header.type_ != Header::MessageType::FIND_NODE_RESPONSE) {
       ASLOG(debug, "{} unexpected find peer response (type={})", task->Name(),
-            int(header.type_));
+          int(header.type_));
 
       task->MarkCandidateAsInvalid(header.source_id_);
       TryToStoreValue(task);
       return;
-    };
+    }
 
     FindNodeResponseBody response;
     try {
@@ -160,14 +136,14 @@ class StoreValueTask final : public BaseLookupTask {
       // but filter out ourselves from the list
       response.peers_.erase(
           std::remove_if(response.peers_.begin(), response.peers_.end(),
-                         [task](Node &peer) {
-                           return peer == task->routing_table_.ThisNode();
-                         }),
+              [task](Node &peer) {
+                return peer == task->routing_table_.ThisNode();
+              }),
           response.peers_.end());
       task->AddCandidates(response.peers_);
     } catch (std::exception const &ex) {
       ASLOG(debug, "{} failed to deserialize find peer response ({})",
-            task->Name(), ex.what());
+          task->Name(), ex.what());
       task->MarkCandidateAsInvalid(header.source_id_);
     }
 
@@ -192,16 +168,15 @@ class StoreValueTask final : public BaseLookupTask {
   /**
    *
    */
-  static void SendStoreRequest(Node const &current_candidate,
-                               std::shared_ptr<StoreValueTask> task) {
+  static void SendStoreRequest(
+      Node const &current_candidate, std::shared_ptr<StoreValueTask> task) {
     ASLOG(debug, "{} send store request of '{}' to '{}'", task->Name(),
-          task->Key(), current_candidate);
+        task->Key().ToHex(), current_candidate.ToString());
 
     StoreValueRequestBody const request{task->Key(), task->GetData()};
     task->network_.SendUniRequest(request, current_candidate.Endpoint());
   }
 
- private:
   ///
   NetworkType &network_;
   ///
@@ -216,20 +191,16 @@ class StoreValueTask final : public BaseLookupTask {
  *
  */
 template <typename TData, typename TNetwork, typename TRoutingTable,
-          typename THandler>
-void StartStoreValueTask(
-    KeyType const &key, TData const &data, TNetwork &network,
-    TRoutingTable &routing_table, THandler &&save_handler,
+    typename THandler>
+void StartStoreValueTask(KeyType const &key, TData const &data,
+    TNetwork &network, TRoutingTable &routing_table, THandler &&save_handler,
     std::string const &task_name =
         StoreValueTask<THandler, TNetwork, TRoutingTable, TData>::TASK_NAME) {
   using handler_type = typename std::decay<THandler>::type;
   using task = StoreValueTask<handler_type, TNetwork, TRoutingTable, TData>;
 
   task::Start(key, data, network, routing_table,
-              std::forward<THandler>(save_handler), task_name);
+      std::forward<THandler>(save_handler), task_name);
 }
 
-}  // namespace detail
-}  // namespace kademlia
-}  // namespace p2p
-}  // namespace blocxxi
+} // namespace blocxxi::p2p::kademlia::detail

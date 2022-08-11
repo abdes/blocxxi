@@ -5,14 +5,13 @@
 
 #include <crypto/keypair.h>
 
-#include <iostream>  // TODO: remove only for debug
+#include <iostream> // TODO(Abdessattar): remove only for debug
 
-#include <eccrypto.h>  // for cryptopp ECC encryption
-#include <oids.h>      // for cryptopp ECC curve function
-#include <osrng.h>     // for cryptopp random number generation
+#include <eccrypto.h> // for cryptopp ECC encryption
+#include <oids.h>     // for cryptopp ECC curve function
+#include <osrng.h>    // for cryptopp random number generation
 
-namespace blocxxi {
-namespace crypto {
+namespace blocxxi::crypto {
 
 namespace cr = CryptoPP;
 
@@ -35,23 +34,22 @@ void MakeRandomPrivateKey(PrivateKeyType &private_key) {
   } while (!private_key.Validate(prng, 3));
 }
 
-void MakePrivateKeyFromSecret(PrivateKeyType &private_key,
-                              const KeyPair::PrivateKey &secret) {
+void MakePrivateKeyFromSecret(
+    PrivateKeyType &private_key, const KeyPair::PrivateKey &secret) {
   // Initialize the PrivateKey from the given private exponent
-  cr::Integer privateExponent(secret.Data(), secret.Size(),
-                              cr::Integer::UNSIGNED,
-                              cr::ByteOrder::BIG_ENDIAN_ORDER);
+  cr::Integer privateExponent(secret.Data(), KeyPair::PrivateKey::Size(),
+      cr::Integer::UNSIGNED, cr::ByteOrder::BIG_ENDIAN_ORDER);
   private_key.Initialize(cr::ASN1::secp256k1(), privateExponent);
 }
 
-void DerivePublicKey(PublicKeyType &public_key,
-                     const PrivateKeyType &private_key) {
+void DerivePublicKey(
+    PublicKeyType &public_key, const PrivateKeyType &private_key) {
   // Derive the public key
   private_key.MakePublicKey(public_key);
 }
 
-void UpdateSecret(KeyPair::PrivateKey &hash,
-                  const PrivateKeyType &private_key) {
+void UpdateSecret(
+    KeyPair::PrivateKey &hash, const PrivateKeyType &private_key) {
   // Save the private exponent part of the key in our secret part
   auto const &pex = private_key.GetPrivateExponent();
   pex.Encode(hash.Data(), 32);
@@ -66,7 +64,7 @@ void UpdatePublic(KeyPair::PublicKey &hash, const PublicKeyType &public_key) {
   qy.Encode(hash.Data() + 32, 32);
 }
 
-}  // namespace
+} // namespace
 
 KeyPair::KeyPair() {
   PrivateKeyType private_key;
@@ -122,5 +120,4 @@ KeyPair::KeyPair(const std::string &secret_hex) {
   UpdatePublic(public_, public_key);
 }
 
-}  // namespace crypto
-}  // namespace blocxxi
+} // namespace blocxxi::crypto

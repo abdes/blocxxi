@@ -1,17 +1,38 @@
+# ===------------------------------------------------------------------------===#
+# Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+# copy at https://opensource.org/licenses/BSD-3-Clause).
+# SPDX-License-Identifier: BSD-3-Clause
+# ===------------------------------------------------------------------------===#
 
-list(APPEND CRYPTO_TEST_SRC
-  hash_test.cpp
-  keypair_test.cpp
-  )
+# ==============================================================================
+# Build instructions
+# ==============================================================================
 
-set(CRYPTO_TEST_LIBRARIES asap::crypto gtest_main gtest gmock)
+set(MAIN_TEST_TARGET_NAME ${MODULE_TARGET_NAME}_test)
 
-asap_test(
-  TARGET
-  crypto_test
-  SOURCES
-  ${CRYPTO_TEST_SRC}
-  PUBLIC_LIBRARIES
-  ${CRYPTO_TEST_LIBRARIES}
-)
-set_tidy_target_properties(crypto_test_bin)
+asap_add_test(
+  ${MAIN_TEST_TARGET_NAME}
+  UNIT_TEST
+  VALGRIND_MEMCHECK
+  SRCS
+  "hash_test.cpp"
+  "keypair_test.cpp"
+  "main.cpp"
+  LINK
+  asap::common
+  GSL
+  blocxxi::codec
+  blocxxi::crypto
+  gtest
+  gmock
+  COMMENT
+  "Blocxxi crypto unit tests")
+
+target_include_directories(${MAIN_TEST_TARGET_NAME} PRIVATE "../src")
+
+gtest_discover_tests(${MAIN_TEST_TARGET_NAME})
+
+# Add support for (optional) code quality tools
+asap_add_sanitizers(${MAIN_TEST_TARGET_NAME})
+swift_add_valgrind_massif(${MAIN_TEST_TARGET_NAME})
+swift_add_valgrind_callgrind(${MAIN_TEST_TARGET_NAME})

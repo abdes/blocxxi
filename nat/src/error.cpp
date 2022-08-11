@@ -7,8 +7,7 @@
 
 #include <nat/error.h>
 
-namespace blocxxi {
-namespace nat {
+namespace blocxxi::nat {
 
 namespace detail {
 
@@ -16,38 +15,41 @@ namespace {
 
 /// Error category implementation for the NAT system errors.
 struct nat_error_category : std::error_category {
-  char const *name() const noexcept override { return "nat"; }
+  [[nodiscard]] auto name() const noexcept -> char const * override {
+    return "nat";
+  }
 
-  std::string message(int condition) const noexcept override {
+  [[nodiscard]] auto message(int condition) const noexcept
+      -> std::string override {
     switch (condition) {
-      case UNKNOWN_ERROR:
-        return "unknown error";
-      case DISCOVERY_NOT_DONE:
-        return "UPNP discovery not done or did not produce any usable results";
-      case UPNP_COMMAND_ERROR:
-        return "UPNP command issued to IGD returned an error";
-      default:
-        return "unknown error code";
+    case UNKNOWN_ERROR:
+      return "unknown error";
+    case DISCOVERY_NOT_DONE:
+      return "UPNP discovery not done or did not produce any usable results";
+    case UPNP_COMMAND_ERROR:
+      return "UPNP command issued to IGD returned an error";
+    default:
+      return "unknown error code";
     }
   }
 };
 
-}  // namespace
+} // namespace
 
-std::error_category const &error_category() {
+inline auto error_category() -> std::error_category const & {
   static const nat_error_category category_{};
   return category_;
 }
 
-std::error_code make_error_code(error_type code) {
+inline auto make_error_code(error_type code) -> std::error_code {
   return std::error_code{static_cast<int>(code), error_category()};
 }
 
-}  // namespace detail
+} // namespace detail
 
-std::error_condition make_error_condition(error_type code) {
-  return std::error_condition{static_cast<int>(code), detail::error_category()};
+auto make_error_condition(error_type condition) -> std::error_condition {
+  return std::error_condition{
+      static_cast<int>(condition), detail::error_category()};
 }
 
-}  // namespace nat
-}  // namespace blocxxi
+} // namespace blocxxi::nat

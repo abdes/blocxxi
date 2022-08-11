@@ -1,18 +1,16 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #include <p2p/kademlia/detail/error_impl.h>
 
-namespace blocxxi {
-namespace p2p {
-namespace kademlia {
+namespace blocxxi::p2p::kademlia {
 
-std::error_condition make_error_condition(error_type code) {
-  return std::error_condition{static_cast<int>(code), detail::error_category()};
+auto make_error_condition(error_type condition) -> std::error_condition {
+  return std::error_condition{
+      static_cast<int>(condition), detail::error_category()};
 }
 
-}  // namespace kademlia
-}  // namespace p2p
-}  // namespace blocxxi
+} // namespace blocxxi::p2p::kademlia

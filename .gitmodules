@@ -1,24 +1,9 @@
-[submodule "third_party/gsl-lite"]
-	path = third_party/gsl-lite
-	url = https://github.com/martinmoene/gsl-lite.git
-[submodule "third_party/spdlog"]
-	path = third_party/spdlog
-	url = https://github.com/gabime/spdlog.git
-[submodule "third_party/imgui"]
-	path = third_party/imgui
-	url = https://github.com/ocornut/imgui.git
-[submodule "third_party/glfw"]
-	path = third_party/glfw
-	url = https://github.com/glfw/glfw.git
-[submodule "third_party/date"]
-	path = third_party/date
-	url = https://github.com/HowardHinnant/date.git
-[submodule "third_party/catch2"]
-	path = third_party/catch2
-	url = https://github.com/catchorg/Catch2.git
-[submodule "third_party/yaml-cpp"]
-	path = third_party/yaml-cpp
-	url = https://github.com/jbeder/yaml-cpp.git
+[submodule "cmake/common"]
+	path = cmake/common
+	url = https://github.com/swift-nav/cmake
+[submodule "doxygen/doxygen-awesome-css"]
+	path = doxygen/doxygen-awesome-css
+	url = https://github.com/jothepro/doxygen-awesome-css.git
 [submodule "third_party/cryptopp-cmake"]
 	path = third_party/cryptopp-cmake
-	url = https://github.com/noloader/cryptopp-cmake.git
+	url = https://github.com/abdes/cryptopp-cmake.git

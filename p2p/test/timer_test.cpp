@@ -1,16 +1,16 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #include <gtest/gtest.h>
 
 #include <p2p/kademlia/timer.h>
 
-namespace blocxxi {
-namespace p2p {
-namespace kademlia {
+namespace blocxxi::p2p::kademlia {
 
+// NOLINTNEXTLINE
 TEST(TimerTest, OneTimer) {
   boost::asio::io_context io_context;
   auto timer = Timer(io_context);
@@ -21,6 +21,7 @@ TEST(TimerTest, OneTimer) {
   ASSERT_TRUE(fired);
 }
 
+// NOLINTNEXTLINE
 TEST(TimerTest, MultipleTimersFireInOrder) {
   boost::asio::io_context io_context;
   auto timer = Timer(io_context);
@@ -42,6 +43,7 @@ TEST(TimerTest, MultipleTimersFireInOrder) {
   ASSERT_EQ(3, fired);
 }
 
+// NOLINTNEXTLINE
 TEST(TimerTest, ShorterTimeoutFiresBeforeOthers) {
   boost::asio::io_context io_context;
   auto timer = Timer(io_context);
@@ -64,6 +66,7 @@ TEST(TimerTest, ShorterTimeoutFiresBeforeOthers) {
   ASSERT_TRUE(later);
 }
 
+// NOLINTNEXTLINE
 TEST(TimerTest, MultipleTimeoutsWithSameDuration) {
   boost::asio::io_context io_context;
   auto timer = Timer(io_context);
@@ -72,14 +75,14 @@ TEST(TimerTest, MultipleTimeoutsWithSameDuration) {
   auto two = false;
   auto three = false;
   auto four = false;
-  timer.ExpiresFromNow(std::chrono::milliseconds(1000),
-                       [&one]() { one = true; });
-  timer.ExpiresFromNow(std::chrono::microseconds(1000),
-                       [&two]() { two = true; });
-  timer.ExpiresFromNow(std::chrono::milliseconds(1100),
-                       [&three]() { three = true; });
-  timer.ExpiresFromNow(std::chrono::milliseconds(1050),
-                       [&four]() { four = true; });
+  timer.ExpiresFromNow(
+      std::chrono::milliseconds(1000), [&one]() { one = true; });
+  timer.ExpiresFromNow(
+      std::chrono::microseconds(1000), [&two]() { two = true; });
+  timer.ExpiresFromNow(
+      std::chrono::milliseconds(1100), [&three]() { three = true; });
+  timer.ExpiresFromNow(
+      std::chrono::milliseconds(1050), [&four]() { four = true; });
   io_context.run();
   ASSERT_TRUE(one);
   ASSERT_TRUE(two);
@@ -87,6 +90,7 @@ TEST(TimerTest, MultipleTimeoutsWithSameDuration) {
   ASSERT_TRUE(four);
 }
 
+// NOLINTNEXTLINE
 TEST(TimerTest, MoveConstructorMovesTimers) {
   boost::asio::io_context io_context;
   auto moved = Timer(io_context);
@@ -99,6 +103,7 @@ TEST(TimerTest, MoveConstructorMovesTimers) {
   ASSERT_EQ(1, fired);
 }
 
+// NOLINTNEXTLINE
 TEST(TimerTest, MoveAssignmentMovesTimers) {
   boost::asio::io_context io_context;
   auto moved = Timer(io_context);
@@ -112,6 +117,4 @@ TEST(TimerTest, MoveAssignmentMovesTimers) {
   ASSERT_EQ(1, fired);
 }
 
-}  // namespace kademlia
-}  // namespace p2p
-}  // namespace blocxxi
+} // namespace blocxxi::p2p::kademlia

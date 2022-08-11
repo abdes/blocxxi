@@ -1,23 +1,22 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #pragma once
 
-#include <memory>
-#include <system_error>
+#include <logging/logging.h>
 
-#include <common/logging.h>
 #include <p2p/kademlia/message.h>
 
 #include "error_impl.h"
 #include "find_node_task.h"
 
-namespace blocxxi {
-namespace p2p {
-namespace kademlia {
-namespace detail {
+#include <memory>
+#include <system_error>
+
+namespace blocxxi::p2p::kademlia::detail {
 
 /*!
  *
@@ -35,26 +34,25 @@ namespace detail {
  * RPCs to transfer relevant KV pairs to the new node. To avoid redundant store
  * RPCs for the same content from different nodes, a node only transfers a KV
  * pair if its own ID is closer to the key than are the IDs of other nodes.
- *
- *
- *
- * @tparam Network
- * @tparam RoutingTable
- * @tparam EndpointsCollection
  */
 template <typename TNetwork, typename TRoutingTable>
 class BootstrapProcedure final
-    : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
- public:
-  ///
+    : asap::logging::Loggable<BootstrapProcedure<TNetwork, TRoutingTable>> {
+public:
+  /// The logger id used for logging within this class.
+  static constexpr const char *LOGGER_NAME = "p2p-kademlia";
+
+  // We need to import the internal logger retrieval method symbol in this
+  // context to avoid g++ complaining about the method not being declared before
+  // being used. THis is due to the fact that the current class is a template
+  // class and that method does not take any template argument that will enable
+  // the compiler to resolve it unambiguously.
+  using asap::logging::Loggable<BootstrapProcedure<TNetwork,
+      TRoutingTable>>::internal_log_do_not_use_read_comment;
+
   using NetworkType = TNetwork;
-  ///
   using RoutingTableType = TRoutingTable;
 
- public:
-  /**
-   *
-   */
   static void Start(NetworkType &network, RoutingTableType &routing_table) {
     std::shared_ptr<BootstrapProcedure> task;
     task.reset(new BootstrapProcedure(network, routing_table));
@@ -62,18 +60,12 @@ class BootstrapProcedure final
     NodeLookupSelf(task);
   }
 
- private:
-  /**
-   *
-   */
+private:
   BootstrapProcedure(NetworkType &network, RoutingTableType &routing_table)
       : network_(network), routing_table_(routing_table) {
     ASLOG(debug, "create bootstrap procedure instance");
   }
 
-  /**
-   *
-   */
   static void NodeLookupSelf(std::shared_ptr<BootstrapProcedure> task) {
     auto my_id = task->routing_table_.ThisNode().Id();
     auto on_complete = [task]() {
@@ -83,7 +75,7 @@ class BootstrapProcedure final
     };
 
     StartFindNodeTask(my_id, task->network_, task->routing_table_, on_complete,
-                      "BOOT/FIND_NODE");
+        "BOOT/FIND_NODE");
   }
 
   static void RefreshBuckets(std::shared_ptr<BootstrapProcedure> task) {
@@ -99,40 +91,33 @@ class BootstrapProcedure final
         auto const &node = bucket.SelectRandomNode();
 
         ASLOG(debug,
-              "[BOOT/REFRESH] bucket -> lookup for random peer with id {}",
-              node.Id().ToHex());
+            "[BOOT/REFRESH] bucket -> lookup for random peer with id {}",
+            node.Id().ToHex());
 
-        StartFindNodeTask(node.Id(), task->network_, task->routing_table_,
-                          [task]() {
-                            ASLOG(debug,
-                                  "[BOOT/REFRESH] bucket refresh completed");
-                            task->routing_table_.DumpToLog();
-                          },
-                          "BOOT/REFRESH/FIND_NODE");
+        StartFindNodeTask(
+            node.Id(), task->network_, task->routing_table_,
+            [task]() {
+              ASLOG(debug, "[BOOT/REFRESH] bucket refresh completed");
+              task->routing_table_.DumpToLog();
+            },
+            "BOOT/REFRESH/FIND_NODE");
       }
     }
     ASLOG(debug, "[BOOT/REFRESH] all buckets refresh completed");
   }
 
- private:
   ///
   NetworkType &network_;
   ///
   RoutingTableType &routing_table_;
 };
 
-/**
- *
- */
 template <typename TNetwork, typename TRoutingTable>
-inline void StartBootstrapProcedure(TNetwork &network,
-                                    TRoutingTable &routing_table) {
+inline void StartBootstrapProcedure(
+    TNetwork &network, TRoutingTable &routing_table) {
   using TaskType = BootstrapProcedure<TNetwork, TRoutingTable>;
 
   TaskType::Start(network, routing_table);
 }
 
-}  // namespace detail
-}  // namespace kademlia
-}  // namespace p2p
-}  // namespace blocxxi
+} // namespace blocxxi::p2p::kademlia::detail

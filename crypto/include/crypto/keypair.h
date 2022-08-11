@@ -5,40 +5,46 @@
 
 #pragma once
 
+#include <crypto/blocxxi_crypto_api.h>
+
 #include <crypto/hash.h>
 
-namespace blocxxi {
-namespace crypto {
+namespace blocxxi::crypto {
 
 class KeyPair {
- public:
+public:
   using PrivateKey = blocxxi::crypto::Hash256;
   using PublicKey = blocxxi::crypto::Hash512;
 
-  KeyPair();
+  BLOCXXI_CRYPTO_API KeyPair();
 
-  explicit KeyPair(const std::string &secret_hex);
+  explicit BLOCXXI_CRYPTO_API KeyPair(const std::string &secret_hex);
 
-  explicit KeyPair(const PrivateKey &secret);
+  explicit BLOCXXI_CRYPTO_API KeyPair(const PrivateKey &secret);
 
-  KeyPair(const KeyPair &) = default;
+  BLOCXXI_CRYPTO_API KeyPair(const KeyPair &) = default;
 
-  KeyPair &operator=(const KeyPair &rhs) = default;
+  BLOCXXI_CRYPTO_API auto operator=(const KeyPair &rhs) -> KeyPair & = default;
 
-  KeyPair(KeyPair &&) = default;
+  BLOCXXI_CRYPTO_API KeyPair(KeyPair &&) = default;
 
-  KeyPair &operator=(KeyPair &&rhs) = default;
+  BLOCXXI_CRYPTO_API auto operator=(KeyPair &&rhs) -> KeyPair & = default;
 
-  ~KeyPair() { secret_.Clear(); }
+  BLOCXXI_CRYPTO_API ~KeyPair() {
+    secret_.Clear();
+  }
 
-  const PrivateKey &Secret() const { return secret_; }
+  [[nodiscard]] BLOCXXI_CRYPTO_API auto Secret() const -> const PrivateKey & {
+    return secret_;
+  }
 
-  const PublicKey &Public() const { return public_; }
+  [[nodiscard]] BLOCXXI_CRYPTO_API auto Public() const -> const PublicKey & {
+    return public_;
+  }
 
- private:
+private:
   PrivateKey secret_;
   PublicKey public_;
 };
 
-}  // namespace crypto
-}  // namespace blocxxi
+} // namespace blocxxi::crypto

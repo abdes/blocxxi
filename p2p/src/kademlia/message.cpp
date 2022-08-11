@@ -1,19 +1,19 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #include <iostream>
+#include <vector>
 
-#include <common/assert.h>
-#include <common/logging.h>
+// #include <common/logging.h>
 
+#include <p2p/kademlia/buffer.h>
 #include <p2p/kademlia/detail/error_impl.h>
 #include <p2p/kademlia/message.h>
 
-namespace blocxxi {
-namespace p2p {
-namespace kademlia {
+namespace blocxxi::p2p::kademlia {
 
 namespace {
 
@@ -23,23 +23,24 @@ inline void SerializeInteger(IntegerType value, Buffer &b) {
   using unsigned_integer_type = typename std::make_unsigned<IntegerType>::type;
 
   // ASLOG_MISC(debug, "serialize integer {}", value);
-  for (auto i = 0u; i < sizeof(value); ++i) {
+  for (auto i = 0U; i < sizeof(value); ++i) {
     // ASLOG_MISC(debug, "  write one byte: {}", Buffer::value_type(value));
-    b.push_back(Buffer::value_type(value));
+    b.push_back(static_cast<Buffer::value_type>(value));
     static_cast<unsigned_integer_type &>(value) >>= 8;
   }
 }
 
 template <typename IntegerType>
-std::size_t DeserializeInteger(BufferReader const &buffer, IntegerType &value) {
+auto DeserializeInteger(BufferReader const &buffer, IntegerType &value)
+    -> std::size_t {
   value = 0;
   // ASLOG_MISC(debug, "deserialize integer");
 
   if (buffer.size_bytes() < sizeof(value)) {
     throw std::range_error("insufficient data in input buffer");
   }
-  auto data = buffer.cbegin();
-  for (auto ii = 0u; ii < sizeof(value); ++ii) {
+  auto data = std::cbegin(buffer);
+  for (auto ii = 0U; ii < sizeof(value); ++ii) {
     // ASLOG_MISC(debug, "  read one byte: {}", *data);
     value |= IntegerType{*data++} << 8 * ii;
   }
@@ -52,15 +53,15 @@ inline void Serialize(std::vector<std::uint8_t> data, Buffer &b) {
   b.insert(b.end(), data.begin(), data.end());
 }
 
-inline std::size_t Deserialize(BufferReader const &buffer,
-                               std::vector<std::uint8_t> &data) {
-  std::vector<std::uint8_t>::size_type size;
+inline auto Deserialize(BufferReader const &buffer,
+    std::vector<std::uint8_t> &data) -> std::size_t {
+  std::vector<std::uint8_t>::size_type size = 0;
   auto consumed = DeserializeInteger(buffer, size);
   auto sub = buffer.subspan(consumed);
   if (sub.size_bytes() < size) {
     throw std::range_error("insufficient data in input buffer");
   }
-  data.insert(data.end(), sub.cbegin(), sub.cend());
+  data.insert(data.end(), std::cbegin(sub), std::cend(sub));
   consumed += size;
   return consumed;
 }
@@ -70,8 +71,8 @@ inline void Serialize(blocxxi::crypto::Hash160 const &i, Buffer &b) {
   b.insert(b.end(), i.begin(), i.end());
 }
 
-inline std::size_t Deserialize(BufferReader const &buffer,
-                               blocxxi::crypto::Hash160 &new_id) {
+inline auto Deserialize(BufferReader const &buffer,
+    blocxxi::crypto::Hash160 &new_id) -> std::size_t {
   if (buffer.size_bytes() < blocxxi::crypto::Hash160::Size()) {
     throw std::range_error("insufficient data in input buffer");
   }
@@ -81,13 +82,12 @@ inline std::size_t Deserialize(BufferReader const &buffer,
   return blocxxi::crypto::Hash160::Size();
 }
 
-inline std::size_t Deserialize(BufferReader const &buffer,
-                               Header::Version &version,
-                               Header::MessageType &message_type) {
+inline auto Deserialize(BufferReader const &buffer, Header::Version &version,
+    Header::MessageType &message_type) -> std::size_t {
   if (buffer.size_bytes() < 1) {
     throw std::range_error("insufficient data in input buffer");
   }
-  auto first_byte = *buffer.cbegin();
+  auto first_byte = *std::cbegin(buffer);
   // ASLOG_MISC(debug, "deserialize header version/type {}", first_byte);
   version = static_cast<Header::Version>(first_byte >> 4);
   message_type = static_cast<Header::MessageType>(first_byte & 0xf);
@@ -113,7 +113,7 @@ inline void Derialize(boost::asio::ip::address const &address, Buffer &b) {
     auto const &a = address.to_v4().to_bytes();
     b.insert(b.end(), a.begin(), a.end());
   } else {
-    ASAP_ASSERT(address.is_v6() && "unknown IP version");
+    // ASAP_ASSERT(address.is_v6() && "unknown IP version");
     b.push_back(KADEMLIA_ENDPOINT_SERIALIZATION_IPV6);
     auto const &a = address.to_v6().to_bytes();
     b.insert(b.end(), a.begin(), a.end());
@@ -124,22 +124,23 @@ inline void Derialize(boost::asio::ip::address const &address, Buffer &b) {
  *
  */
 template <typename Address>
-inline std::size_t DeserializeAddress(BufferReader const &buffer,
-                                      Address &address) {
+inline auto DeserializeAddress(BufferReader const &buffer, Address &address)
+    -> std::size_t {
   typename Address::bytes_type address_bytes;
   if (buffer.size_bytes() < address_bytes.size()) {
     throw std::range_error("insufficient data in input buffer");
   }
 
-  std::copy_n(buffer.cbegin(), address_bytes.size(), address_bytes.begin());
+  std::copy_n(
+      std::cbegin(buffer), address_bytes.size(), std::begin(address_bytes));
 
   address = Address{address_bytes};
 
   return address_bytes.size();
 }
 
-inline std::size_t Deserialize(BufferReader const &buffer,
-                               boost::asio::ip::address &address) {
+inline auto Deserialize(BufferReader const &buffer,
+    boost::asio::ip::address &address) -> std::size_t {
   if (buffer.size_bytes() < 1) {
     throw std::range_error("insufficient data in input buffer");
   }
@@ -153,9 +154,9 @@ inline std::size_t Deserialize(BufferReader const &buffer,
 
     address = a;
   } else {
-    ASAP_ASSERT_VAL((protocol == KADEMLIA_ENDPOINT_SERIALIZATION_IPV6 &&
-                        "unknown IP version"),
-                       (int)protocol);
+    // ASAP_ASSERT_VAL((protocol == KADEMLIA_ENDPOINT_SERIALIZATION_IPV6 &&
+    //                     "unknown IP version"),
+    //                    (int)protocol);
 
     boost::asio::ip::address_v6 a;
     consumed += DeserializeAddress(buffer.subspan(consumed), a);
@@ -173,7 +174,7 @@ inline void Serialize(Node const &node, Buffer &buffer) {
   Derialize(node.Endpoint().Address(), buffer);
 }
 
-inline std::size_t Deserialize(BufferReader const &buffer, Node &node) {
+inline auto Deserialize(BufferReader const &buffer, Node &node) -> std::size_t {
   auto consumed = Deserialize(buffer, node.Id());
   std::uint16_t port;
   consumed += DeserializeInteger(buffer.subspan(consumed), port);
@@ -184,30 +185,31 @@ inline std::size_t Deserialize(BufferReader const &buffer, Node &node) {
   return consumed;
 }
 
-}  // anonymous namespace
+} // anonymous namespace
 
-std::ostream &operator<<(std::ostream &out,
-                         Header::MessageType const &message_type) {
+inline auto operator<<(std::ostream &out,
+    Header::MessageType const &message_type) -> std::ostream & {
   switch (message_type) {
-    case Header::MessageType::PING_REQUEST:
-      return out << "ping_request";
-    case Header::MessageType::PING_RESPONSE:
-      return out << "ping_response";
-    case Header::MessageType::STORE_REQUEST:
-      return out << "store_request";
-    case Header::MessageType::FIND_NODE_REQUEST:
-      return out << "find_peer_request";
-    case Header::MessageType::FIND_NODE_RESPONSE:
-      return out << "find_peer_response";
-    case Header::MessageType::FIND_VALUE_REQUEST:
-      return out << "find_value_request";
-    case Header::MessageType::FIND_VALUE_RESPONSE:
-      return out << "find_value_response";
+  case Header::MessageType::PING_REQUEST:
+    return out << "ping_request";
+  case Header::MessageType::PING_RESPONSE:
+    return out << "ping_response";
+  case Header::MessageType::STORE_REQUEST:
+    return out << "store_request";
+  case Header::MessageType::FIND_NODE_REQUEST:
+    return out << "find_peer_request";
+  case Header::MessageType::FIND_NODE_RESPONSE:
+    return out << "find_peer_response";
+  case Header::MessageType::FIND_VALUE_REQUEST:
+    return out << "find_value_request";
+  case Header::MessageType::FIND_VALUE_RESPONSE:
+    return out << "find_value_response";
   }
   return out << "unknown_message";
 }
 
-std::ostream &operator<<(std::ostream &out, Header const &header) {
+inline auto operator<<(std::ostream &out, Header const &header)
+    -> std::ostream & {
   return out << header.type_;
 }
 
@@ -218,7 +220,7 @@ void Serialize(Header const &h, Buffer &b) {
   Serialize(h.random_token_, b);
 }
 
-std::size_t Deserialize(BufferReader const &buffer, Header &header) {
+auto Deserialize(BufferReader const &buffer, Header &header) -> std::size_t {
   // ASLOG_MISC(debug, "deserialize header");
   auto consumed = Deserialize(buffer, header.version_, header.type_);
   consumed += Deserialize(buffer.subspan(consumed), header.source_id_);
@@ -230,7 +232,8 @@ void Serialize(FindNodeRequestBody const &body, Buffer &b) {
   Serialize(body.node_id_, b);
 }
 
-std::size_t Deserialize(BufferReader const &buffer, FindNodeRequestBody &body) {
+auto Deserialize(BufferReader const &buffer, FindNodeRequestBody &body)
+    -> std::size_t {
   return Deserialize(buffer, body.node_id_);
 }
 
@@ -238,12 +241,14 @@ void Serialize(FindNodeResponseBody const &body, Buffer &b) {
   std::size_t size = body.peers_.size();
   SerializeInteger(size, b);
 
-  for (auto const &n : body.peers_) Serialize(n, b);
+  for (auto const &n : body.peers_) {
+    Serialize(n, b);
+  }
 }
 
-std::size_t Deserialize(BufferReader const &buffer,
-                        FindNodeResponseBody &body) {
-  std::size_t size;
+auto Deserialize(BufferReader const &buffer, FindNodeResponseBody &body)
+    -> std::size_t {
+  std::size_t size = 0;
   auto consumed = DeserializeInteger(buffer, size);
 
   for (; size > 0; --size) {
@@ -258,8 +263,8 @@ void Serialize(FindValueRequestBody const &body, Buffer &b) {
   Serialize(body.value_key_, b);
 }
 
-std::size_t Deserialize(BufferReader const &buffer,
-                        FindValueRequestBody &body) {
+auto Deserialize(BufferReader const &buffer, FindValueRequestBody &body)
+    -> std::size_t {
   return Deserialize(buffer, body.value_key_);
 }
 
@@ -267,8 +272,8 @@ void Serialize(FindValueResponseBody const &body, Buffer &b) {
   Serialize(body.data_, b);
 }
 
-std::size_t Deserialize(BufferReader const &buffer,
-                        FindValueResponseBody &body) {
+auto Deserialize(BufferReader const &buffer, FindValueResponseBody &body)
+    -> std::size_t {
   return Deserialize(buffer, body.data_);
 }
 
@@ -278,13 +283,11 @@ void Serialize(StoreValueRequestBody const &body, Buffer &b) {
   Serialize(body.data_value_, b);
 }
 
-std::size_t Deserialize(BufferReader const &buffer,
-                        StoreValueRequestBody &body) {
+auto Deserialize(BufferReader const &buffer, StoreValueRequestBody &body)
+    -> std::size_t {
   auto consumed = Deserialize(buffer, body.data_key_);
   consumed += Deserialize(buffer.subspan(consumed), body.data_value_);
   return consumed;
 }
 
-}  // namespace kademlia
-}  // namespace p2p
-}  // namespace blocxxi
+} // namespace blocxxi::p2p::kademlia

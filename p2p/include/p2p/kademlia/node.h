@@ -1,20 +1,22 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #pragma once
 
+#include "p2p/blocxxi_p2p_export.h"
 #include <chrono>
 #include <string>
+#include <utility>
 
 #include <crypto/hash.h>
-#include <p2p/kademlia/parameters.h>
+#include <p2p/blocxxi_p2p_api.h>
 #include <p2p/kademlia/endpoint.h>
+#include <p2p/kademlia/parameters.h>
 
-namespace blocxxi {
-namespace p2p {
-namespace kademlia {
+namespace blocxxi::p2p::kademlia {
 
 /*!
  * @brief Represents a Kademlia node or a remote peer in the kademlia P2P
@@ -32,14 +34,13 @@ namespace kademlia {
  * The enode url scheme is used by the Node discovery protocol and can be used
  * in the bootstrap nodes argument to the Engine AddBootsrapNode() method.
  */
-class Node {
- public:
+class BLOCXXI_P2P_API Node {
+public:
   /// @name Type shortcuts
   //@{
   using IdType = blocxxi::crypto::Hash160;
   //@}
 
- public:
   /// @name Constructors etc.
   //@{
   Node() = default;
@@ -47,7 +48,7 @@ class Node {
   /*!
    * @brief Create a Node object from the given id, IP address and port number.
    *
-   * @param [in] id the 160 bit hash used as an ID for this node. Ensuring
+   * @param [in] node_id the 160 bit hash used as an ID for this node. Ensuring
    * randomness of the id is important for the proper working of the kademlia
    * P2P network.
    * @param [in] ip_address an IPv4 or IPv6 numeric IP address. Host names are
@@ -55,28 +56,32 @@ class Node {
    * @param [in] port_number the UDP discovery port number for this node's
    * endpoint.
    */
-  Node(IdType const &id, std::string const &ip_address,
-       unsigned short port_number)
-      : id_{id}, endpoint_{ip_address, port_number} {}
+  Node(
+      IdType node_id, std::string const &ip_address, unsigned short port_number)
+      : node_id_{std::move(node_id)}, endpoint_{ip_address, port_number} {
+  }
 
   /*!
    * @brief Create a Node object from the given id and endpoint.
    *
-   * @param [in] id id the 160 bit hash used as an ID for this node. Ensuring
-   * randomness of the id is important for the proper working of the kademlia
-   * P2P network.
-   * @param [in] ep UDP discovery and P2P RPC endpoint.
+   * @param [in] node_id id the 160 bit hash used as an ID for this node.
+   * Ensuring randomness of the id is important for the proper working of the
+   * kademlia P2P network.
+   * @param [in] endpoint UDP discovery and P2P RPC endpoint.
    */
-  Node(IdType const &id, IpEndpoint const &ep) : id_(id), endpoint_(ep) {}
+  Node(IdType node_id, IpEndpoint endpoint)
+      : node_id_(std::move(node_id)), endpoint_(std::move(endpoint)) {
+  }
 
   /// Copy constructor.
-  Node(const Node &other) : id_(other.id_),
-                            endpoint_(other.endpoint_),
-                            failed_requests_count_(other.failed_requests_count_),
-                            last_seen_time_(other.last_seen_time_) {}
+  Node(const Node &other)
+      : node_id_(other.node_id_), endpoint_(other.endpoint_),
+        failed_requests_count_(other.failed_requests_count_),
+        last_seen_time_(other.last_seen_time_) {
+  }
 
   /// Assignment.
-  Node &operator=(Node const &rhs) {
+  auto operator=(Node const &rhs) -> Node & {
     // Effective C++ item 25 - call swap without namespace qualification
     using std::swap;
     auto tmp(rhs);
@@ -85,21 +90,22 @@ class Node {
   }
 
   /// Move constructor.
-  Node(Node &&other) noexcept : id_(std::move(other.id_)),
-                                endpoint_(std::move(other.endpoint_)),
-                                failed_requests_count_(other.failed_requests_count_),
-                                last_seen_time_(other.last_seen_time_) {
+  Node(Node &&other) noexcept
+      : node_id_(std::move(other.node_id_)),
+        endpoint_(std::move(other.endpoint_)),
+        failed_requests_count_(other.failed_requests_count_),
+        last_seen_time_(other.last_seen_time_) {
     // we don't move the url_, instead delete it
     delete other.url_;
     other.url_ = nullptr;
   }
 
   /// Move assignment.
-  Node &operator=(Node &&rhs) noexcept {
+  auto operator=(Node &&rhs) noexcept -> Node & {
     if (this != &rhs) {
       delete url_;
-      url_ = 0;
-      id_ = std::move(rhs.id_);
+      url_ = nullptr;
+      node_id_ = std::move(rhs.node_id_);
       endpoint_ = std::move(rhs.endpoint_);
       failed_requests_count_ = rhs.failed_requests_count_;
       last_seen_time_ = rhs.last_seen_time_;
@@ -108,7 +114,9 @@ class Node {
   }
 
   /// Destructor.
-  ~Node() { delete url_; };
+  ~Node() {
+    delete url_;
+  }
 
   /*!
    * @brief Create a node object from a knode URL string.
@@ -116,12 +124,12 @@ class Node {
    * @param url a valid knode URL in the form 'knode://id\@address:port'.
    * @return a node initialized with the id, and endpoint in the given url.
    */
-  static Node FromUrlString(std::string const &url);
+  static auto FromUrlString(std::string const &url) -> Node;
   //@}
 
   /// @name Operator overloads
   //@{
-  friend bool operator==(const Node &lhs, const Node &rhs) {
+  friend auto operator==(const Node &lhs, const Node &rhs) -> bool {
     return (lhs.Id() == rhs.Id()) || (lhs.Endpoint() == rhs.Endpoint());
   }
   //@}
@@ -130,64 +138,80 @@ class Node {
   //@{
 
   /// The node ID.
-  IdType const &Id() const { return id_; }
+  auto Id() const -> IdType const & {
+    return node_id_;
+  }
 
   /// The node endpoint (addres/port).
-  IpEndpoint const &Endpoint() const { return endpoint_; }
+  auto Endpoint() const -> IpEndpoint const & {
+    return endpoint_;
+  }
 
   /// The number of times this node failed to respond timely to communication
   /// requests. After NODE_FAILED_COMMS_BEFORE_STALE failures, the node is
   /// marked as stale.
-  int FailuresCount() const { return failed_requests_count_; }
+  auto FailuresCount() const -> int {
+    return failed_requests_count_;
+  }
 
   /// Check if this node is stale.
-  bool IsStale() const {
+  auto IsStale() const -> bool {
     return failed_requests_count_ == NODE_FAILED_COMMS_BEFORE_STALE;
   }
 
   /// Check if this node is questionable. A node becomes questionable if it has
   /// not been active for more than NODE_INACTIVE_TIME_BEFORE_QUESTIONABLE.
-  bool IsQuestionable() const {
-    return (std::chrono::steady_clock::now() - last_seen_time_)
-        > NODE_INACTIVE_TIME_BEFORE_QUESTIONABLE;
+  auto IsQuestionable() const -> bool {
+    return (std::chrono::steady_clock::now() - last_seen_time_) >
+           NODE_INACTIVE_TIME_BEFORE_QUESTIONABLE;
   }
 
   /// Return the distance from this node to the given node.
-  IdType DistanceTo(Node const &node) const { return DistanceTo(node.Id()); }
+  auto DistanceTo(Node const &node) const -> IdType {
+    return DistanceTo(node.Id());
+  }
 
   /// Return the distance from this node to the given ID.
-  IdType DistanceTo(blocxxi::crypto::Hash160 const &hash) const {
-    return id_ ^ hash;
+  auto DistanceTo(blocxxi::crypto::Hash160 const &hash) const -> IdType {
+    return node_id_ ^ hash;
   }
 
   /// Return the number 0 <= n < 160 where 2**n <= distance(a, b) < 2**(n+1), or
   ///-1 if the two nodes have the same ID.
   /// The value that is returned is the number trailing bits after the common
   /// prefix of a and b. If the first bits are different, that would be 159.
-  int LogDistanceTo(Node const &node) const { return LogDistanceTo(node.Id()); }
+  auto LogDistanceTo(Node const &node) const -> size_t {
+    return LogDistanceTo(node.Id());
+  }
 
   /// @see LogDistance(Node const &)
-  int LogDistanceTo(blocxxi::crypto::Hash160 const &hash) const;
+  auto LogDistanceTo(blocxxi::crypto::Hash160 const &hash) const -> size_t;
   //@}
 
   /// @name Node state management
   //@{
   /// Increment the number of failed communications with this node.
-  void IncFailuresCount() { ++failed_requests_count_; }
+  void IncFailuresCount() {
+    ++failed_requests_count_;
+  }
   //@}
 
   /// @name Serialization support
   //@{
-  IdType &Id() { return id_; }
-  IpEndpoint &Endpoint() { return endpoint_; }
+  auto Id() -> IdType & {
+    return node_id_;
+  }
+  auto Endpoint() -> IpEndpoint & {
+    return endpoint_;
+  }
   //@}
 
   /// Return a string representation of this node for debugging.
-  std::string const &ToString() const;
+  auto ToString() const -> std::string const &;
 
- private:
+private:
   /// The node ID (Hash 160)
-  IdType id_;
+  IdType node_id_;
   /// The node endpoint (address/port of its corresponding peer).
   IpEndpoint endpoint_;
 
@@ -207,36 +231,38 @@ class Node {
   std::chrono::steady_clock::time_point last_seen_time_;
 };
 
-inline Node::IdType Distance(Node const &a, Node const &b) {
-  return a.DistanceTo(b);
+inline auto Distance(Node const &first_node, Node const &second_node)
+    -> Node::IdType {
+  return first_node.DistanceTo(second_node);
 }
 
-inline Node::IdType Distance(Node const &node,
-                             blocxxi::crypto::Hash160 const &hash) {
+inline auto Distance(Node const &node, blocxxi::crypto::Hash160 const &hash)
+    -> Node::IdType {
   return node.DistanceTo(hash);
 }
 
-inline Node::IdType Distance(Node::IdType const &ida, Node::IdType const &idb) {
+inline auto Distance(Node::IdType const &ida, Node::IdType const &idb)
+    -> Node::IdType {
   return ida ^ idb;
 }
 
-inline int LogDistance(Node const &a, Node const &b) {
-  return a.LogDistanceTo(b);
+inline auto LogDistance(Node const &first_node, Node const &second_node)
+    -> size_t {
+  return first_node.LogDistanceTo(second_node);
 }
-inline int LogDistance(const Node &node, blocxxi::crypto::Hash160 const &hash) {
+inline auto LogDistance(const Node &node, blocxxi::crypto::Hash160 const &hash)
+    -> size_t {
   return node.LogDistanceTo(hash);
 }
 
-inline bool operator!=(const Node &lhs, const Node &rhs) {
+inline auto operator!=(const Node &lhs, const Node &rhs) -> bool {
   return !(lhs == rhs);
 }
 
 /// Dump the url string of the node to the stream.
-inline std::ostream &operator<<(std::ostream &out, Node const &node) {
+inline auto operator<<(std::ostream &out, Node const &node) -> std::ostream & {
   out << node.ToString();
   return out;
 }
 
-}  // namespace kademlia
-}  // namespace p2p
-}  // namespace blocxxi
+} // namespace blocxxi::p2p::kademlia

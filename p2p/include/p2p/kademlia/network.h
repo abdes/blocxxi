@@ -1,23 +1,23 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #pragma once
 
 #include <memory>
 
 #include <boost/asio/io_context.hpp>
+#include <utility>
 
-#include <common/assert.h>
-#include <common/logging.h>
+// #include <common/assert.h>
+#include <logging/logging.h>
 #include <p2p/kademlia/channel.h>
 #include <p2p/kademlia/message_serializer.h>
 #include <p2p/kademlia/response_dispatcher.h>
 
-namespace blocxxi {
-namespace p2p {
-namespace kademlia {
+namespace blocxxi::p2p::kademlia {
 
 /*!
  * @brief The Network class encapsulates the communication channels (IPv4 and
@@ -30,8 +30,19 @@ namespace kademlia {
  * @tparam TMessageSerializer message serialization type.
  */
 template <typename TChannel, typename TMessageSerializer>
-class Network : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
- public:
+class Network : asap::logging::Loggable<Network<TChannel, TMessageSerializer>> {
+public:
+  /// The logger id used for logging within this class.
+  static constexpr const char *LOGGER_NAME = "p2p-kademlia";
+
+  // We need to import the internal logger retrieval method symbol in this
+  // context to avoid g++ complaining about the method not being declared before
+  // being used. THis is due to the fact that the current class is a template
+  // class and that method does not take any template argument that will enable
+  // the compiler to resolve it unambiguously.
+  using asap::logging::Loggable<Network<TChannel,
+      TMessageSerializer>>::internal_log_do_not_use_read_comment;
+
   /// @name Type shortcuts
   //@{
   using EndpointType = IpEndpoint;
@@ -44,7 +55,6 @@ class Network : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
       EndpointType const &sender, BufferReader const &buffer)>;
   //@}
 
- public:
   /// @name Constructors, etc.
   //@{
   /*!
@@ -59,30 +69,31 @@ class Network : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
    * @param [in] chan_ipv6 channel to be used for communication over IPv4.
    */
   Network(boost::asio::io_context &io_context,
-          std::unique_ptr<TMessageSerializer> message_serializer,
-          std::unique_ptr<TChannel> chan_ipv4,
-          std::unique_ptr<TChannel> chan_ipv6)
+      std::unique_ptr<TMessageSerializer> message_serializer,
+      std::unique_ptr<TChannel> chan_ipv4,
+      std::unique_ptr<TChannel> chan_ipv6 = {})
       : io_context_(io_context),
         message_serializer_(std::move(message_serializer)),
-        chan_ipv4_(std::move(chan_ipv4)),
-        chan_ipv6_(std::move(chan_ipv6)),
+        chan_ipv4_(std::move(chan_ipv4)), chan_ipv6_(std::move(chan_ipv6)),
         response_dispatcher_(io_context) {
     ASLOG(debug, "Creating Network DONE at '{}' and '{}'",
-          chan_ipv4_->LocalEndpoint().ToString(),
-          chan_ipv6_->LocalEndpoint().ToString());
-  };
+        chan_ipv4_->LocalEndpoint().ToString(),
+        chan_ipv6_ ? chan_ipv6_->LocalEndpoint().ToString() : "NO-IPV6");
+  }
 
   /// Not copyable.
   Network(Network const &) = delete;
   /// Not copyable.
-  Network &operator=(Network const &) = delete;
+  auto operator=(Network const &) -> Network & = delete;
 
   /// Default trivial move constructor.
-  Network(Network &&) = default;
+  Network(Network &&) noexcept = default;
   /// Default trivial assignment constructor.
-  Network &operator=(Network &&) = default;
+  auto operator=(Network &&) noexcept -> Network & = default;
 
-  ~Network() { ASLOG(debug, "Destroy Network"); }
+  ~Network() {
+    ASLOG(debug, "Destroy Network");
+  }
   //@}
 
   /*!
@@ -104,8 +115,8 @@ class Network : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
    * received. It cannot be null.
    */
   void OnMessageReceived(MessageHandlerCallbackType handler) {
-    ASAP_ASSERT(handler != nullptr);
-    receive_handler_ = handler;
+    // ASAP_ASSERT(handler != nullptr);
+    receive_handler_ = std::move(handler);
   }
 
   /// Start receiving messsage from the network. MUST be called after a message
@@ -113,11 +124,13 @@ class Network : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
   /// Calling Start() multiple times has no additional effect than the first
   /// time.
   void Start() {
-    ASAP_ASSERT(receive_handler_ != nullptr);
+    // ASAP_ASSERT(receive_handler_ != nullptr);
     static auto started = false;
     if (!started) {
       ScheduleReceive(*chan_ipv4_);
-      ScheduleReceive(*chan_ipv6_);
+      if (chan_ipv6_) {
+        ScheduleReceive(*chan_ipv6_);
+      }
       started = true;
     }
   }
@@ -137,7 +150,7 @@ class Network : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
    * data.
    */
   void HandleNewResponse(EndpointType const &source, Header const &header,
-                         BufferReader const &buffer) {
+      BufferReader const &buffer) {
     response_dispatcher_.HandleResponse(source, header, buffer);
   }
 
@@ -157,8 +170,8 @@ class Network : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
    * @return A list of endpoint entries. A successful call to this function is
    * guaranteed to return a non-empty range.
    */
-  std::vector<EndpointType> ResolveEndpoint(std::string const &host,
-                                            std::string const &service) {
+  auto ResolveEndpoint(std::string const &host, std::string const &service)
+      -> std::vector<EndpointType> {
     return ChannelType::ResolveEndpoint(io_context_, host, service);
   }
 
@@ -188,10 +201,10 @@ class Network : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
    */
   template <typename Request>
   void SendConvRequest(Request const &request, EndpointType const &destination,
-                       Timer::DurationType const &timeout,
-                       OnResponseCallbackType const &on_response_received,
-                       OnErrorCallbackType const &on_error) {
-    ASLOG(debug, "SendConvRequest to {}", destination);
+      Timer::DurationType const &timeout,
+      OnResponseCallbackType const &on_response_received,
+      OnErrorCallbackType const &on_error) {
+    ASLOG(debug, "SendConvRequest to {}", destination.ToString());
     // Generate a random request/response id
     auto const correlation_id = blocxxi::crypto::Hash160::RandomHash();
     // Generate the request Buffer.
@@ -199,7 +212,8 @@ class Network : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
     ASLOG(trace, "  message serialized");
 
     auto on_message_sent = [this, correlation_id, on_response_received,
-                            on_error, timeout](std::error_code const &failure) {
+                               on_error,
+                               timeout](std::error_code const &failure) {
       // If the send fails, report to the caller.
       if (failure) {
         ASLOG(debug, "  message send failed");
@@ -247,7 +261,7 @@ class Network : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
    */
   template <typename Response>
   void SendResponse(blocxxi::crypto::Hash160 const &correlation_id,
-                    Response const &response, EndpointType const &destination) {
+      Response const &response, EndpointType const &destination) {
     auto message = message_serializer_->Serialize(response, correlation_id);
     SendMessage(message, destination, [](std::error_code const &failure) {
       if (failure) {
@@ -258,34 +272,33 @@ class Network : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
     });
   }
 
- private:
-  TChannel &GetChannelFor(IpEndpoint const &endpoint) {
+private:
+  auto GetChannelFor(IpEndpoint const &endpoint) -> TChannel & {
     return (endpoint.address_.is_v4()) ? *chan_ipv4_ : *chan_ipv6_;
   }
 
   template <typename Message, typename OnMessageSent>
   void SendMessage(Message const &message, IpEndpoint const &destination,
-                   OnMessageSent const &on_message_sent) {
+      OnMessageSent const &on_message_sent) {
     GetChannelFor(destination).AsyncSend(message, destination, on_message_sent);
   }
 
   void ScheduleReceive(TChannel &chan) {
-    chan.AsyncReceive([this, &chan](std::error_code const &failure,
-                                    IpEndpoint const &sender,
-                                    BufferReader const &buffer) {
-      // Reception failures are fatal.
-      if (!failure) {
-        receive_handler_(sender, buffer);
-      } else {
-        ASLOG(error, "{}", failure.message());
-        // TODO: figure out how to handle receive errors if needed
-        // throw std::system_error{failure};
-      }
-      ScheduleReceive(chan);
-    });
+    chan.AsyncReceive(
+        [this, &chan](std::error_code const &failure, IpEndpoint const &sender,
+            BufferReader const &buffer) {
+          // Reception failures are fatal.
+          if (!failure) {
+            receive_handler_(sender, buffer);
+          } else {
+            ASLOG(error, "{}", failure.message());
+            // TODO(Abdessattar): figure out how to handle receive errors if
+            // needed throw std::system_error{failure};
+          }
+          ScheduleReceive(chan);
+        });
   }
 
- private:
   /// Message serializer type
   using MessageSerializerType = TMessageSerializer;
 
@@ -304,6 +317,4 @@ class Network : asap::logging::Loggable<asap::logging::Id::P2P_KADEMLIA> {
   MessageHandlerCallbackType receive_handler_{nullptr};
 };
 
-}  // namespace kademlia
-}  // namespace p2p
-}  // namespace blocxxi
+} // namespace blocxxi::p2p::kademlia

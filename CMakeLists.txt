@@ -1,264 +1,275 @@
-#        Copyright The Authors 2018.
-#    Distributed under the 3-Clause BSD License.
-#    (See accompanying file LICENSE or copy at
-#   https://opensource.org/licenses/BSD-3-Clause)
+# ===-----------------------------------------------------------------------===#
+# Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+# copy at https://opensource.org/licenses/BSD-3-Clause).
+# SPDX-License-Identifier: BSD-3-Clause
+# ===-----------------------------------------------------------------------===#
 
-# We require 3.0 for modern, target-based CMake.
-# We require 3.1 for the use of CXX_STANDARD in our targets.
-# We require 3.6 for CXX_CLANG_TIDY
-# We require 3.10 for CMAKE_CXX_CPPCHECK
-if(ENABLE_CPPCHECK)
-    cmake_minimum_required(VERSION 3.10)
-else()
-    cmake_minimum_required(VERSION 3.6)
-endif()
-project(blocxxi VERSION 0.9.7 LANGUAGES CXX C)
+# ------------------------------------------------------------------------------
+# CMake basic options
+# ------------------------------------------------------------------------------
 
-# The folder that will be used when generating project files for IDEs
-# For example, Visual Studio supports folders.
-# Must set the GLOBAL property USE_FOLDERS to ON for this to work.
-set(BLOXI_IDE_FOLDER Blocxxi)
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+# It's time to move on! We require 3.14 for modern CMake with nice quality of
+# life features and simpler scripts.
+cmake_minimum_required(VERSION 3.14)
 
 # List of directories specifying a search path for CMake modules to be loaded by
-# the the include() or find_package() commands before checking the default modules
-# that come with CMake.
-list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/common/cmake)
-list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+# the the include() or find_package() commands before checking the default
+# modules that come with CMake.
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
-include(ExternalProject)
+# ------------------------------------------------------------------------------
+# Project description and (meta) information
+# ------------------------------------------------------------------------------
+
+# Get git revision
 find_package(Git REQUIRED)
-include(GNUInstallDirs)
-include(BuildHelpers)
-include(DownloadProject)
-include(FindDoxygen)
+include(GetGitRevisionDescription)
+get_git_head_revision(GIT_REFSPEC GIT_SHA1)
+string(SUBSTRING "${GIT_SHA1}" 0 12 GIT_REV)
+if(NOT GIT_SHA1)
+  set(GIT_REV "0")
+endif()
 
-# detect operating system and host processor
-message(STATUS "== We are on a ${CMAKE_SYSTEM_NAME} system")
-message(STATUS "== The host processor is ${CMAKE_HOST_SYSTEM_PROCESSOR}")
-message(STATUS "== CMAKE_CXX_COMPILER_ID is ${CMAKE_CXX_COMPILER_ID}")
-message(STATUS "== CMAKE_C_COMPILER_ID is ${CMAKE_C_COMPILER_ID}")
+# Meta information about the project
+# cmake-format: off
+set(META_PROJECT_NAME        "blocxxi")
+set(META_PROJECT_DESCRIPTION "An implementation of Kademlia DHT and Blockchain in C++")
+set(META_AUTHOR_ORGANIZATION "The Authors")
+set(META_GITHUB_REPO         "https://github.com/abdes/blocxxi")
+set(META_AUTHOR_DOMAIN       "https://github.com/abdes")
+set(META_AUTHOR_MAINTAINER   "Abdessattar Sassi")
+set(META_VERSION_MAJOR       "0")
+set(META_VERSION_MINOR       "10")
+set(META_VERSION_PATCH       "0")
+set(META_VERSION_REVISION    "${GIT_REV}")
+set(META_VERSION             "${META_VERSION_MAJOR}.${META_VERSION_MINOR}.${META_VERSION_PATCH}")
+set(META_NAME_VERSION        "${META_PROJECT_NAME} v${META_VERSION} (${META_VERSION_REVISION})")
+set(META_CMAKE_INIT_SHA      "${GIT_REV}")
+# cmake-format: on
+
+string(MAKE_C_IDENTIFIER ${META_PROJECT_NAME} META_PROJECT_ID)
+string(TOUPPER ${META_PROJECT_ID} META_PROJECT_ID)
+
+# Determine if this is built as a subproject  or if it is the master project.
+if(NOT DEFINED ${META_PROJECT_ID}_IS_MASTER_PROJECT)
+  set(${META_PROJECT_ID}_IS_MASTER_PROJECT OFF)
+  if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+    set(${META_PROJECT_ID}_IS_MASTER_PROJECT ON)
+  endif()
+endif()
+
+message(
+  "=> Project : ${META_NAME_VERSION} (IS_MASTER: ${${META_PROJECT_ID}_IS_MASTER_PROJECT})"
+)
+
+# ------------------------------------------------------------------------------
+# Project configuration options
+# ------------------------------------------------------------------------------
+
+# Project options
+# cmake-format: off
+option(BUILD_SHARED_LIBS        "Build shared instead of static libraries."              ON)
+option(ASAP_BUILD_TESTS         "Build tests."                                           OFF)
+option(ASAP_BUILD_EXAMPLES      "Build examples."                                        OFF)
+option(ASAP_WITH_GOOGLE_ASAN    "Instrument code with address sanitizer"                 OFF)
+option(ASAP_WITH_GOOGLE_UBSAN   "Instrument code with undefined behavior sanitizer"      OFF)
+option(ASAP_WITH_GOOGLE_TSAN    "Instrument code with thread sanitizer"                  OFF)
+option(ASAP_WITH_VALGRIND       "Builds targets with valgrind profilers added"           OFF)
+# cmake-format: on
+
+# ------------------------------------------------------------------------------
+# Project Declaration
+# ------------------------------------------------------------------------------
+
+# Generate folders for IDE targets (e.g., VisualStudio solutions)
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+set(IDE_FOLDER "${META_PROJECT_NAME}")
+
+# Declare project
+project(
+  ${META_PROJECT_NAME}
+  VERSION ${META_VERSION}
+  DESCRIPTION ${META_PROJECT_DESCRIPTION}
+  HOMEPAGE_URL ${META_GITHUB_REPO}
+  LANGUAGES C CXX)
+
+# Set output directories
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
+# Define the following alias variables used by the common cmake functions
+set(${PROJECT_NAME}_BUILD_TESTS ${ASAP_BUILD_TESTS})
+set(${PROJECT_NAME}_BUILD_EXAMPLES ${ASAP_BUILD_EXAMPLES})
+
+# ------------------------------------------------------------------------------
+# Additional CMake modules
+# ------------------------------------------------------------------------------
+
+# Register general cmake commands
+include(AsapTargets)
+include(BuildHelpers)
+include(GenerateExportHeader)
+include(CompileOptions)
+
+# Override the ${META_PROJECT_ID}_INSTALL option to ON/OFF to respectively force
+# install/no-install behavior for this project. This is particularly useful when
+# this project is used as a sub-project and the user publicly depends on it and
+# wants to have a self-contained install.
+include(AsapInstall)
 
 # The default build type provided by CMake is to include no compiler flags for
 # optimization. For some projects you may want to set a default build type so
 # that you do not have to remember to set it.
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-    message("Setting build type to 'RelWithDebInfo' as none was specified.")
-    set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build." FORCE)
-    # Set the possible values of build type for cmake-gui
-    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
-            "MinSizeRel" "RelWithDebInfo")
+  message(
+    STATUS "Setting build type to 'RelWithDebInfo' as none was specified.")
+  set(CMAKE_BUILD_TYPE
+      RelWithDebInfo
+      CACHE STRING "Choose the type of build." FORCE)
+  # Set the possible values of build type for cmake-gui
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
+                                               "MinSizeRel" "RelWithDebInfo")
 endif()
 
+# If no contract mode is specified, we set the contract mode based on the build
+# type.
+if(NOT OPTION_CONTRACT_MODE)
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(OPTION_CONTRACT_MODE
+        "AUDIT"
+        CACHE STRING "Contract mode for assertions (common module).")
+  elseif(CMAKE_BUILD_TYPE STREQUAL RelWithDebInfo)
+    set(OPTION_CONTRACT_MODE
+        "DEFAULT"
+        CACHE STRING "Contract mode for assertions (common module).")
+  else()
+    set(OPTION_CONTRACT_MODE
+        "OFF"
+        CACHE STRING "Contract mode for assertions (common module).")
+  endif()
+endif()
+message(
+  "-- Building for ${CMAKE_BUILD_TYPE} with OPTION_CONTRACT_MODE : ${OPTION_CONTRACT_MODE}"
+)
 
-# When wanting to specify a particular C++ version, the recommended way to do
-# this with CMake 3.1 and later is to use the CXX_STANDARD, CXX_STANDARD_REQUIRED
-# and CXX_EXTENSIONS target properties, or their variable equivalents to specify
-# target defaults. Full details can be found at:
-# (https://crascit.com/2015/03/28/enabling-cxx11-in-cmake/)
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+# ------------------------------------------------------------------------------
+# RPATH setup
+# ------------------------------------------------------------------------------
 
-# Include our own module path. This makes #include "x.h"
-# work in project subfolders to include the main directory headers.
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-
-
-# This defines the basic input (src) and output (lib & include) directories.
-set(SRCROOT "${CODEROOT}/src")
-set(SRCINCLUDEROOT "${CODEROOT}/include")
-set(DOXTOSRCDIR "../src")
-
-
-# Google Test integration into the build
-option(BLOXI_USE_GOOGLETEST_HEAD
-        "If ON, we will download HEAD from googletest at config time." OFF)
-
-option(BLOXI_RUN_TESTS "If ON, tests will be run." OFF)
-
-set(BLOXI_RUN_TESTS ON)
-if (${BLOXI_RUN_TESTS})
-    # enable CTest.  This will set BUILD_TESTING to ON unless otherwise specified
-    # on the command line
-    include(CTest)
-    enable_testing()
-    include(External_googletest)
-endif ()
-
-if( CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT )
-    message(STATUS "Setting default CMAKE_INSTALL_PREFIX path to ${CMAKE_BINARY_DIR}/install")
-    set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE STRING "The path to use for make install" FORCE)
+if(APPLE)
+  set(CMAKE_MACOSX_RPATH ON)
 endif()
 
+# Set runtime path
+set(CMAKE_SKIP_BUILD_RPATH FALSE) # Add absolute path to all dependencies for
+                                  # BUILD
+set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
 
-# CryptoPP integration
-SET(BUILD_SHARED OFF)
-SET(BUILD_TESTING OFF)
-include(External_cryptopp)
+if(NOT SYSTEM_DIR_INSTALL)
+  set(CMAKE_INSTALL_RPATH "$ORIGIN/${ASAP_INSTALL_LIB}")
+endif()
+
+# ---- Add dependencies via CPM ----
+# see https://github.com/TheLartians/CPM.cmake for more info
+
+include(cmake/CPM.cmake)
+# We make sure that we have 'third_party' in the name so that the targets get
+# excluded from the generated target lists for the various tools.
+set(FETCHCONTENT_BASE_DIR ${CMAKE_BINARY_DIR}/third_party_deps)
+
+# ---- Speedup build using ccache (needs CPM) ----
+include(cmake/FasterBuild.cmake)
+
+# ------------------------------------------------------------------------------
+# Testing
+# ------------------------------------------------------------------------------
+
+if(ASAP_BUILD_TESTS)
+  include(GoogleSanitizers)
+  include(CodeCoverage)
+  # Enable this target when the project has test cases
+  asap_add_code_coverage_all_targets()
+  include(Valgrind)
+
+  cpmaddpackage(
+    NAME
+    googletest
+    GIT_TAG
+    main
+    GITHUB_REPOSITORY
+    google/googletest
+    OPTIONS
+    "gtest_force_shared_crt ON"
+    "INSTALL_GTEST OFF")
+
+  include(GoogleTest)
+  include(CTest)
+endif()
+
+# ------------------------------------------------------------------------------
+# Top level code generation
+# ------------------------------------------------------------------------------
+
+# Generate version-header
+configure_file(templates/version.h.in
+               ${CMAKE_CURRENT_BINARY_DIR}/include/asap/asap-version.h)
+
+# Generate a clangd configuration file that points to the compilation database
+# in the cmake build directory. We need to do this as the build directory is
+# different for every preset and can be different as well when the user decides
+# to build somewhere else. Currently we cannot configure this properly in vscode
+# settings. See https://github.com/clangd/vscode-clangd/issues/48
+configure_file(.clangd.in ${CMAKE_SOURCE_DIR}/.clangd @ONLY)
+
+# ------------------------------------------------------------------------------
+# Documentation - doxygen, sphinx/breathe/exhale
+# ------------------------------------------------------------------------------
+
+# Doxygen
+set(DOXYGEN_BUILD_DIR "${CMAKE_BINARY_DIR}/dox")
+include(DoxGeneration)
+
+# Sphinx/breathe/exhale
+set(SPHINX_BUILD_DIR "${CMAKE_BINARY_DIR}/sphinx")
+include(SphinxGeneration)
+
+# ==============================================================================
+# Third party modules
+# ==============================================================================
 
 add_subdirectory(third_party)
 
-# ------------------------------------------------------------------------------
-# Clang Tidy
-# ------------------------------------------------------------------------------
-
-if(ENABLE_CLANG_TIDY)
-
-    find_program(
-        CLANG_TIDY_EXE
-        NAMES "clang-tidy" "clang-tidy-4.0"
-        DOC "Path to clang-tidy executable")
-
-    if(NOT CLANG_TIDY_EXE)
-        message(FATAL_ERROR "unable to locate clang-tidy")
-        macro(set_tidy_target_properties TARGET_NAME)
-        endmacro()
-
-    else ()
-
-        list(APPEND CLANG_TIDY_BIN_ARGS
-            -header-filter=.*
-            -checks=*,-clang-analyzer-alpha.*
-        )
-
-        macro(set_tidy_target_properties TARGET_NAME)
-            set_target_properties(
-                ${TARGET_NAME} PROPERTIES
-                CXX_CLANG_TIDY ${CLANG_TIDY_EXE} ${RUN_CLANG_TIDY_BIN_ARGS})
-        endmacro()
-
-    endif ()
-
-else()
-    macro(set_tidy_target_properties TARGET_NAME)
-    endmacro()
-endif()
-
-
-# ------------------------------------------------------------------------------
-# CppCheck
-# ------------------------------------------------------------------------------
-
-if(ENABLE_CPPCHECK)
-
-    list(APPEND CPPCHECK_CMAKE_ARGS
-        "-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}"
-    )
-
-    ExternalProject_Add(
-        cppcheck
-        GIT_REPOSITORY      https://github.com/danmar/cppcheck.git
-        GIT_TAG             1.84
-        GIT_SHALLOW         1
-        CMAKE_ARGS          ${CPPCHECK_CMAKE_ARGS}
-        PREFIX              ${CMAKE_BINARY_DIR}/external/cppcheck/prefix
-        TMP_DIR             ${CMAKE_BINARY_DIR}/external/cppcheck/tmp
-        STAMP_DIR           ${CMAKE_BINARY_DIR}/external/cppcheck/stamp
-        DOWNLOAD_DIR        ${CMAKE_BINARY_DIR}/external/cppcheck/download
-        SOURCE_DIR          ${CMAKE_BINARY_DIR}/external/cppcheck/src
-        BINARY_DIR          ${CMAKE_BINARY_DIR}/external/cppcheck/build
-    )
-    set(CMAKE_CXX_CPPCHECK "${CMAKE_BINARY_DIR}/bin/cppcheck")
-    macro(set_cppcheck_command)
-        list(APPEND CMAKE_CXX_CPPCHECK
-            "--enable=all"
-            "--language=c++"
-            "--std=c++14"
-            "--error-exitcode=1"
-            "--inline-suppr"
-            "--suppress=*:*_build*"
-            "--suppress=*:*third_party*"
-            "--suppress=unmatchedSuppression:*"
-        )
-    endmacro()
-
-else()
-    macro(set_cppcheck_command)
-    endmacro()
-endif()
-
-
-# ------------------------------------------------------------------------------
-# Google Sanitizers
-# ------------------------------------------------------------------------------
-
-if(ENABLE_ASAN)
-    set(ASAN_COMPILER_FLAGS "-g -O1 -fuse-ld=gold -fno-omit-frame-pointer -fsanitize=address -fsanitize=leak")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ASAN_COMPILER_FLAGS}")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${ASAN_COMPILER_FLAGS}")
-endif()
-
-if(ENABLE_USAN)
-    set(USAN_COMPILER_FLAGS "-fuse-ld=gold -fsanitize=undefined")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${USAN_COMPILER_FLAGS}")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${USAN_COMPILER_FLAGS}")
-endif()
-
-if(ENABLE_TSAN)
-    set(TSAN_COMPILER_FLAGS "-fuse-ld=gold -fsanitize=thread")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TSAN_COMPILER_FLAGS}")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${TSAN_COMPILER_FLAGS}")
-endif()
-
-# ------------------------------------------------------------------------------
-# Valgrind
-# ------------------------------------------------------------------------------
-
-find_program( MEMORYCHECK_COMMAND valgrind )
-set(MEMORYCHECK_COMMAND_OPTIONS "${MEMORYCHECK_COMMAND_OPTIONS} --leak-check=full")
-set(MEMORYCHECK_COMMAND_OPTIONS "${MEMORYCHECK_COMMAND_OPTIONS} --track-fds=yes")
-set(MEMORYCHECK_COMMAND_OPTIONS "${MEMORYCHECK_COMMAND_OPTIONS} --trace-children=yes")
-set(MEMORYCHECK_COMMAND_OPTIONS "${MEMORYCHECK_COMMAND_OPTIONS} --error-exitcode=1")
-
-
-# Doxygen related macros and commands:
-set(DOXROOT "${CMAKE_BINARY_DIR}/dox")
-
-macro(configure_doxyfile TARGET_NAME TARGET_TITLE TARGET_BRIEF TARGET_INPUT_PATH)
-    if (EXISTS "${CMAKE_SOURCE_DIR}/Doxyfile.in")
-        set(DOXY_TARGET_OUTPUT_DIR "${TARGET_NAME}")
-        set(DOXY_TARGET_ROOT_DIR "") # ${DOXTOSRCDIR} - set(DOXTOSRCDIR "../src")
-        set(DOXY_TARGET_NAME "${TARGET_NAME}")
-        set(DOXY_TARGET_TITLE "${TARGET_TITLE}")
-        set(DOXY_TARGET_BRIEF "${TARGET_BRIEF}")
-        set(DOXY_TARGET_INPUT_PATH "${TARGET_INPUT_PATH}")
-        set(DOXY_TARGET_FILE_VERSION_FILTER "\"${PRINT_FILE_DATE_COMMAND_STR} \"")
-        if (NOT EXISTS "${DOXROOT}/${DOXY_TARGET_OUTPUT_DIR}")
-            file(MAKE_DIRECTORY "${DOXROOT}/${DOXY_TARGET_OUTPUT_DIR}")
-        endif ()
-        configure_file("${CMAKE_SOURCE_DIR}/Doxyfile.in" "${DOXROOT}/${TARGET_NAME}_Doxyfile" @ONLY)
-        message(STATUS "== Copy Doxyfile.in --> '${DOXROOT}/${TARGET_NAME}_Doxyfile'")
-    else ()
-        message(STATUS "WARNING : The '${CMAKE_SOURCE_DIR}/Doxyfile.in' file does not exist!")
-    endif ()
-endmacro(configure_doxyfile)
-
-if (DOXYGEN_FOUND)
-    message(STATUS "Doxygen package was found.")
-    add_custom_target(dox)
-    macro(add_doxygen_target TARGET_NAME)
-        add_custom_target(${TARGET_NAME}_dox
-                ${CMAKE_COMMAND} -E remove -f "${TARGET_NAME}_Doxyfile.out"
-                COMMAND ${CMAKE_COMMAND} -E copy "${TARGET_NAME}_Doxyfile" "${TARGET_NAME}_Doxyfile.out"
-                COMMAND ${DOXYGEN_EXECUTABLE} "${TARGET_NAME}_Doxyfile.out"
-                COMMAND ${CMAKE_COMMAND} -E remove -f "${TARGET_NAME}_Doxyfile.out"
-                WORKING_DIRECTORY "${DOXROOT}" VERBATIM)
-        add_dependencies(dox ${TARGET_NAME}_dox)
-    endmacro()
-	set_target_properties(dox PROPERTIES EXCLUDE_FROM_ALL TRUE)
-else ()
-    message(STATUS "WARNING : Doxygen package is not available on this system!")
-    macro(add_doxygen_target TARGET_NAME)
-    endmacro()
-endif ()
-
-
+# ==============================================================================
 # Project modules
-SET(BUILD_TESTING ON)
-add_subdirectory(common)
+# ==============================================================================
+
 add_subdirectory(codec)
 add_subdirectory(crypto)
 add_subdirectory(nat)
 add_subdirectory(p2p)
-add_subdirectory(ndagent)
+
+# ==============================================================================
+# Code analyzers: clang-tidy, cppcheck, valgrind, sanitizers, etc...
+#
+# Call after sub-modules have been added so that source code files can be
+# properly collected for analysis.
+# ==============================================================================
+
+if(${META_PROJECT_ID}_IS_MASTER_PROJECT)
+  include(ClangFormat)
+  include(ClangTidy)
+
+  # Enable this target when the project has header or source files (.h or .cpp)
+  asap_setup_clang_format()
+
+  # Enable this target when the project has source files (.cpp)
+  asap_create_clang_tidy_targets()
+endif()
+
+# ==============================================================================
+# Deployment (global project files)
+# ==============================================================================
+
+asap_top_level_install()

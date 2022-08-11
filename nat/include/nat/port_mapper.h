@@ -3,26 +3,30 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_NAT_PORT_MAPPER_H_
-#define BLOCXXI_NAT_PORT_MAPPER_H_
+#pragma once
 
-#include <chrono>        // for duration
-#include <iosfwd>        // for implementation of operator<<
-#include <system_error>  // for std:;error_condition
+#include <nat/blocxxi_nat_api.h>
 
-namespace blocxxi {
-namespace nat {
+#include <chrono> // for duration
+#include <iosfwd> // for implementation of operator<<
+#include <iostream>
+#include <system_error> // for std:;error_condition
+#include <utility>
+
+namespace blocxxi::nat {
 
 /// Abstract interface for NAT port mapping methods such as UPNP, PMP, etc...
-class PortMapper {
- public:
+class BLOCXXI_NAT_API PortMapper {
+public:
   /// The possible values for the PortMappingProtocol.
   enum class Protocol { TCP, UDP };
 
-  static char const *ProtocolString(Protocol protocol) {
+  static auto ProtocolString(Protocol protocol) -> char const * {
     switch (protocol) {
-      case Protocol::TCP:return "TCP";
-      case Protocol::UDP:return "UDP";
+    case Protocol::TCP:
+      return "TCP";
+    case Protocol::UDP:
+      return "UDP";
     }
     // Only needed for compilers that complain about not all control paths
     // return a value.
@@ -33,8 +37,10 @@ class PortMapper {
   PortMapper() = default;
 
   /// Construct from known internal and external IP addresses.
-  PortMapper(std::string const &externla_ip, std::string const &internal_ip)
-      : external_ip_(externla_ip), internal_ip_(internal_ip) {}
+  PortMapper(std::string externla_ip, std::string internal_ip)
+      : external_ip_(std::move(externla_ip)),
+        internal_ip_(std::move(internal_ip)) {
+  }
 
   /// Default.
   virtual ~PortMapper() = default;
@@ -79,11 +85,9 @@ class PortMapper {
    * will be removed, unless a control point refreshes the mapping.
    * @return An error status indicating success or failure.
    */
-  virtual std::error_condition AddMapping(Protocol protocol,
-                                          unsigned short external_port,
-                                          unsigned short internal_port,
-                                          std::string const &name,
-                                          std::chrono::seconds lease_time) = 0;
+  virtual auto AddMapping(Protocol protocol, unsigned external_port,
+      unsigned internal_port, std::string const &name,
+      std::chrono::seconds lease_time) -> std::error_condition = 0;
 
   /*!
    * @brief Delete a previously instantiated port mapping.
@@ -93,34 +97,35 @@ class PortMapper {
    * @param [in] external_port the external port value of a port mapping.
    * @return An error status indicating success or failure.
    */
-  virtual std::error_condition DeleteMapping(Protocol protocol,
-                                             unsigned short external_port) = 0;
+  virtual auto DeleteMapping(Protocol protocol, unsigned external_port)
+      -> std::error_condition = 0;
 
   /// This method should return the external (Internet-facing)
   /// address of the gateway device.
-  virtual std::string const &ExternalIP() const { return external_ip_; }
+  [[nodiscard]] virtual auto ExternalIP() const -> std::string const & {
+    return external_ip_;
+  }
 
   /// This method should return the internal (lan) client address.
-  virtual std::string const &InternalIP() const { return internal_ip_; }
+  [[nodiscard]] virtual auto InternalIP() const -> std::string const & {
+    return internal_ip_;
+  }
 
   /// Should return the name of the concrete port mapping method.
   /// This is used for logging.
-  virtual std::string ToString() const = 0;
+  [[nodiscard]] virtual auto ToString() const -> std::string = 0;
 
- protected:
+protected:
   std::string external_ip_;
   std::string internal_ip_;
 };
 
-/// Send the string representation of the protocol constant to the 
+/// Send the string representation of the protocol constant to the
 /// output stream.
-inline std::ostream &operator<<(std::ostream &out,
-                                PortMapper::Protocol protocol) {
+inline auto operator<<(std::ostream &out, PortMapper::Protocol protocol)
+    -> std::ostream & {
   out << PortMapper::ProtocolString(protocol);
   return out;
 }
 
-}  // namespace nat
-}  // namespace blocxxi
-
-#endif  // BLOCXXI_NAT_PORT_MAPPER_H_
+} // namespace blocxxi::nat

@@ -1,24 +1,24 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #include <p2p/kademlia/message_serializer.h>
 
-namespace blocxxi {
-namespace p2p {
-namespace kademlia {
+namespace blocxxi::p2p::kademlia {
 
-MessageSerializer::MessageSerializer(Node::IdType const &my_id)
-    : my_id_(my_id) {}
+MessageSerializer::MessageSerializer(Node::IdType my_id)
+    : my_id_(std::move(my_id)) {
+}
 
-Header MessageSerializer::MakeHeader(Header::MessageType const &type,
-                                     blocxxi::crypto::Hash160 const &token) {
+auto MessageSerializer::MakeHeader(Header::MessageType const &type,
+    blocxxi::crypto::Hash160 const &token) -> Header {
   return Header{Header::Version::V1, type, my_id_, token};
 }
 
-Buffer MessageSerializer::Serialize(Header::MessageType const &type,
-                                    blocxxi::crypto::Hash160 const &token) {
+auto MessageSerializer::Serialize(Header::MessageType const &type,
+    blocxxi::crypto::Hash160 const &token) -> Buffer {
   auto const header = MakeHeader(type, token);
 
   Buffer buffer;
@@ -27,6 +27,4 @@ Buffer MessageSerializer::Serialize(Header::MessageType const &type,
   return buffer;
 }
 
-}  // namespace kademlia
-}  // namespace p2p
-}  // namespace blocxxi
+} // namespace blocxxi::p2p::kademlia

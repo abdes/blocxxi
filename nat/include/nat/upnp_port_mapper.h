@@ -3,12 +3,13 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#ifndef BLOCXXI_NAT_UPNP_PORT_MAPPER_H_
-#define BLOCXXI_NAT_UPNP_PORT_MAPPER_H_
+#pragma once
 
-#include <memory>  // for unique_ptr
+#include <nat/blocxxi_nat_api.h>
 
-#include <common/logging.h>
+#include <memory> // for unique_ptr
+
+#include <logging/logging.h>
 #include <nat/port_mapper.h>
 
 /// @name Forward declaration of types from miniupnp library.
@@ -17,33 +18,36 @@ struct UPNPUrls;
 struct IGDdatas;
 //@}
 
-namespace blocxxi {
-namespace nat {
+namespace blocxxi::nat {
 
 /*!
  * Implements port mapping following the UPNP method.
  */
-class UpnpPortMapper final : protected PortMapper,
-                             asap::logging::Loggable<asap::logging::Id::NAT> {
- public:
-  static std::unique_ptr<PortMapper> Discover(
-      std::chrono::milliseconds timeout);
+class BLOCXXI_NAT_API UpnpPortMapper final
+    : protected PortMapper,
+      asap::logging::Loggable<UpnpPortMapper> {
+public:
+  /// The logger id used for logging within this class.
+  static constexpr const char *LOGGER_NAME = "nat";
+
+  static auto Discover(std::chrono::milliseconds timeout)
+      -> std::unique_ptr<PortMapper>;
 
   /// @name Constructors etc.
   //@{
- private:
+private:
   /// Default constructor
   UpnpPortMapper();
 
- public:
+public:
   /// Not copyable
   UpnpPortMapper(UpnpPortMapper const &) = delete;
   /// Not assignable
-  UpnpPortMapper &operator=(UpnpPortMapper const &) = delete;
+  auto operator=(UpnpPortMapper const &) -> UpnpPortMapper & = delete;
   /// Move copyable
   UpnpPortMapper(UpnpPortMapper &&) noexcept;
   /// Move assignable
-  UpnpPortMapper &operator=(UpnpPortMapper &&) noexcept;
+  auto operator=(UpnpPortMapper &&) noexcept -> UpnpPortMapper &;
   /// Destructor
   ~UpnpPortMapper() override;
   /// Swap
@@ -51,21 +55,21 @@ class UpnpPortMapper final : protected PortMapper,
   //@}
 
   /// @copydoc PortMapper::AddMapping()
-  std::error_condition AddMapping(Protocol protocol,
-                                  unsigned short external_port,
-                                  unsigned short internal_port,
-                                  std::string const &name,
-                                  std::chrono::seconds lease_time) override;
+  auto AddMapping(Protocol protocol, unsigned external_port,
+      unsigned internal_port, std::string const &name,
+      std::chrono::seconds lease_time) -> std::error_condition override;
 
   /// @copydoc PortMapper::DeleteMapping()
-  std::error_condition DeleteMapping(Protocol protocol,
-                                     unsigned short external_port) override;
+  auto DeleteMapping(Protocol protocol, unsigned external_port)
+      -> std::error_condition override;
 
   /// @copydoc PortMapper::ToString()
   /// Always returns "upnp".
-  std::string ToString() const override { return "upnp"; }
+  [[nodiscard]] auto ToString() const -> std::string override {
+    return "upnp";
+  }
 
- private:
+private:
   /// miniupnpc data structure holding the UPNP device URLs
   struct UPNPUrls *urls_;
   /// miniupnpc data structure holding data about the UPNP device
@@ -81,12 +85,9 @@ class UpnpPortMapper final : protected PortMapper,
  * @return a unique_ptr to a suitable PortMapper if one has been successfully
  * made; nullptr otherwise.
  */
-inline std::unique_ptr<PortMapper> DiscoverUPNP(
-    std::chrono::milliseconds timeout) {
+inline auto DiscoverUPNP(std::chrono::milliseconds timeout)
+    -> std::unique_ptr<PortMapper> {
   return UpnpPortMapper::Discover(timeout);
 }
 
-}  // namespace nat
-}  // namespace blocxxi
-
-#endif  // BLOCXXI_NAT_UPNP_PORT_MAPPER_H_
+} // namespace blocxxi::nat
