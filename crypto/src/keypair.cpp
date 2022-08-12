@@ -52,16 +52,18 @@ void UpdateSecret(
     KeyPair::PrivateKey &hash, const PrivateKeyType &private_key) {
   // Save the private exponent part of the key in our secret part
   auto const &pex = private_key.GetPrivateExponent();
-  pex.Encode(hash.Data(), 32);
+  constexpr std::size_t c_secret_length = 32;
+  pex.Encode(hash.Data(), c_secret_length);
 }
 
 void UpdatePublic(KeyPair::PublicKey &hash, const PublicKeyType &public_key) {
   // Save the public key in our public part (which must be 64 bytes long)
-  auto q = public_key.GetPublicElement();
-  auto qx = q.x;
-  auto qy = q.y;
-  qx.Encode(hash.Data(), 32);
-  qy.Encode(hash.Data() + 32, 32);
+  auto pk_ecp = public_key.GetPublicElement();
+  auto pk_ecp_x = pk_ecp.x;
+  auto pk_ecp_y = pk_ecp.y;
+  constexpr std::size_t c_public_part_length = 32;
+  pk_ecp_x.Encode(hash.Data(), c_public_part_length);
+  pk_ecp_y.Encode(hash.Data() + c_public_part_length, c_public_part_length);
 }
 
 } // namespace
