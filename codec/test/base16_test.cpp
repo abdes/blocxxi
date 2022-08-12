@@ -168,3 +168,4 @@ TEST(Base16DecodeInvalidInputTest, ThrowsDomainError) {
 }
 
 } // namespace blocxxi::codec::hex
+ASAP_DIAGNOSTIC_POP
