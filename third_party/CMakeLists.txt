@@ -139,7 +139,7 @@ foreach(
     NAME
     boost_${boost_lib}
     GIT_TAG
-    "boost-1.79.0"
+    "boost-1.80.0"
     GITHUB_REPOSITORY
     boostorg/${boost_lib}
     OPTIONS
