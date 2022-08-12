@@ -4,8 +4,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
 
-#include <codec/base16.h>
-
 #include <utility>
 #include <vector>
 
@@ -14,6 +12,8 @@
 #include <common/compilers.h>
 #include <contract/ut/framework.h>
 #include <contract/ut/gtest.h>
+
+#include <codec/base16.h>
 
 // Disable compiler and linter warnings originating from the unit test framework
 // and for which we cannot do anything. Additionally, every TEST or TEST_X macro
