@@ -8,7 +8,7 @@
 
 #include <system_error>
 
-#include <boost/asio/io_context.hpp>
+#include <p2p/kademlia/boost_asio.h>
 
 #include <logging/logging.h>
 

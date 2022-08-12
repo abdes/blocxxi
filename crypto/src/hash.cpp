@@ -12,6 +12,10 @@ ASAP_DIAGNOSTIC_PUSH
 #if defined(ASAP_GNUC_VERSION)
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #endif
+#if defined(ASAP_CLANG_VERSION)
+#pragma clang diagnostic ignored "-Wreserved-macro-identifier"
+#pragma clang diagnostic ignored "-Wreserved-identifier"
+#endif
 #include <boost/endian/conversion.hpp>
 ASAP_DIAGNOSTIC_POP
 

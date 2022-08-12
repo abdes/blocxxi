@@ -4,6 +4,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
 
+#include <p2p/kademlia/message.h>
+
 #include <iostream>
 #include <vector>
 
@@ -11,7 +13,6 @@
 
 #include <p2p/kademlia/buffer.h>
 #include <p2p/kademlia/detail/error_impl.h>
-#include <p2p/kademlia/message.h>
 
 namespace blocxxi::p2p::kademlia {
 
@@ -215,7 +216,8 @@ inline auto operator<<(std::ostream &out, Header const &header)
 
 void Serialize(Header const &h, Buffer &b) {
   // ASLOG_MISC(debug, "serialize header version/type");
-  b.push_back(ToUnderlying(h.version_) << 4 | ToUnderlying(h.type_));
+  b.push_back(static_cast<uint8_t>(ToUnderlying(h.version_) << 4) |
+              ToUnderlying(h.type_));
   Serialize(h.source_id_, b);
   Serialize(h.random_token_, b);
 }

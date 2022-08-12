@@ -3,6 +3,9 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
+#include <gtest/gtest.h>
+
+#include <common/compilers.h>
 #include <logging/logging.h>
 
 #include <nat/nat.h>
@@ -14,8 +17,6 @@ ASAP_DIAGNOSTIC_PUSH
 #if defined(ASAP_CLANG_VERSION)
 #pragma clang diagnostic ignored "-Wglobal-constructors"
 #endif
-
-#include <gtest/gtest.h>
 
 using asap::logging::Logger;
 using asap::logging::Registry;
@@ -48,3 +49,4 @@ TEST(PortFwdTest, Example) {
     }
   }
 }
+ASAP_DIAGNOSTIC_POP

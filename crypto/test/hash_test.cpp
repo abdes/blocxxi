@@ -3,9 +3,9 @@
 //    (See accompanying file LICENSE or copy at
 //   https://opensource.org/licenses/BSD-3-Clause)
 
-#include <crypto/hash.h>
-
 #include <common/compilers.h>
+
+#include <crypto/hash.h>
 
 #if defined(ASAP_MSVC_VERSION) && !defined(ASAP_CLANG_VERSION)
 #include <iso646.h>
@@ -28,6 +28,7 @@ ASAP_DIAGNOSTIC_PUSH
 
 #include <gtest/gtest.h>
 
+// NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
 namespace blocxxi::crypto {
 
 // TODO(Abdessattar): Implement unit tests for blocxxi::crypto::Hash
@@ -187,22 +188,24 @@ TEST(HashTest, Swap) {
   ASSERT_TRUE(min == Hash<32>::Max());
   ASSERT_TRUE(max == Hash<32>::Min());
 
-  swap(min, max);
+  std::swap(min, max);
   ASSERT_TRUE(min == Hash<32>::Min());
   ASSERT_TRUE(max == Hash<32>::Max());
 }
 
 // NOLINTNEXTLINE
 TEST(HashTest, LessThenComparison) {
-  std::uint8_t small[]{1, 2, 3, 4};
-  Hash<32> hsmall(gsl::make_span(small));
+  std::array<uint8_t, 4> small{1, 2, 3, 4};
+  constexpr std::size_t c_hash_size = 32;
+  Hash<c_hash_size> hsmall(gsl::make_span(small));
   ASSERT_GE(hsmall, hsmall);
   ASSERT_LE(hsmall, hsmall);
   ASSERT_EQ(hsmall, hsmall);
 
-  uint8_t greater[4][4]{{2, 2, 3, 4}, {1, 3, 3, 4}, {1, 2, 4, 4}, {1, 2, 3, 5}};
-  for (auto val : greater) {
-    Hash<32> hval(gsl::make_span<uint8_t>(val, val + 4));
+  std::array<std::array<uint8_t, 4>, 4> greater{
+      {{{2, 2, 3, 4}}, {{1, 3, 3, 4}}, {{1, 2, 4, 4}}, {{1, 2, 3, 5}}}};
+  for (const auto &val : greater) {
+    Hash<c_hash_size> hval(gsl::make_span(val));
     ASSERT_GT(hval, hsmall);
     ASSERT_LT(hsmall, hval);
     ASSERT_GE(hval, hsmall);
@@ -248,3 +251,5 @@ TEST(HashTest, ToBitSet) {
 }
 
 } // namespace blocxxi::crypto
+// NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
+ASAP_DIAGNOSTIC_POP

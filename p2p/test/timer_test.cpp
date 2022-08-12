@@ -4,11 +4,23 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
 
+#include <common/compilers.h>
 #include <gtest/gtest.h>
 
 #include <p2p/kademlia/timer.h>
 
 namespace blocxxi::p2p::kademlia {
+
+// Disable compiler and linter warnings originating from the unit test framework
+// and for which we cannot do anything. Additionally, every TEST or TEST_X macro
+// usage must be preceded by a '// NOLINTNEXTLINE'.
+ASAP_DIAGNOSTIC_PUSH
+#if defined(ASAP_CLANG_VERSION)
+#pragma clang diagnostic ignored "-Wused-but-marked-unused"
+#pragma clang diagnostic ignored "-Wglobal-constructors"
+#pragma clang diagnostic ignored "-Wexit-time-destructors"
+#pragma clang diagnostic ignored "-Wweak-vtables"
+#endif
 
 // NOLINTNEXTLINE
 TEST(TimerTest, OneTimer) {
@@ -118,3 +130,4 @@ TEST(TimerTest, MoveAssignmentMovesTimers) {
 }
 
 } // namespace blocxxi::p2p::kademlia
+ASAP_DIAGNOSTIC_POP

@@ -6,25 +6,30 @@
 
 #pragma once
 
-#include <p2p/blocxxi_p2p_api.h>
-
 #include <chrono>
 #include <deque>
 #include <utility> // for std::pair
 
-#include <logging/logging.h>
-#include <p2p/kademlia/node.h>
-#include <p2p/kademlia/parameters.h>
-
+#include <common/compilers.h>
 ASAP_DIAGNOSTIC_PUSH
 #if defined(ASAP_GNUC_VERSION)
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #pragma GCC diagnostic ignored "-Wsign-conversion"
 #pragma GCC diagnostic ignored "-Wold-style-cast"
 #endif
+#if defined(ASAP_CLANG_VERSION)
+#pragma clang diagnostic ignored "-Wzero-as-null-pointer-constant"
+#pragma clang diagnostic ignored "-Wreserved-macro-identifier"
+#endif
 #include <boost/iterator/iterator_adaptor.hpp>
 #include <boost/iterator/reverse_iterator.hpp>
 ASAP_DIAGNOSTIC_POP
+
+#include <logging/logging.h>
+
+#include <p2p/blocxxi_p2p_api.h>
+#include <p2p/kademlia/node.h>
+#include <p2p/kademlia/parameters.h>
 
 namespace blocxxi::p2p::kademlia {
 

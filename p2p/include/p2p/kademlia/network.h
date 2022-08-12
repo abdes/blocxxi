@@ -7,12 +7,13 @@
 #pragma once
 
 #include <memory>
-
-#include <boost/asio/io_context.hpp>
 #include <utility>
+
+#include <p2p/kademlia/boost_asio.h>
 
 // #include <common/assert.h>
 #include <logging/logging.h>
+
 #include <p2p/kademlia/channel.h>
 #include <p2p/kademlia/message_serializer.h>
 #include <p2p/kademlia/response_dispatcher.h>

@@ -6,26 +6,15 @@
 
 #pragma once
 
-#include <p2p/blocxxi_p2p_api.h>
-
-#include <common/compilers.h>
-#include <logging/logging.h>
-
 #include <chrono>     // for std:: time related types
 #include <functional> // for std::function (callbacks)
 #include <map>        // for multimap storing timers<->callbacks
 
-ASAP_DIAGNOSTIC_PUSH
-#if defined(ASAP_GNUC_VERSION)
-#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
-#pragma GCC diagnostic ignored "-Woverloaded-virtual"
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#pragma GCC diagnostic ignored "-Wold-style-cast"
-#pragma GCC diagnostic ignored "-Wredundant-decls"
-#endif
-#include <boost/asio/basic_waitable_timer.hpp>
-#include <boost/asio/io_service.hpp>
-ASAP_DIAGNOSTIC_POP
+#include <p2p/kademlia/boost_asio.h>
+
+#include <logging/logging.h>
+
+#include <p2p/blocxxi_p2p_api.h>
 
 namespace blocxxi::p2p::kademlia {
 

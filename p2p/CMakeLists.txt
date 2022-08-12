@@ -45,6 +45,7 @@ asap_add_library(
   SOURCES
   # Headers
   "include/p2p/kademlia/error.h"
+  "include/p2p/kademlia/boost_asio.h"
   "include/p2p/kademlia/parameters.h"
   "include/p2p/kademlia/session.h"
   "include/p2p/kademlia/detail/error_impl.h"

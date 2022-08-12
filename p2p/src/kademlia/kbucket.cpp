@@ -4,15 +4,19 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
 
+#include <p2p/kademlia/kbucket.h>
+
 #include <random> // for random selection of one node in a bucket
 #include <set>    // for std::set (sorted nodes)
-
-#include <p2p/kademlia/kbucket.h>
 
 ASAP_DIAGNOSTIC_PUSH
 #if defined(ASAP_GNUC_VERSION)
 #pragma GCC diagnostic ignored "-Wsign-conversion"
 #pragma GCC diagnostic ignored "-Wold-style-cast"
+#endif
+#if defined(ASAP_CLANG_VERSION)
+#pragma clang diagnostic ignored "-Wextra-semi-stmt"
+#pragma clang diagnostic ignored "-Wmissing-noreturn"
 #endif
 #include <boost/multiprecision/cpp_int.hpp>
 ASAP_DIAGNOSTIC_POP

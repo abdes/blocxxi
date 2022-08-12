@@ -4,9 +4,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
 
-#include <string>
-
 #include <p2p/kademlia/detail/error_impl.h>
+
+#include <string>
 
 namespace blocxxi::p2p::kademlia::detail {
 

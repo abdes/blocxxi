@@ -7,7 +7,6 @@
 #include <map>
 #include <vector>
 
-//#include <boost/asio.hpp>
 #ifdef WIN32
 // TODO: windows includes for interfaces enumeration
 #else

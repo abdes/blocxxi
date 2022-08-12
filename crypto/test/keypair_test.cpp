@@ -5,7 +5,20 @@
 
 #include <gtest/gtest.h>
 
+#include <common/compilers.h>
+
 #include <crypto/keypair.h>
+
+// Disable compiler and linter warnings originating from the unit test framework
+// and for which we cannot do anything. Additionally, every TEST or TEST_X macro
+// usage must be preceded by a '// NOLINTNEXTLINE'.
+ASAP_DIAGNOSTIC_PUSH
+#if defined(ASAP_CLANG_VERSION)
+#pragma clang diagnostic ignored "-Wused-but-marked-unused"
+#pragma clang diagnostic ignored "-Wglobal-constructors"
+#pragma clang diagnostic ignored "-Wexit-time-destructors"
+#pragma clang diagnostic ignored "-Wweak-vtables"
+#endif
 
 namespace blocxxi::crypto {
 
@@ -24,3 +37,4 @@ TEST(KeyPairTest, NewKeyPair) {
 }
 
 } // namespace blocxxi::crypto
+ASAP_DIAGNOSTIC_POP

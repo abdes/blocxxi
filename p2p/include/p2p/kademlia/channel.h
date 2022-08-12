@@ -6,28 +6,16 @@
 
 #pragma once
 
-#include <common/compilers.h>
+#include <memory>
 
-ASAP_DIAGNOSTIC_PUSH
-#if defined(ASAP_GNUC_VERSION)
-#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
-#pragma GCC diagnostic ignored "-Woverloaded-virtual"
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#pragma GCC diagnostic ignored "-Wold-style-cast"
-#pragma GCC diagnostic ignored "-Wredundant-decls"
-#endif
-#include <boost/asio.hpp>
-ASAP_DIAGNOSTIC_POP
+#include <p2p/kademlia/boost_asio.h>
 
 // #include <common/assert.h>
 #include <logging/logging.h>
 
 #include <p2p/kademlia/buffer.h>
-#include <p2p/kademlia/endpoint.h>
-
 #include <p2p/kademlia/detail/error_impl.h>
-
-#include <memory>
+#include <p2p/kademlia/endpoint.h>
 
 namespace blocxxi::p2p::kademlia {
 

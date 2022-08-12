@@ -37,6 +37,8 @@ BLOCXXI_CRYPTO_API auto CountLeadingZeroBits(gsl::span<std::uint32_t const> buf)
 
 } // namespace detail
 
+constexpr std::size_t c_hash_align_at = 32;
+
 /*!
    Represents a N bits hash digest or any other kind of N bits sequence.
    The structure is 32-bit aligned and must be at least 32-bits wide. It
@@ -44,8 +46,9 @@ BLOCXXI_CRYPTO_API auto CountLeadingZeroBits(gsl::span<std::uint32_t const> buf)
    zero-length (size() is always > 0). It offers a number of additional
    convenience methods, such as bitwise arithemtics, comparisons etc.
  */
-template <unsigned int BITS> class Hash {
-  static_assert(BITS % 32 == 0, "Hash size in bits must be a multiple of 32");
+template <std::size_t BITS> class Hash {
+  static_assert(BITS % c_hash_align_at == 0,
+      "Hash size in bits must be a multiple of 32");
   static_assert(BITS > 0, "Hash size in bits must be greater than 0");
 
 public:
@@ -273,12 +276,12 @@ public:
   // Capacity
 
   /// The size of the hash in bytes.
-  constexpr static auto Size() -> std::size_t {
+  constexpr static auto Size() -> size_type {
     return BITS / 8;
   }
 
   /// The size of the hash in bytes.
-  constexpr static auto BitSize() -> std::size_t {
+  constexpr static auto BitSize() -> size_type {
     return BITS;
   }
 
@@ -384,7 +387,7 @@ public:
     std::bitset<BITS> bits; // [0,0,...,0]
     std::size_t shift_left = BITS;
     for (uint32_t num_part : storage_) {
-      shift_left -= 32;
+      shift_left -= c_hash_align_at;
       num_part = detail::HostToNetwork(num_part);
       std::bitset<BITS> bs_part(num_part);
       bits |= bs_part << shift_left;
@@ -392,8 +395,7 @@ public:
     return bits;
   }
 
-  [[nodiscard]] auto ToBitStringShort(std::size_t length = 32U) const
-      -> std::string {
+  [[nodiscard]] auto ToBitStringShort(size_type length) const -> std::string {
     auto truncate = false;
     if (length < BITS) {
       truncate = true;
@@ -404,6 +406,11 @@ public:
       str.append("...");
     }
     return str;
+  }
+
+  [[nodiscard]] auto ToBitStringShort() const -> std::string {
+    constexpr size_type c_default_shortened_length = 32;
+    return ToBitStringShort(c_default_shortened_length);
   }
 
 private:
@@ -423,26 +430,26 @@ private:
 /// Additional Comparison operators (not needing to be friend)
 //@{
 
-template <unsigned int BITS>
+template <std::size_t BITS>
 inline auto operator!=(const Hash<BITS> &lhs, const Hash<BITS> &rhs) -> bool {
   return !(lhs == rhs);
 }
-template <unsigned int BITS>
+template <std::size_t BITS>
 inline auto operator>(const Hash<BITS> &lhs, const Hash<BITS> &rhs) -> bool {
   return rhs < lhs;
 }
-template <unsigned int BITS>
+template <std::size_t BITS>
 inline auto operator<=(const Hash<BITS> &lhs, const Hash<BITS> &rhs) -> bool {
   return !(lhs > rhs);
 }
-template <unsigned int BITS>
+template <std::size_t BITS>
 inline auto operator>=(const Hash<BITS> &lhs, const Hash<BITS> &rhs) -> bool {
   return !(lhs < rhs);
 }
 //@}
 
 /// Bitwise XOR
-template <unsigned int BITS>
+template <std::size_t BITS>
 inline auto operator^(Hash<BITS> lhs, Hash<BITS> const &rhs) noexcept
     -> Hash<BITS> {
   return lhs.operator^=(rhs);
@@ -452,13 +459,12 @@ inline auto operator^(Hash<BITS> lhs, Hash<BITS> const &rhs) noexcept
 
 /// Exchanges the contents of one with other. Does not cause
 /// iterators and references to associate with the other container.
-template <unsigned int BITS>
-inline void swap(Hash<BITS> &lhs, Hash<BITS> &rhs) {
+template <std::size_t BITS> inline void swap(Hash<BITS> &lhs, Hash<BITS> &rhs) {
   lhs.swap(rhs);
 }
 
 /// Dump the hex-encoded contents of the hash to the stream.
-template <unsigned int BITS>
+template <std::size_t BITS>
 inline auto operator<<(std::ostream &out, Hash<BITS> const &hash)
     -> std::ostream & {
   out << hash.ToHex();
