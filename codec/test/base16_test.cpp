@@ -92,9 +92,24 @@ const std::vector<EncodeTestParams> normal_cases{
     EncodeTestParams({0x00, 0x00, 0x00, 0xEF, 0x00}, true, false, "00FE000000"),
 };
 
+auto MakeTestCaseName(
+    const testing::TestParamInfo<Base16EncodeTest::ParamType> &info) {
+  std::string name = info.param.hex_;
+  if (name.empty()) {
+    name = "_empty";
+  }
+  if (info.param.lower_case_) {
+    name += "_lc";
+  }
+  if (info.param.reverse_) {
+    name += "_r";
+  }
+  return name;
+}
+
 // NOLINTNEXTLINE
-INSTANTIATE_TEST_SUITE_P(
-    NormalCases, Base16EncodeTest, ::testing::ValuesIn(normal_cases));
+INSTANTIATE_TEST_SUITE_P(NormalCases, Base16EncodeTest,
+    ::testing::ValuesIn(normal_cases), MakeTestCaseName);
 
 // NOLINTNEXTLINE
 TEST_P(Base16EncodeTest, ProperlyEncodesBinaryData) {
@@ -103,8 +118,8 @@ TEST_P(Base16EncodeTest, ProperlyEncodesBinaryData) {
 }
 
 // NOLINTNEXTLINE
-INSTANTIATE_TEST_SUITE_P(
-    NormalCases, Base16DecodeTest, ::testing::ValuesIn(normal_cases));
+INSTANTIATE_TEST_SUITE_P(NormalCases, Base16DecodeTest,
+    ::testing::ValuesIn(normal_cases), MakeTestCaseName);
 
 // NOLINTNEXTLINE
 TEST_P(Base16DecodeTest, ProperlyDecodesHexString) {
