@@ -92,7 +92,7 @@ const std::vector<EncodeTestParams> normal_cases{
     EncodeTestParams({0x00, 0x00, 0x00, 0xEF, 0x00}, true, false, "00FE000000"),
 };
 
-auto MakeTestCaseName(
+inline auto MakeTestCaseName(
     const testing::TestParamInfo<Base16EncodeTest::ParamType> &info) {
   std::string name = info.param.hex_;
   if (name.empty()) {
