@@ -50,18 +50,18 @@ TEST(HashTest, MinIsZero) {
 // NOLINTNEXTLINE
 TEST(HashTest, MaxIsAllSetToOne) {
   auto h1 = Hash<128>::Max();
-  for (auto const &b : h1) {
+  for (const auto &b : h1) {
     ASSERT_EQ(0xFF, b);
   }
   auto h2 = Hash<512>::Max();
-  for (auto const &b : h2) {
+  for (const auto &b : h2) {
     ASSERT_EQ(0xFF, b);
   }
 }
 
 // NOLINTNEXTLINE
 TEST(HashTest, AtThrowsOutOfRange) {
-  auto const &h = Hash<32>();
+  const auto &h = Hash<32>();
   ASSERT_EQ(32 / 8, h.Size());
   for (auto i = 0U; i < Hash<32>::Size(); ++i) {
     // NOLINTNEXTLINE
@@ -218,8 +218,8 @@ TEST(HashTest, BitWiseXor) {
   constexpr std::uint8_t h1[]{1, 2, 3, 4, 5, 6, 7, 8};
   constexpr std::uint8_t h2[]{7, 0, 6, 6, 150, 65, 23, 12};
 
-  const std::uint8_t x[]{1 xor 7, 2 xor 0, 3 xor 6, 4 xor 6, 5 xor 150, 6 xor 65,
-                         7 xor 23, 8 xor 12};
+  const std::uint8_t x[]{1 xor 7, 2 xor 0, 3 xor 6, 4 xor 6, 5 xor 150,
+      6 xor 65, 7 xor 23, 8 xor 12};
 
   const auto res = Hash<64>(h1) xor Hash<64>(h2);
   ASSERT_EQ(res, Hash<64>(x));
