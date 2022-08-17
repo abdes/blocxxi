@@ -110,7 +110,7 @@ public:
   static auto ipv4(boost::asio::io_context &io_context, std::string const &host,
       std::string const &service) -> PointerType {
     try {
-      auto endpoints = ResolveEndpoint(io_context, host, service);
+      const auto endpoints = ResolveEndpoint(io_context, host, service);
 
       for (auto const &endpoint : endpoints) {
         if (endpoint.address_.is_v4()) {
@@ -146,7 +146,7 @@ public:
   static auto ipv6(boost::asio::io_context &io_context, std::string const &host,
       std::string const &service) -> PointerType {
     try {
-      auto endpoints = ResolveEndpoint(io_context, host, service);
+      const auto endpoints = ResolveEndpoint(io_context, host, service);
 
       for (auto const &endpoint : endpoints) {
         if (endpoint.address_.is_v6()) {
@@ -236,9 +236,8 @@ public:
       callback(make_error_code(std::errc::value_too_large));
     } else {
       // Copy the buffer as it has to live past the end of this call.
-      auto message_copy = std::make_shared<Buffer>(message);
-      auto on_completion = [callback, message_copy](
-                               boost::system::error_code const &failure,
+      const auto message_copy = std::make_shared<Buffer>(message);
+      auto on_completion = [callback](boost::system::error_code const &failure,
                                std::size_t /* bytes_sent */) {
         if (failure) {
           ASLOG(error, "{}", failure.message());
@@ -285,9 +284,9 @@ public:
     typename protocol_type::resolver resolver{io_context};
     // One raw endpoint (e.g. localhost) can be resolved to
     // multiple endpoints (e.g. IPv4 / IPv6 address).
-    std::vector<EndpointType> endpoints;
 
     try {
+      std::vector<EndpointType> endpoints;
       auto results_iter = resolver.resolve(host, service);
       for (decltype(results_iter) end; results_iter != end; ++results_iter) {
         // Convert from underlying_endpoint_type to endpoint_type.

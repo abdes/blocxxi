@@ -81,7 +81,7 @@ public:
   void HandleResponse(EndpointType const &sender, Header const &header,
       BufferReader const &buffer) {
     // Try to dispatch the response to its registered callback.
-    auto failure = DispatchResponse(sender, header, buffer);
+    const auto failure = DispatchResponse(sender, header, buffer);
     if (failure == UNASSOCIATED_MESSAGE_ID) {
       // Discard responses for which we have no registered callback
       ASLOG(debug, "dropping response with no registered callback");
@@ -153,7 +153,7 @@ private:
    * @return \em true if a callback was found and removed; \em false otherwise.
    */
   auto RemoveCallback(KeyType const &response_id) -> bool {
-    auto removed = callbacks_.erase(response_id);
+    const auto removed = callbacks_.erase(response_id);
     return (removed > 0);
   }
 
@@ -171,7 +171,7 @@ private:
    */
   auto DispatchResponse(EndpointType const &sender, Header const &header,
       BufferReader const &buffer) -> std::error_code {
-    auto callback = callbacks_.find(header.random_token_);
+    const auto callback = callbacks_.find(header.random_token_);
     if (callback == callbacks_.end()) {
       return detail::make_error_code(UNASSOCIATED_MESSAGE_ID);
     }

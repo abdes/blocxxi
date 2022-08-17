@@ -113,7 +113,7 @@ INSTANTIATE_TEST_SUITE_P(NormalCases, Base16EncodeTest,
 
 // NOLINTNEXTLINE
 TEST_P(Base16EncodeTest, ProperlyEncodesBinaryData) {
-  auto out = Encode(binary_, reverse_, lower_case_);
+  const auto out = Encode(binary_, reverse_, lower_case_);
   ASSERT_EQ(hex_, out);
 }
 

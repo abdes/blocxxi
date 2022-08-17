@@ -6,8 +6,6 @@
 
 #pragma once
 
-#include <memory>
-
 #include <p2p/blocxxi_p2p_api.h>
 #include <p2p/kademlia/message.h>
 

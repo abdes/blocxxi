@@ -42,12 +42,13 @@ public:
   }
 
 private:
-  StoreValueTask(KeyType const &key, DataType const &data, NetworkType &network,
+  StoreValueTask(KeyType const &key, DataType data, NetworkType &network,
       RoutingTableType &routing_table, HandlerType &&save_handler,
       std::string const &task_name)
       : BaseLookupTask(key, routing_table.FindNeighbors(key, PARALLELISM_ALPHA),
             task_name),
-        network_(network), routing_table_(routing_table), data_(data),
+        network_(network), routing_table_(routing_table),
+        data_(std::move(data)),
         save_handler_(std::forward<HandlerType>(save_handler)) {
     ASLOG(debug, "{} create store value task for '{}'", this->Name(),
         key.ToHex());
@@ -57,7 +58,7 @@ private:
     save_handler_(failure);
   }
 
-  auto GetData() const -> DataType const & {
+  [[nodiscard]] auto GetData() const -> DataType const & {
     return data_;
   }
 
@@ -120,15 +121,15 @@ private:
 
     if (header.type_ != Header::MessageType::FIND_NODE_RESPONSE) {
       ASLOG(debug, "{} unexpected find peer response (type={})", task->Name(),
-          int(header.type_));
+          static_cast<int>(header.type_));
 
       task->MarkCandidateAsInvalid(header.source_id_);
       TryToStoreValue(task);
       return;
     }
 
-    FindNodeResponseBody response;
     try {
+      FindNodeResponseBody response;
       Deserialize(buffer, response);
       task->MarkCandidateAsValid(header.source_id_);
 
@@ -158,7 +159,7 @@ private:
     if (candidates.empty()) {
       task->NotifyCaller(make_error_code(INITIAL_PEER_FAILED_TO_RESPOND));
     } else {
-      for (auto peer : candidates) {
+      for (const auto &peer : candidates) {
         SendStoreRequest(peer, task);
       }
       task->NotifyCaller(std::error_code{});
@@ -196,7 +197,7 @@ void StartStoreValueTask(KeyType const &key, TData const &data,
     TNetwork &network, TRoutingTable &routing_table, THandler &&save_handler,
     std::string const &task_name =
         StoreValueTask<THandler, TNetwork, TRoutingTable, TData>::TASK_NAME) {
-  using handler_type = typename std::decay<THandler>::type;
+  using handler_type = std::decay_t<THandler>;
   using task = StoreValueTask<handler_type, TNetwork, TRoutingTable, TData>;
 
   task::Start(key, data, network, routing_table,

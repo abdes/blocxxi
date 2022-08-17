@@ -37,7 +37,7 @@ void MakeRandomPrivateKey(PrivateKeyType &private_key) {
 void MakePrivateKeyFromSecret(
     PrivateKeyType &private_key, const KeyPair::PrivateKey &secret) {
   // Initialize the PrivateKey from the given private exponent
-  cr::Integer privateExponent(secret.Data(), KeyPair::PrivateKey::Size(),
+  const cr::Integer privateExponent(secret.Data(), KeyPair::PrivateKey::Size(),
       cr::Integer::UNSIGNED, cr::ByteOrder::BIG_ENDIAN_ORDER);
   private_key.Initialize(cr::ASN1::secp256k1(), privateExponent);
 }
@@ -58,9 +58,9 @@ void UpdateSecret(
 
 void UpdatePublic(KeyPair::PublicKey &hash, const PublicKeyType &public_key) {
   // Save the public key in our public part (which must be 64 bytes long)
-  auto pk_ecp = public_key.GetPublicElement();
-  auto pk_ecp_x = pk_ecp.x;
-  auto pk_ecp_y = pk_ecp.y;
+  const auto &pk_ecp = public_key.GetPublicElement();
+  const auto pk_ecp_x = pk_ecp.x;
+  const auto pk_ecp_y = pk_ecp.y;
   constexpr std::size_t c_public_part_length = 32;
   pk_ecp_x.Encode(hash.Data(), c_public_part_length);
   pk_ecp_y.Encode(hash.Data() + c_public_part_length, c_public_part_length);
@@ -86,9 +86,9 @@ KeyPair::KeyPair() {
 }
 
 KeyPair::KeyPair(const KeyPair::PrivateKey &secret) {
-  PrivateKeyType private_key;
   PublicKeyType public_key;
   try {
+    PrivateKeyType private_key;
     MakePrivateKeyFromSecret(private_key, secret);
     DerivePublicKey(public_key, private_key);
   } catch (std::exception &ex) {
@@ -107,7 +107,7 @@ KeyPair::KeyPair(const std::string &secret_hex) {
   PublicKeyType public_key;
   try {
     // Don't reverse so that the encoded data is big endian
-    auto secret = KeyPair::PrivateKey::FromHex(secret_hex, false);
+    const auto secret = KeyPair::PrivateKey::FromHex(secret_hex, false);
     MakePrivateKeyFromSecret(private_key, secret);
     DerivePublicKey(public_key, private_key);
   } catch (const std::exception &ex) {

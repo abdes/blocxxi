@@ -55,12 +55,12 @@ TEST(ResponseDispatcherTest, BasicOperation) {
 // NOLINTNEXTLINE
 TEST(ResponseDispatcherTest, CallbackTimeout) {
   boost::asio::io_context io_context;
-  auto dispatcher = ResponseDispatcher(io_context);
-  auto hash = KeyType::RandomHash();
   {
+    auto dispatcher = ResponseDispatcher(io_context);
+    const auto hash = KeyType::RandomHash();
     dispatcher.RegisterCallbackWithTimeout(
         hash, std::chrono::seconds(5),
-        [hash](ResponseDispatcher::EndpointType const &, Header const &,
+        [](ResponseDispatcher::EndpointType const &, Header const &,
             BufferReader const &) { FAIL() << "should have timed out"; },
         [](std::error_code const &) { SUCCEED(); });
   }

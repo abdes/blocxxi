@@ -243,7 +243,7 @@ void StartFindValueTask(KeyType const &key, TNetwork &network,
     TRoutingTable &routing_table, THandler &&handler,
     std::string const &task_name =
         FindValueTask<THandler, TNetwork, TRoutingTable, TData>::TASK_NAME) {
-  using handler_type = typename std::decay<THandler>::type;
+  using handler_type = std::decay_t<THandler>;
   using task = FindValueTask<handler_type, TNetwork, TRoutingTable, TData>;
 
   task::Start(

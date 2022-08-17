@@ -62,7 +62,6 @@ public:
   auto DeleteMapping(Protocol protocol, unsigned external_port)
       -> std::error_condition override;
 
-  /// @copydoc PortMapper::ToString()
   /// Always returns "upnp".
   [[nodiscard]] auto MapperType() const -> std::string override {
     return "upnp";

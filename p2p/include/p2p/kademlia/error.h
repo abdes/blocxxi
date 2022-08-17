@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include "p2p/blocxxi_p2p_export.h"
 #include <p2p/blocxxi_p2p_api.h>
 
 #include <system_error>
@@ -17,7 +16,7 @@ namespace blocxxi::p2p::kademlia {
 enum error_type {
   /// An unknown error.
   UNKNOWN_ERROR = 1,
-  /// The session failed to contact a valid peer uppon creation.
+  /// The session failed to contact a valid peer upon creation.
   INITIAL_PEER_FAILED_TO_RESPOND,
   /// An unexpected response has been received.
   UNASSOCIATED_MESSAGE_ID,
@@ -41,10 +40,6 @@ BLOCXXI_P2P_API auto make_error_condition(error_type condition)
 
 } // namespace blocxxi::p2p::kademlia
 
-namespace std {
-
 template <>
-struct is_error_condition_enum<blocxxi::p2p::kademlia::error_type> : true_type {
-};
-
-} // namespace std
+struct std::is_error_condition_enum<blocxxi::p2p::kademlia::error_type>
+    : true_type {};

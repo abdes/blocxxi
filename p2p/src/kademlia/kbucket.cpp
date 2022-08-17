@@ -37,7 +37,7 @@ auto KBucket::AddNode(Node &&node) -> bool {
   // If the bucket already has a node with the same id or with the same
   // endpoint, the new node replaces it and is placed at the front of the list
   // (most recently seen node)
-  auto found = std::find_if(nodes_.begin(), nodes_.end(),
+  const auto found = std::find_if(nodes_.begin(), nodes_.end(),
       [&node](Node const &bucket_node) { return (bucket_node == node); });
   if (found != nodes_.end()) {
     nodes_.erase(found);
@@ -75,7 +75,7 @@ void KBucket::RemoveNode(Node const &node) {
     ASLOG(
         trace, "node being removed is not in the bucket, perhaps replacement");
     // Maybe it's a replacement node..
-    auto replacement_found = std::find_if(replacement_nodes_.begin(),
+    const auto replacement_found = std::find_if(replacement_nodes_.begin(),
         replacement_nodes_.end(), [&node](Node const &replacement_node) {
           return (replacement_node.Id() == node.Id());
         });
@@ -106,7 +106,7 @@ void KBucket::RemoveNode(KBucket::iterator &node_iter) {
 auto KBucket::CanHoldNode(const Node::IdType &node_id) const -> bool {
   // check the node has the same prefix as the bucket
   auto id_bits = node_id.ToBitSet();
-  auto last_bit = KEYSIZE_BITS - prefix_size_;
+  const auto last_bit = KEYSIZE_BITS - prefix_size_;
   for (auto bit = KEYSIZE_BITS - 1; bit >= last_bit; --bit) {
     if (prefix_[bit] ^ id_bits[bit]) {
       return false;
@@ -185,7 +185,7 @@ void KBucket::DumpBucketToLog() const {
   ASLOG(trace, "my node : {}...",
       my_node_.Id().ToBitSet().to_string().substr(0, 32));
   // Sort node Ids by distance from my_node_
-  std::set<Node, NodeDistanceComparator> sorted(
+  const std::set<Node, NodeDistanceComparator> sorted(
       nodes_.begin(), nodes_.end(), NodeDistanceComparator(my_node_));
   for (auto const &node : sorted) {
     ASLOG(trace, "          {} / logdist: {} / fails: {}",
@@ -204,7 +204,7 @@ auto KBucket::SelectRandomNode() const -> Node const & {
   std::uniform_int_distribution<std::size_t> uni(
       0, nodes_.size() - 1); // guaranteed unbiased
 
-  auto random_index = uni(rng);
+  const auto random_index = uni(rng);
   std::advance(node_iter, random_index);
   return *node_iter;
 }

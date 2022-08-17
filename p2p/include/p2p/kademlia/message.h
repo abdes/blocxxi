@@ -11,8 +11,6 @@
 #include <cstdint>     // for std::uint8_t etc.
 #include <type_traits> // for std::underlying_type_t<>
 
-#include <gsl/gsl> // for gsl::span
-
 #include <p2p/kademlia/buffer.h>
 #include <p2p/kademlia/node.h>
 

@@ -10,16 +10,13 @@
 
 #include <common/compilers.h>
 
-#include <chrono>
 #include <deque>
-#include <forward_list>
 #include <set>     // for std::set (neighbors)
 #include <utility> // for std::pair
 
 #include <logging/logging.h>
 #include <p2p/kademlia/kbucket.h>
 #include <p2p/kademlia/node.h>
-#include <p2p/kademlia/parameters.h>
 
 ASAP_DIAGNOSTIC_PUSH
 #if defined(ASAP_GNUC_VERSION)
@@ -75,8 +72,8 @@ public:
     /// Conversion constructor mainly between const and non-const iterators.
     template <class OtherValue>
     BucketIterator(BucketIterator<OtherValue, TIterator> const &other,
-        typename std::enable_if<std::is_convertible<OtherValue *,
-            TValue *>::value>::type /*unused*/)
+        std::enable_if_t<
+            std::is_convertible_v<OtherValue *, TValue *>> /*unused*/)
         : BucketIterator::iterator_adaptor_(other.base()) {
     }
   };
@@ -222,7 +219,7 @@ public:
    * known nodes.
    *
    * @param [in] node_id the id for which neighbors are to be found.
-   * @param [in] max_number the number of neigbors to find, unless the routing
+   * @param [in] max_number the number of neighbors to find, unless the routing
    * table does not have enough nodes.
    *
    * @return up to max_number nodes representing the closest nodes to the given

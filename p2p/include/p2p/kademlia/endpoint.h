@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include <iostream>
 #include <utility>
 
 #include <p2p/kademlia/boost_asio.h>

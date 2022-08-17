@@ -35,7 +35,7 @@ public:
   virtual void Run() = 0;
 
 protected:
-  void CallShutdownFunction() {
+  void CallShutdownFunction() const {
     shutdown_function_();
   }
 

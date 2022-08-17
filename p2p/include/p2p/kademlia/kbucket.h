@@ -69,8 +69,8 @@ public:
     /// Conversion constructor mainly between const and non-const iterators.
     template <class OtherValue>
     NodeIterator(NodeIterator<OtherValue, TIterator> const &other,
-        typename std::enable_if<std::is_convertible<OtherValue *,
-            TValue *>::value>::type /*unused*/)
+        std::enable_if_t<
+            std::is_convertible_v<OtherValue *, TValue *>> /*unused*/)
         : NodeIterator::iterator_adaptor_(other.base()) {
     }
   };

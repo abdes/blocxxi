@@ -18,7 +18,6 @@ ASAP_DIAGNOSTIC_PUSH
 #pragma clang diagnostic ignored "-Wglobal-constructors"
 #endif
 
-using asap::logging::Logger;
 using asap::logging::Registry;
 using blocxxi::nat::GetPortMapper;
 using blocxxi::nat::PortMapper;
@@ -27,7 +26,7 @@ using blocxxi::nat::PortMapper;
 TEST(PortFwdTest, Example) {
   auto &logger = Registry::GetLogger("testing");
 
-  auto mapper = GetPortMapper("");
+  const auto mapper = GetPortMapper("");
   if (!mapper) {
     ASLOG_TO_LOGGER(logger, debug, "port forwarder init failed.");
   } else {
@@ -35,14 +34,11 @@ TEST(PortFwdTest, Example) {
     ASLOG_TO_LOGGER(logger, info, "Internal IP : {}", mapper->InternalIP());
 
     constexpr uint16_t c_port = 7272;
-    auto failure =
-        mapper->AddMapping({PortMapper::Protocol::UDP, c_port, c_port, "test"},
-            std::chrono::seconds(0));
-    if (failure) {
+    if (mapper->AddMapping({PortMapper::Protocol::UDP, c_port, c_port, "test"},
+            std::chrono::seconds(0))) {
       ASLOG_TO_LOGGER(logger, debug, "port ({}) forwarding failed.", c_port);
     } else {
-      failure = mapper->DeleteMapping(PortMapper::Protocol::UDP, c_port);
-      if (failure) {
+      if (mapper->DeleteMapping(PortMapper::Protocol::UDP, c_port)) {
         ASLOG_TO_LOGGER(
             logger, debug, "port ({}) forwarding removal failed.", c_port);
       }

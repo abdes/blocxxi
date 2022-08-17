@@ -6,13 +6,13 @@
 
 #pragma once
 
-#include "p2p/blocxxi_p2p_export.h"
+#include <p2p/blocxxi_p2p_api.h>
+
 #include <chrono>
 #include <string>
 #include <utility>
 
 #include <crypto/hash.h>
-#include <p2p/blocxxi_p2p_api.h>
 #include <p2p/kademlia/endpoint.h>
 #include <p2p/kademlia/parameters.h>
 

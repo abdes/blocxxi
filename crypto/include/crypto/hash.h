@@ -97,7 +97,7 @@ public:
   \param buf source sequence of bytes.
   */
   explicit Hash(gsl::span<std::uint8_t const> buf) noexcept : storage_({}) {
-    auto src_size = buf.size();
+    const auto src_size = buf.size();
     // TODO(Abdessattar): replace with contract
     // ASAP_ASSERT_PRECOND(src_size <= Size());
     auto start = begin();
@@ -367,8 +367,8 @@ public:
   \param start position at which to assign the sequence in the hash.
   */
   void Assign(gsl::span<std::uint8_t const> buf, iterator start) noexcept {
-    size_type src_size = buf.size();
-    auto dst_size = static_cast<size_type>(end() - start);
+    const size_type src_size = buf.size();
+    const auto dst_size = static_cast<size_type>(end() - start);
     // TODO(Abdessattar): replace with contract
     // ASAP_ASSERT_PRECOND(src_size <= dst_size);
     std::memcpy(start, buf.data(), std::min(src_size, dst_size));
@@ -420,7 +420,7 @@ private:
   /// The underlying data buffer is built as an array of unsigned 32-bit
   /// integers to facilitate the math operations. Note however that iteration
   /// over the Hash and random access to the data should always be presented as
-  /// if it were a byte array layed out in network order (big endian).
+  /// if it were a byte array laid out in network order (big endian).
   ///
   /// > First DWORD is the most significant 4 bytes.
   std::array<std::uint32_t, SIZE_DWORD> storage_;
@@ -459,7 +459,8 @@ inline auto operator^(Hash<BITS> lhs, Hash<BITS> const &rhs) noexcept
 
 /// Exchanges the contents of one with other. Does not cause
 /// iterators and references to associate with the other container.
-template <std::size_t BITS> inline void swap(Hash<BITS> &lhs, Hash<BITS> &rhs) {
+template <std::size_t BITS>
+inline void swap(Hash<BITS> &lhs, Hash<BITS> &rhs) noexcept {
   lhs.swap(rhs);
 }
 

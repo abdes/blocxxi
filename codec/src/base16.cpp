@@ -17,7 +17,6 @@
 #include <cstdint>
 #include <stdexcept>
 
-#include <common/compilers.h>
 #include <contract/contract.h>
 
 namespace {
@@ -108,17 +107,17 @@ constexpr uint8_t c_invalid_value = 0xFF;
 
 constexpr auto DecForIndex(uint8_t idx) -> uint8_t {
   constexpr uint8_t c_value_of_a = 10;
-  uint8_t decodec_value = c_invalid_value;
+  uint8_t decoded_value = c_invalid_value;
   if ('0' <= idx && idx <= '9') {
-    decodec_value = idx - '0';
+    decoded_value = idx - '0';
   } else if ('A' <= idx && idx <= 'F') {
-    decodec_value = idx + c_value_of_a - 'A';
+    decoded_value = idx + c_value_of_a - 'A';
   } else if ('a' <= idx && idx <= 'f') {
-    decodec_value = idx + c_value_of_a - 'a';
+    decoded_value = idx + c_value_of_a - 'a';
   } else {
     // Keep the invalid value used to initialize the decoded_value variable
   }
-  return decodec_value;
+  return decoded_value;
 }
 
 // create compile-time table
@@ -136,12 +135,12 @@ auto blocxxi::codec::hex::Encode(gsl::span<const uint8_t> src, bool reverse,
   std::string out;
   out.reserve(2 * src.size());
   if (reverse) {
-    for (auto bin_iter = src.rbegin(); bin_iter != src.rend(); bin_iter++) {
+    for (auto bin_iter = src.rbegin(); bin_iter != src.rend(); ++bin_iter) {
       out.push_back(table.lo_.at(*bin_iter));
       out.push_back(table.hi_.at(*bin_iter));
     }
   } else {
-    for (auto bin : src) {
+    for (const auto bin : src) {
       out.push_back(table.hi_.at(bin));
       out.push_back(table.lo_.at(bin));
     }
@@ -165,7 +164,7 @@ void blocxxi::codec::hex::Decode(
   auto out = dest.begin();
   if (reverse) {
     auto src_begin = src.rbegin();
-    auto src_end = src.rend();
+    const auto src_end = src.rend();
     while ((src_begin != src_end) && (out != dest.end())) {
       uint8_t lookup =
           DEC_LOOKUP_TABLE.dec_.at(static_cast<uint8_t>(*src_begin));
@@ -174,19 +173,19 @@ void blocxxi::codec::hex::Decode(
                                 "'] not a valid hex digit");
       }
       auto dec = static_cast<uint8_t>(lookup << 4);
-      src_begin++;
+      ++src_begin;
       lookup = DEC_LOOKUP_TABLE.dec_.at(static_cast<uint8_t>(*src_begin));
       if (lookup == c_invalid_value) {
         throw std::domain_error("Character ['" + std::to_string(*src_begin) +
                                 "'] not a valid hex digit");
       }
       dec |= lookup;
-      src_begin++;
+      ++src_begin;
       *out++ = dec;
     }
   } else {
     auto src_begin = src.begin();
-    auto src_end = src.end();
+    const auto src_end = src.end();
     while ((src_begin != src_end) && (out != dest.end())) {
       uint8_t lookup =
           DEC_LOOKUP_TABLE.dec_.at(static_cast<uint8_t>(*src_begin));
@@ -195,14 +194,14 @@ void blocxxi::codec::hex::Decode(
                                 "'] not a valid hex digit");
       }
       auto dec = static_cast<uint8_t>(lookup << 4);
-      src_begin++;
+      ++src_begin;
       lookup = DEC_LOOKUP_TABLE.dec_.at(static_cast<uint8_t>(*src_begin));
       if (lookup == c_invalid_value) {
         throw std::domain_error("Character ['" + std::to_string(*src_begin) +
                                 "'] not a valid hex digit");
       }
       dec |= lookup;
-      src_begin++;
+      ++src_begin;
       *out++ = dec;
     }
   }

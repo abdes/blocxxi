@@ -19,7 +19,6 @@
 
 #include <logging/logging.h>
 
-using asap::logging::Logger;
 using asap::logging::Registry;
 
 namespace blocxxi::nat {
@@ -77,7 +76,7 @@ auto IsLocal(std::string address, bool ipv6 = false) -> bool {
   if (address.substr(0, 8) == "169.254.") {
     return true;
   }
-  auto sub = address.substr(0, 7);
+  const auto sub = address.substr(0, 7);
   return sub == "172.16" || sub == "172.17" || sub == "172.18";
 }
 
@@ -169,14 +168,14 @@ auto FindBestAddress() -> std::string {
 #endif // WIN32
 
   // We only select IPV4 address
-  for (const auto &it : interfaces) {
+  for (const auto &[fst, snd] : interfaces) {
     auto has_v4 = false;
     auto has_v6 = false;
     auto definitely_found = false;
-    for (const auto &ainfo : it.second) {
+    for (const auto &[value_, is_loopback_, is_external_, is_v4_] : snd) {
       // We got an external IP address on this interface -> best candidate
-      if (ainfo.is_external_ && ainfo.is_v4_) {
-        selected_address = ainfo.value_;
+      if (is_external_ && is_v4_) {
+        selected_address = value_;
         definitely_found = true;
         break;
       }
@@ -184,17 +183,17 @@ auto FindBestAddress() -> std::string {
       // If it's the loopback interface and we still have not seen any
       // non-loopback address yet, just keep it as this may end up as our
       // only option
-      if (ainfo.is_loopback_) {
+      if (is_loopback_) {
         if (selected_address.empty()) {
-          selected_address = ainfo.value_;
+          selected_address = value_;
         }
       } else {
         // We need IPv4 as many gateways are still configured for IPv4 only.
         // We also prefer interfaces that have both the v4 and v6 provisioned,
         // as this indicates the main interface of the system.
-        if (ainfo.is_v4_) {
+        if (is_v4_) {
           has_v4 = true;
-          selected_address = ainfo.value_;
+          selected_address = value_;
         } else {
           has_v6 = true;
         }
@@ -234,7 +233,7 @@ auto GetPortMapper(std::string const &spec) -> std::unique_ptr<PortMapper> {
   parts.emplace_back(spec.substr(token_start));
 
   PortMapper *mapper = nullptr;
-  auto mechanism = parts[0];
+  const auto mechanism = parts[0];
   if (mechanism == "extip") {
     if (parts.size() == 3) {
       mapper = new NoPortMapper(parts[1], parts[2]);
@@ -256,14 +255,13 @@ auto GetPortMapper(std::string const &spec) -> std::unique_ptr<PortMapper> {
   }
   // Try to auto discover the environment
 
-  auto address = FindBestAddress();
+  const auto address = FindBestAddress();
   if (address.empty()) {
     return nullptr;
   }
   if (IsLocal(address)) {
     // Try UPNP
-    auto upnp = DiscoverUPNP(std::chrono::milliseconds(2000));
-    if (upnp) {
+    if (auto upnp = DiscoverUPNP(std::chrono::milliseconds(2000))) {
       return upnp;
     }
 

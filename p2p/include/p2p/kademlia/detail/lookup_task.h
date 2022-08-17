@@ -27,11 +27,10 @@ public:
   // being used. THis is due to the fact that the current class is a template
   // class and that method does not take any template argument that will enable
   // the compiler to resolve it unambiguously.
-  using asap::logging::Loggable<
-      BaseLookupTask>::internal_log_do_not_use_read_comment;
+  using Loggable<BaseLookupTask>::internal_log_do_not_use_read_comment;
 
   /// Get a string representing the task for debugging
-  [[nodiscard]] auto Name() const -> std::string {
+  [[nodiscard]] std::string Name() const {
     return std::string("[")
         .append(task_name_)
         .append("/")
@@ -43,7 +42,7 @@ protected:
   template <typename TNodes>
   BaseLookupTask(Node::IdType key, TNodes initial_peers, std::string task_name)
       : key_{std::move(key)}, task_name_(std::move(task_name)) {
-    for (auto peer : initial_peers) {
+    for (const auto &peer : initial_peers) {
       AddCandidate(peer);
     }
   }
@@ -51,8 +50,8 @@ protected:
   /// Default
   ~BaseLookupTask() = default;
 
-  void MarkCandidateAsValid(Node::IdType const &candidate_id) {
-    auto candidate = FindCandidate(candidate_id);
+  void MarkCandidateAsValid(const Node::IdType &candidate_id) {
+    const auto candidate = FindCandidate(candidate_id);
     if (candidate == candidates_.end()) {
       return;
     }
@@ -63,8 +62,8 @@ protected:
         candidate_id.ToHex());
   }
 
-  void MarkCandidateAsInvalid(Node::IdType const &candidate_id) {
-    auto candidate = FindCandidate(candidate_id);
+  void MarkCandidateAsInvalid(const Node::IdType &candidate_id) {
+    const auto candidate = FindCandidate(candidate_id);
     if (candidate == candidates_.end()) {
       return;
     }
@@ -75,7 +74,7 @@ protected:
         candidate_id.ToHex());
   }
 
-  auto SelectUnContactedCandidates(std::size_t max_count) -> std::vector<Node> {
+  std::vector<Node> SelectUnContactedCandidates(std::size_t max_count) {
     std::vector<Node> selection;
 
     // Iterate over all candidates until we picked
@@ -98,7 +97,7 @@ protected:
     return selection;
   }
 
-  auto GetValidCandidates(std::size_t max_count) -> std::vector<Node> {
+  std::vector<Node> GetValidCandidates(std::size_t max_count) {
     std::vector<Node> selection;
 
     // Iterate over all candidates until we picked
@@ -118,19 +117,19 @@ protected:
     return selection;
   }
 
-  template <typename TPeers> void AddCandidates(TPeers const &peers) {
-    for (auto const &peer : peers) {
+  template <typename TPeers> void AddCandidates(const TPeers &peers) {
+    for (const auto &peer : peers) {
       AddCandidate(peer);
     }
   }
 
-  [[nodiscard]] auto AllRequestsCompleted() const -> bool {
+  [[nodiscard]] bool AllRequestsCompleted() const {
     ASLOG(debug, "{} checking if all tasks completed, in-flight={}",
         this->Name(), in_flight_requests_count_);
     return in_flight_requests_count_ == 0;
   }
 
-  [[nodiscard]] auto Key() const -> Node::IdType const & {
+  [[nodiscard]] Node::IdType const &Key() const {
     return key_;
   }
 
@@ -138,6 +137,7 @@ private:
   ///
   struct Candidate final {
     Node peer_;
+
     enum {
       STATE_UNKNOWN,
       STATE_CONTACTED,
@@ -149,15 +149,15 @@ private:
   ///
   using CandidatesCollection = std::map<Node::IdType, Candidate>;
 
-  void AddCandidate(Node const &peer) {
-    auto const dist = Distance(peer.Id(), key_);
-    Candidate const candidate{peer, Candidate::STATE_UNKNOWN};
+  void AddCandidate(const Node &peer) {
+    const auto dist = Distance(peer.Id(), key_);
+    const Candidate candidate{peer, Candidate::STATE_UNKNOWN};
     candidates_.emplace(dist, candidate);
   }
 
-  auto FindCandidate(Node::IdType const &candidate_id)
-      -> CandidatesCollection::iterator {
-    auto const dist = Distance(candidate_id, key_);
+  CandidatesCollection::iterator FindCandidate(
+      const Node::IdType &candidate_id) {
+    const auto dist = Distance(candidate_id, key_);
     return candidates_.find(dist);
   }
 
@@ -167,8 +167,7 @@ private:
   std::string task_name_;
 };
 
-inline auto operator<<(std::ostream &out, BaseLookupTask const &task)
-    -> std::ostream & {
+inline std::ostream &operator<<(std::ostream &out, const BaseLookupTask &task) {
   out << task.Name();
   return out;
 }

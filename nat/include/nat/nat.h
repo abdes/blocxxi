@@ -15,7 +15,6 @@
 #include <nat/blocxxi_nat_api.h>
 
 #include <memory> // for unique_ptr
-#include <vector> // for string splitting
 
 #include <nat/port_mapper.h>
 
@@ -69,7 +68,6 @@ public:
     return {};
   }
 
-  /// @copydoc PortMapper::ToString()
   [[nodiscard]] auto MapperType() const -> std::string override {
     return "nomap";
   }

@@ -14,7 +14,6 @@
 #pragma once
 
 #include <chrono>
-#include <string_view>
 #include <system_error>
 #include <utility>
 
@@ -59,7 +58,7 @@ public:
     /// not permit different values for ExternalPort and InternalPort will
     /// return an error.
     unsigned internal_port{0};
-    /// A textual description of the port mapping for disagnostics etc.
+    /// A textual description of the port mapping for diagnostics etc.
     std::string const &name;
   };
 

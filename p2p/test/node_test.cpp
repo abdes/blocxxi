@@ -106,15 +106,15 @@ TEST(NodeTest, LogDistance) {
 
 // NOLINTNEXTLINE
 TEST(NodeTest, FromUrlString) {
-  auto node_id = Node::IdType::RandomHash().ToHex();
+  const auto node_id = Node::IdType::RandomHash().ToHex();
   const auto *address = "192.168.1.35";
   const auto *port = "4242";
-  auto str = std::string("knode://")
-                 .append(node_id)
-                 .append("@")
-                 .append(address)
-                 .append(":")
-                 .append(port);
+  const auto str = std::string("knode://")
+                       .append(node_id)
+                       .append("@")
+                       .append(address)
+                       .append(":")
+                       .append(port);
 
   Node node;
   // NOLINTNEXTLINE

@@ -9,7 +9,6 @@
 #endif
 
 #include <miniupnpc.h>
-#include <miniwget.h>
 #include <upnpcommands.h>
 
 #include <nat/error.h>
@@ -59,7 +58,7 @@ auto UpnpPortMapper::AddMapping(
   }
 
   std::string external_port_str = std::to_string(mapping.external_port);
-  std::string internal_port_str = std::to_string(mapping.internal_port);
+  const std::string internal_port_str = std::to_string(mapping.internal_port);
 
   int failure = UPNP_AddPortMapping(urls_->controlURL, data_->first.servicetype,
       external_port_str.c_str(), internal_port_str.c_str(),
@@ -85,8 +84,8 @@ auto UpnpPortMapper::DeleteMapping(PortMapper::Protocol protocol,
     return make_error_condition(DISCOVERY_NOT_DONE);
   }
 
-  std::string external_port_str = std::to_string(external_port);
-  int failure =
+  const std::string external_port_str = std::to_string(external_port);
+  const int failure =
       UPNP_DeletePortMapping(urls_->controlURL, data_->first.servicetype,
           external_port_str.c_str(), ProtocolString(protocol).data(), nullptr);
   return (failure != 0) ? make_error_condition(UPNP_COMMAND_ERROR)
@@ -99,7 +98,7 @@ auto UpnpPortMapper::Discover(std::chrono::milliseconds timeout)
 
 #ifdef WIN32
   WSADATA wsaData;
-  int nResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+  const int nResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
   if (nResult != NO_ERROR) {
     ASLOG(error, "WSAStartup() failed.");
     return nullptr;
@@ -115,10 +114,8 @@ auto UpnpPortMapper::Discover(std::chrono::milliseconds timeout)
   memset(mapper->data_, 0, sizeof(struct IGDdatas));
 
   int error = 0;
-  // Needs to be freed before returning
-  struct UPNPDev *devlist = nullptr;
-  devlist = upnpDiscover(static_cast<int>(timeout.count()), nullptr, nullptr,
-      UPNP_LOCAL_PORT_ANY, 0, 2, &error);
+  struct UPNPDev *devlist = upnpDiscover(static_cast<int>(timeout.count()),
+      nullptr, nullptr, UPNP_LOCAL_PORT_ANY, 0, 2, &error);
   if (devlist != nullptr) {
     // Find a valid IGD and get our internal IP
     char lanaddr[16];
@@ -130,7 +127,7 @@ auto UpnpPortMapper::Discover(std::chrono::milliseconds timeout)
 
       mapper->internal_ip_ = std::string(lanaddr);
 
-      // get external IP adress
+      // get external IP address
       char ip[16];
       if (0 == UPNP_GetExternalIPAddress(mapper->urls_->controlURL,
                    mapper->data_->CIF.servicetype,

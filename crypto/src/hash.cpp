@@ -19,8 +19,6 @@ ASAP_DIAGNOSTIC_PUSH
 #include <boost/endian/conversion.hpp>
 ASAP_DIAGNOSTIC_POP
 
-#include <common/platform.h>
-
 namespace blocxxi::crypto::detail {
 
 auto HostToNetwork(std::uint32_t number) -> std::uint32_t {

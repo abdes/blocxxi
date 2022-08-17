@@ -36,9 +36,5 @@ BLOCXXI_NAT_API auto make_error_condition(error_type condition)
 
 } // namespace blocxxi::nat
 
-namespace std {
-
 template <>
-struct is_error_condition_enum<blocxxi::nat::error_type> : true_type {};
-
-} // namespace std
+struct std::is_error_condition_enum<blocxxi::nat::error_type> : true_type {};

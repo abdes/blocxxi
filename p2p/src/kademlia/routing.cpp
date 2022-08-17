@@ -65,7 +65,7 @@ auto RoutingTable::GetBucketIndexFor(const Node::IdType &node_id) const
     -> std::size_t {
   // When we get here, the routing table should have been properly initialized
   // and thus has at least the initial bucket.
-  auto num_buckets = buckets_.size();
+  const auto num_buckets = buckets_.size();
   // ASAP_ASSERT(num_buckets > 0);
 
   auto bucket = buckets_.begin();
@@ -91,7 +91,7 @@ auto RoutingTable::AddPeer(Node &&peer) -> bool {
     ASLOG(debug, "Unexpected attempt to add our node to the routing table.");
     return true;
   }
-  auto bucket_index = GetBucketIndexFor(peer.Id());
+  const auto bucket_index = GetBucketIndexFor(peer.Id());
   auto bucket = buckets_.begin();
   std::advance(bucket, bucket_index);
   // bucket->DumpBucketToLog();
@@ -126,7 +126,7 @@ auto RoutingTable::AddPeer(Node &&peer) -> bool {
       buckets_.size(), buckets_.size() < 160, can_split);
 
   // Should we split?
-  // Don't split the first bucket unles it's the first split ever
+  // Don't split the first bucket unless it's the first split ever
   can_split &= !(buckets_.size() > 1 && bucket_index == 0);
   ASLOG(trace, "&& not the first bucket? {} --> split={}",
       !(buckets_.size() > 1 && bucket_index == 0), can_split);
@@ -144,7 +144,7 @@ auto RoutingTable::AddPeer(Node &&peer) -> bool {
 }
 
 void RoutingTable::RemovePeer(const Node &peer) {
-  auto bucket_index = GetBucketIndexFor(peer.Id());
+  const auto bucket_index = GetBucketIndexFor(peer.Id());
   auto bucket = buckets_.begin();
   std::advance(bucket, bucket_index);
   bucket->RemoveNode(peer);
@@ -180,7 +180,7 @@ auto RoutingTable::FindNeighbors(Node::IdType const &node_id,
   auto neighbors = std::set<Node, decltype(cmp)>(cmp);
   auto count = 0U;
 
-  auto bucket_index = GetBucketIndexFor(node_id);
+  const auto bucket_index = GetBucketIndexFor(node_id);
   auto bucket = buckets_.begin();
   std::advance(bucket, bucket_index);
   auto left = bucket;

@@ -6,9 +6,9 @@
 
 #pragma once
 
-#include <chrono>  // for timeout value
-#include <cstddef> // for std::size_t
+#include <chrono> // for timeout value
 
+// TODO:(Abdessattar) rename constants to c_...
 namespace blocxxi::p2p::kademlia {
 
 constexpr unsigned int DEPTH_B = 5;

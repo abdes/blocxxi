@@ -218,7 +218,7 @@ TEST(HashTest, BitWiseXor) {
   constexpr std::uint8_t h1[]{1, 2, 3, 4, 5, 6, 7, 8};
   constexpr std::uint8_t h2[]{7, 0, 6, 6, 150, 65, 23, 12};
 
-  const std::uint8_t x[]{1 xor 7, 2 xor 0, 3 xor 6, 4 xor 6, 5 xor 150,
+  constexpr std::uint8_t x[]{1 xor 7, 2 xor 0, 3 xor 6, 4 xor 6, 5 xor 150,
       6 xor 65, 7 xor 23, 8 xor 12};
 
   const auto res = Hash<64>(h1) xor Hash<64>(h2);

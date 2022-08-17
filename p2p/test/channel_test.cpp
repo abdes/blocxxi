@@ -54,8 +54,8 @@ TEST(ChannelTest, CreateV4) {
 // NOLINTNEXTLINE
 TEST(ChannelTest, SendReceive) {
   boost::asio::io_context io_context;
-  auto receiver = AsyncUdpChannel::ipv4(io_context, "127.0.0.1", "30001");
-  auto sender = AsyncUdpChannel::ipv4(io_context, "127.0.0.1", "30002");
+  const auto receiver = AsyncUdpChannel::ipv4(io_context, "127.0.0.1", "30001");
+  const auto sender = AsyncUdpChannel::ipv4(io_context, "127.0.0.1", "30002");
   std::string str("Hello");
 
   auto received = false;
@@ -66,11 +66,12 @@ TEST(ChannelTest, SendReceive) {
         ASSERT_EQ("127.0.0.1", endpoint.address_.to_string());
         ASSERT_EQ(30002, endpoint.port_);
         received = true;
-        auto received_str = std::string(std::cbegin(buffer), std::cend(buffer));
+        const auto received_str =
+            std::string(std::cbegin(buffer), std::cend(buffer));
         ASSERT_EQ(str, received_str);
       });
 
-  Buffer buf(str.begin(), str.end());
+  const Buffer buf(str.begin(), str.end());
   auto sent = false;
   sender->AsyncSend(buf, IpEndpoint{make_address_v4("127.0.0.1"), 30001},
       [&sent](std::error_code errc) {

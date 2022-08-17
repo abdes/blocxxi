@@ -34,13 +34,14 @@ TEST(RoutingTableTest, AddContact) {
 // NOLINTNEXTLINE
 TEST(RoutingTableTest, FindNeighborsReturnsEmptyIfRoutingTableIsEmpty) {
   auto rt_node = Node(Node::IdType::RandomHash(), "::1", 3030);
-  auto routing_table = RoutingTable(std::move(rt_node), 20);
+  const auto routing_table = RoutingTable(std::move(rt_node), 20);
   /*
   for (auto i = 0U; i < 19; ++i) {
     rt.AddContact(Node(Node::IdType::RandomHash(), "::1", i));
   }
   */
-  auto neighbors = routing_table.FindNeighbors(Node::IdType::RandomHash(), 20);
+  const auto neighbors =
+      routing_table.FindNeighbors(Node::IdType::RandomHash(), 20);
 
   ASSERT_EQ(0, neighbors.size());
 }
@@ -52,7 +53,8 @@ TEST(RoutingTableTest, FindNeighborsReturnsAllNodesIfNotEnoughAvailable) {
   for (uint16_t i = 0U; i < 4; ++i) {
     routing_table.AddPeer(Node(Node::IdType::RandomHash(), "::1", i));
   }
-  auto neighbors = routing_table.FindNeighbors(Node::IdType::RandomHash(), 7);
+  const auto neighbors =
+      routing_table.FindNeighbors(Node::IdType::RandomHash(), 7);
 
   ASSERT_EQ(4, neighbors.size());
 }
