@@ -35,15 +35,15 @@ namespace blocxxi::crypto {
 
 // NOLINTNEXTLINE
 TEST(HashTest, DefaultConstructorSetsAllToZero) {
-  auto h = Hash<96>();
+  const auto h = Hash<96>();
   ASSERT_TRUE(h.IsAllZero());
 }
 
 // NOLINTNEXTLINE
 TEST(HashTest, MinIsZero) {
-  auto h1 = Hash<256>::Min();
+  const auto h1 = Hash<256>::Min();
   ASSERT_TRUE(h1.IsAllZero());
-  auto h2 = Hash<192>::Min();
+  const auto h2 = Hash<192>::Min();
   ASSERT_TRUE(h2.IsAllZero());
 }
 
@@ -80,9 +80,9 @@ TEST(HashTest, CountLeadingZeroBits) {
   h = Hash<64>::Max();
   auto expected = 0;
   for (auto &pb : h) {
-    std::uint8_t bitset = 0xff;
     for (auto i = 1; i <= 8; i++) {
-      pb = bitset >> i;
+      constexpr std::uint8_t bit_set = 0xff;
+      pb = bit_set >> i;
       expected += 1;
       ASSERT_EQ(expected, h.LeadingZeroBits());
     }
@@ -197,12 +197,12 @@ TEST(HashTest, Swap) {
 TEST(HashTest, LessThenComparison) {
   std::array<uint8_t, 4> small{1, 2, 3, 4};
   constexpr std::size_t c_hash_size = 32;
-  Hash<c_hash_size> hsmall(gsl::make_span(small));
+  const Hash<c_hash_size> hsmall(gsl::make_span(small));
   ASSERT_GE(hsmall, hsmall);
   ASSERT_LE(hsmall, hsmall);
   ASSERT_EQ(hsmall, hsmall);
 
-  std::array<std::array<uint8_t, 4>, 4> greater{
+  constexpr std::array<std::array<uint8_t, 4>, 4> greater{
       {{{2, 2, 3, 4}}, {{1, 3, 3, 4}}, {{1, 2, 4, 4}}, {{1, 2, 3, 5}}}};
   for (const auto &val : greater) {
     Hash<c_hash_size> hval(gsl::make_span(val));
@@ -215,13 +215,13 @@ TEST(HashTest, LessThenComparison) {
 
 // NOLINTNEXTLINE
 TEST(HashTest, BitWiseXor) {
-  std::uint8_t h1[]{1, 2, 3, 4, 5, 6, 7, 8};
-  std::uint8_t h2[]{7, 0, 6, 6, 150, 65, 23, 12};
+  constexpr std::uint8_t h1[]{1, 2, 3, 4, 5, 6, 7, 8};
+  constexpr std::uint8_t h2[]{7, 0, 6, 6, 150, 65, 23, 12};
 
-  std::uint8_t x[]{1 xor 7, 2 xor 0, 3 xor 6, 4 xor 6, 5 xor 150, 6 xor 65,
-      7 xor 23, 8 xor 12};
+  const std::uint8_t x[]{1 xor 7, 2 xor 0, 3 xor 6, 4 xor 6, 5 xor 150, 6 xor 65,
+                         7 xor 23, 8 xor 12};
 
-  auto res = Hash<64>(h1) xor Hash<64>(h2);
+  const auto res = Hash<64>(h1) xor Hash<64>(h2);
   ASSERT_EQ(res, Hash<64>(x));
   ASSERT_EQ(Hash<64>(h1) xor Hash<64>(h2), Hash<64>(h2) xor Hash<64>(h1));
 }
@@ -229,23 +229,23 @@ TEST(HashTest, BitWiseXor) {
 // NOLINTNEXTLINE
 TEST(HashTest, ToHex) {
   std::uint8_t hash_bytes[]{1, 2, 3, 4, 5, 6, 7, 8};
-  Hash<64> hash(gsl::make_span(hash_bytes));
+  const Hash<64> hash(gsl::make_span(hash_bytes));
   ASSERT_EQ("0102030405060708", hash.ToHex());
 }
 
 // NOLINTNEXTLINE
 TEST(HashTest, FromHex) {
   const std::string hex("0102030405060708");
-  auto hash = Hash<64>::FromHex(hex);
+  const auto hash = Hash<64>::FromHex(hex);
   std::uint8_t hash_bytes[]{1, 2, 3, 4, 5, 6, 7, 8};
-  Hash<64> hash_ref(gsl::make_span(hash_bytes));
+  const Hash<64> hash_ref(gsl::make_span(hash_bytes));
   ASSERT_EQ(hash_ref, hash);
 }
 
 // NOLINTNEXTLINE
 TEST(HashTest, ToBitSet) {
   std::uint8_t hash_bytes[]{1, 2, 3, 4, 5, 6, 7, 8};
-  Hash<64> hash(gsl::make_span(hash_bytes));
+  const Hash<64> hash(gsl::make_span(hash_bytes));
   ASSERT_EQ("0000000100000010000000110000010000000101000001100000011100001000",
       hash.ToBitSet().to_string());
 }
