@@ -237,7 +237,11 @@ public:
     } else {
       // Copy the buffer as it has to live past the end of this call.
       const auto message_copy = std::make_shared<Buffer>(message);
-      auto on_completion = [callback](boost::system::error_code const &failure,
+      // Capture the message_copy so that it stays alive until the completion
+      // callback is called.
+      // ReSharper disable once CppLambdaCaptureNeverUsed
+      auto on_completion = [callback, message_copy](
+                               boost::system::error_code const &failure,
                                std::size_t /* bytes_sent */) {
         if (failure) {
           ASLOG(error, "{}", failure.message());
