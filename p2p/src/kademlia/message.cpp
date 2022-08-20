@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
 
+#include "common/compilers.h"
 #include <p2p/kademlia/message.h>
 
 #include <vector>
@@ -43,7 +44,7 @@ auto DeserializeInteger(BufferReader const &buffer, IntegerType &value)
   auto data = std::cbegin(buffer);
   for (auto ii = 0U; ii < sizeof(value); ++ii) {
     ASLOG_MISC(debug, "  read one byte: {}", *data);
-    value |= IntegerType{*data++} << 8 * ii;
+    value |= static_cast<IntegerType>(*data++ * 8 * ii);
   }
 
   return sizeof(value);
@@ -204,6 +205,8 @@ inline auto operator<<(std::ostream &out,
     return out << "find_value_request";
   case Header::MessageType::FIND_VALUE_RESPONSE:
     return out << "find_value_response";
+  default:
+    ASAP_UNREACHABLE();
   }
   return out << "unknown_message";
 }

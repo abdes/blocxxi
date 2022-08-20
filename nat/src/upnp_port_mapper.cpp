@@ -8,7 +8,19 @@
 #include <winsock2.h>
 #endif
 
+#include <common/compilers.h>
+
+// Disable compiler warnings produced by fmtlib.
+ASAP_DIAGNOSTIC_PUSH
+#if defined(ASAP_CLANG_VERSION)
+#pragma clang diagnostic ignored "-Wzero-length-array"
+#endif
+#if defined(ASAP_GNUC_VERSION)
+#pragma GCC diagnostic ignored "-Wpedantic"
+#endif
 #include <miniupnpc.h>
+ASAP_DIAGNOSTIC_POP
+
 #include <upnpcommands.h>
 
 #include <nat/error.h>

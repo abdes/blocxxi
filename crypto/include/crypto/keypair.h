@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include <crypto/blocxxi_crypto_api.h>
+#include <crypto/blocxxi_crypto_export.h>
 
 #include <crypto/hash.h>
 

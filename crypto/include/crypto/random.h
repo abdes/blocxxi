@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include <crypto/blocxxi_crypto_api.h>
+#include <crypto/blocxxi_crypto_export.h>
 
 #include <cstddef> // for std::size_t
 #include <cstdint> // for uint8_t

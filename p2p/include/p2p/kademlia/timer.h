@@ -14,7 +14,7 @@
 
 #include <logging/logging.h>
 
-#include <p2p/blocxxi_p2p_api.h>
+#include <p2p/blocxxi_p2p_export.h>
 
 namespace blocxxi::p2p::kademlia {
 

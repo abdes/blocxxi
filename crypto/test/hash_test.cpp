@@ -195,7 +195,7 @@ TEST(HashTest, Swap) {
 
 // NOLINTNEXTLINE
 TEST(HashTest, LessThenComparison) {
-  std::array<uint8_t, 4> small{1, 2, 3, 4};
+  std::array<uint8_t, 4> small{{1, 2, 3, 4}};
   constexpr std::size_t c_hash_size = 32;
   const Hash<c_hash_size> hsmall(gsl::make_span(small));
   ASSERT_GE(hsmall, hsmall);

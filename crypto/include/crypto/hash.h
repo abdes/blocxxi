@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include <crypto/blocxxi_crypto_api.h>
+#include <crypto/blocxxi_crypto_export.h>
 
 #include <array>  // for std::array
 #include <bitset> // for std::bitset

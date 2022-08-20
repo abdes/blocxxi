@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include <nat/blocxxi_nat_api.h>
+#include <nat/blocxxi_nat_export.h>
 
 #include <memory> // for unique_ptr
 

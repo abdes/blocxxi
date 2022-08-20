@@ -39,8 +39,8 @@ template <unsigned N> struct HexLookupTable {
 
 template <typename LambdaType, unsigned... Is>
 constexpr auto HexTableGenerator(seq<Is...> /*unused*/, LambdaType MakeLo,
-    LambdaType MakeHi) -> HexLookupTable<sizeof...(Is)> {
-  return {{MakeLo(Is)...}, {MakeHi(Is)...}};
+    LambdaType MakeHi) -> HexLookupTable<static_cast<unsigned>(sizeof...(Is))> {
+  return {{{MakeLo(Is)...}}, {{MakeHi(Is)...}}};
 }
 
 template <unsigned N, typename LambdaType>
@@ -53,8 +53,8 @@ constexpr uint8_t c_lower_four_bits_mask = 0xFU;
 constexpr uint8_t c_upper_four_bits_mask = 0xF0U;
 
 /** Function that computes a value for each index **/
-constexpr std::array ALPHABET_UC{'0', '1', '2', '3', '4', '5', '6', '7', '8',
-    '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+constexpr std::array<char, 16> ALPHABET_UC{{'0', '1', '2', '3', '4', '5', '6',
+    '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'}};
 constexpr auto UpperMakeLo(unsigned idx) -> char {
   return (ALPHABET_UC.at(idx & c_lower_four_bits_mask));
 }
@@ -62,8 +62,8 @@ constexpr auto UpperMakeHi(unsigned idx) -> char {
   return (ALPHABET_UC.at((idx & c_upper_four_bits_mask) >> 4));
 }
 
-constexpr std::array ALPHABET_LC{'0', '1', '2', '3', '4', '5', '6', '7', '8',
-    '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+constexpr std::array<char, 16> ALPHABET_LC{{'0', '1', '2', '3', '4', '5', '6',
+    '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'}};
 constexpr auto LowerMakeLo(unsigned idx) -> char {
   return (ALPHABET_LC.at(idx & c_lower_four_bits_mask));
 }
@@ -87,12 +87,12 @@ template <unsigned N> struct DecLookupTable {
 
 template <typename LambdaType, unsigned... Is>
 constexpr auto DecTableGenerator(seq<Is...> /*unused*/, LambdaType DecForIndex)
-    -> DecLookupTable<sizeof...(Is)> {
+    -> DecLookupTable<static_cast<unsigned>(sizeof...(Is))> {
 #if defined(ASAP_CLANG_VERSION)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-braces"
 #endif
-  return {DecForIndex(Is)...};
+  return {{{DecForIndex(Is)...}}};
 #if defined(ASAP_CLANG_VERSION)
 #pragma clang diagnostic pop
 #endif

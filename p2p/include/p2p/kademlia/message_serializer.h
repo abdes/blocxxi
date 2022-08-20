@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <p2p/blocxxi_p2p_api.h>
+#include <p2p/blocxxi_p2p_export.h>
 #include <p2p/kademlia/message.h>
 
 namespace blocxxi::p2p::kademlia {

@@ -27,7 +27,7 @@ ASAP_DIAGNOSTIC_POP
 
 #include <logging/logging.h>
 
-#include <p2p/blocxxi_p2p_api.h>
+#include <p2p/blocxxi_p2p_export.h>
 #include <p2p/kademlia/node.h>
 #include <p2p/kademlia/parameters.h>
 

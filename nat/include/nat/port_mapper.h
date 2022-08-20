@@ -24,12 +24,18 @@ ASAP_DIAGNOSTIC_PUSH
 #if defined(ASAP_CLANG_VERSION)
 #pragma clang diagnostic ignored "-Wundefined-func-template"
 #pragma clang diagnostic ignored "-Wfloat-equal"
+#pragma clang diagnostic ignored "-Wswitch-enum"
+#endif
+#if defined(ASAP_GNUC_VERSION)
+ASAP_PRAGMA(GCC diagnostic ignored "-Wswitch-default")
+ASAP_PRAGMA(GCC diagnostic ignored "-Wswitch-enum")
 #endif
 #include <fmt/format.h>
 ASAP_DIAGNOSTIC_POP
+
 #include <magic_enum.hpp>
 
-#include <nat/blocxxi_nat_api.h>
+#include <nat/blocxxi_nat_export.h>
 
 namespace blocxxi::nat {
 
