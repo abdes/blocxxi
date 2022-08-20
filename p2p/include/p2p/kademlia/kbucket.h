@@ -17,9 +17,12 @@ ASAP_DIAGNOSTIC_PUSH
 #pragma GCC diagnostic ignored "-Wsign-conversion"
 #pragma GCC diagnostic ignored "-Wold-style-cast"
 #endif
-#if defined(ASAP_CLANG_VERSION)
-#pragma clang diagnostic ignored "-Wzero-as-null-pointer-constant"
+#if defined(ASAP_CLANG_VERSION) &&                                             \
+    ASAP_HAS_WARNING("-Wreserved-macro-identifier")
 #pragma clang diagnostic ignored "-Wreserved-macro-identifier"
+#endif
+#if defined(ASAP_CLANG_VERSION) && ASAP_HAS_WARNING("-Wreserved-identifier")
+#pragma clang diagnostic ignored "-Wreserved-identifier"
 #endif
 #include <boost/iterator/iterator_adaptor.hpp>
 #include <boost/iterator/reverse_iterator.hpp>

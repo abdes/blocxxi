@@ -25,7 +25,6 @@ ASAP_DIAGNOSTIC_PUSH
 #pragma clang diagnostic ignored "-Wglobal-constructors"
 #pragma clang diagnostic ignored "-Wimplicit-fallthrough"
 #pragma clang diagnostic ignored "-Wmissing-noreturn"
-#pragma clang diagnostic ignored "-Wreserved-macro-identifier"
 #pragma clang diagnostic ignored "-Wshadow"
 #pragma clang diagnostic ignored "-Wshorten-64-to-32"
 #pragma clang diagnostic ignored "-Wsuggest-destructor-override"
@@ -34,6 +33,10 @@ ASAP_DIAGNOSTIC_PUSH
 #pragma clang diagnostic ignored "-Wundef"
 #pragma clang diagnostic ignored "-Wweak-vtables"
 #pragma clang diagnostic ignored "-Wzero-as-null-pointer-constant"
+#endif
+#if defined(ASAP_CLANG_VERSION) &&                                             \
+    ASAP_HAS_WARNING("-Wreserved-macro-identifier")
+#pragma clang diagnostic ignored "-Wreserved-macro-identifier"
 #endif
 #if defined(ASAP_GNUC_VERSION)
 #pragma GCC diagnostic ignored "-Wconversion"
