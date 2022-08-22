@@ -38,7 +38,10 @@ cpmaddpackage(
   master
   GITHUB_REPOSITORY
   noloader/cryptopp-cmake
-  OPTIONS "CRYPTOPP_BUILD_TESTING OFF" "CRYPTOPP_INSTALL ON")
+  OPTIONS
+  "CRYPTOPP_BUILD_TESTING OFF"
+  "CRYPTOPP_INSTALL ON"
+  "CRYPTOPP_BUILD_SHARED OFF")
 if(cryptopp-cmake_ADDED)
   # Because cryptopp generates so many g++ warnings (that we treat as errors),
   # just consider its include files like system includes so our own code does
