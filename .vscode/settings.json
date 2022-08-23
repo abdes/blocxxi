@@ -281,9 +281,6 @@
       }
     ]
   },
-  "cSpell.enableFiletypes": [
-    "rst"
-  ],
   "rewrap.reformat": true,
   "search.exclude": {
     "**/.idea": true,
@@ -292,4 +289,16 @@
   "files.exclude": {
     "**/.sphinx": true
   },
+  "cSpell.enableFiletypes": [
+    "rst"
+  ],
+  "cSpell.words": [
+    "Blocxxi",
+    "cmake",
+    "Kademlia",
+    "maxdepth",
+    "NOLINTNEXTLINE",
+    "toctree",
+    "upnp"
+  ],
 }
