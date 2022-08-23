@@ -13,7 +13,6 @@
 #include <codec/base16.h>
 
 #include <array>
-#include <cctype>
 #include <cstdint>
 #include <stdexcept>
 
