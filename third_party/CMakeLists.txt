@@ -37,18 +37,17 @@ cpmaddpackage(
   GIT_TAG
   master
   GITHUB_REPOSITORY
-  noloader/cryptopp-cmake
+  abdes/cryptopp-cmake
   OPTIONS
   "CRYPTOPP_BUILD_TESTING OFF"
-  "CRYPTOPP_INSTALL ON"
-  "CRYPTOPP_BUILD_SHARED OFF")
+  "CRYPTOPP_INSTALL ON")
 if(cryptopp-cmake_ADDED)
   # Because cryptopp generates so many g++ warnings (that we treat as errors),
   # just consider its include files like system includes so our own code does
   # not fail and we keep the -Werror for g++. Do this for both targets, the
   # static and the shared lib, depending on which one is used.
   target_include_directories(
-    cryptopp-static SYSTEM PUBLIC $<BUILD_INTERFACE:${CRYPTOPP_PROJECT_DIR}>
+    cryptopp SYSTEM PUBLIC $<BUILD_INTERFACE:${CRYPTOPP_PROJECT_DIR}>
                                   $<INSTALL_INTERFACE:include>)
 endif()
 
