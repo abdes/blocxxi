@@ -4,13 +4,16 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ===------------------------------------------------------------------------===#
 
+set(my_name "p2p")
+asap_push_module("${my_name}")
+
 # ------------------------------------------------------------------------------
 # Meta information about the this module
 # ------------------------------------------------------------------------------
 
 asap_declare_module(
   MODULE_NAME
-  "p2p"
+  "${my_name}"
   DESCRIPTION
   "Kademlia DHT implementation"
   GITHUB_REPO
@@ -35,7 +38,7 @@ asap_declare_module(
 # Main module target
 # ------------------------------------------------------------------------------
 
-set(MODULE_TARGET_NAME "${META_PROJECT_NAME}_${META_MODULE_NAME}")
+set(MODULE_TARGET_NAME "blocxxi_p2p")
 
 asap_add_library(
   ${MODULE_TARGET_NAME}
@@ -103,6 +106,7 @@ asap_create_module_config_files()
 # ------------------------------------------------------------------------------
 # Tests
 # ------------------------------------------------------------------------------
+
 if(ASAP_BUILD_TESTS)
   asap_add_sanitizers(${MODULE_TARGET_NAME})
   add_subdirectory(test)
@@ -111,6 +115,7 @@ endif()
 # ------------------------------------------------------------------------------
 # Examples
 # ------------------------------------------------------------------------------
+
 if(ASAP_BUILD_EXAMPLES)
   add_subdirectory(examples)
 endif()
@@ -118,6 +123,7 @@ endif()
 # ------------------------------------------------------------------------------
 # API Documentation
 # ------------------------------------------------------------------------------
+
 asap_with_doxygen(
   MODULE_NAME
   ${MODULE_TARGET_NAME}
@@ -135,6 +141,7 @@ asap_with_sphinx(${MODULE_TARGET_NAME})
 # ==============================================================================
 # Deployment instructions
 # ==============================================================================
+
 if(${META_PROJECT_ID}_INSTALL)
   set(TARGETS_EXPORT_NAME "${MODULE_TARGET_NAME}Targets")
   set(runtime "${MODULE_TARGET_NAME}_runtime")
@@ -184,3 +191,5 @@ if(${META_PROJECT_ID}_INSTALL)
       COMPONENT ${MODULE_TARGET_NAME}_docs)
   endif()
 endif()
+
+asap_pop_module("${my_name}")

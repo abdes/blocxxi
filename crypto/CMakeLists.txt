@@ -4,13 +4,16 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ===------------------------------------------------------------------------===#
 
+set(my_name "crypto")
+asap_push_module("${my_name}")
+
 # ------------------------------------------------------------------------------
 # Meta information about the this module
 # ------------------------------------------------------------------------------
 
 asap_declare_module(
   MODULE_NAME
-  "crypto"
+  "${my_name}"
   DESCRIPTION
   "Cryptography utilities"
   GITHUB_REPO
@@ -63,7 +66,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/crypto/config.h.in
 # Main module target
 # ------------------------------------------------------------------------------
 
-set(MODULE_TARGET_NAME "${META_PROJECT_NAME}_${META_MODULE_NAME}")
+set(MODULE_TARGET_NAME "blocxxi_crypto")
 
 asap_add_library(
   ${MODULE_TARGET_NAME}
@@ -104,6 +107,7 @@ asap_create_module_config_files()
 # ------------------------------------------------------------------------------
 # Tests
 # ------------------------------------------------------------------------------
+
 if(ASAP_BUILD_TESTS)
   asap_add_sanitizers(${MODULE_TARGET_NAME})
   add_subdirectory(test)
@@ -112,6 +116,7 @@ endif()
 # ------------------------------------------------------------------------------
 # API Documentation
 # ------------------------------------------------------------------------------
+
 asap_with_doxygen(
   MODULE_NAME
   ${MODULE_TARGET_NAME}
@@ -129,6 +134,7 @@ asap_with_sphinx(${MODULE_TARGET_NAME})
 # ==============================================================================
 # Deployment instructions
 # ==============================================================================
+
 if(${META_PROJECT_ID}_INSTALL)
   set(TARGETS_EXPORT_NAME "${MODULE_TARGET_NAME}Targets")
   set(runtime "${MODULE_TARGET_NAME}_runtime")
@@ -178,3 +184,5 @@ if(${META_PROJECT_ID}_INSTALL)
       COMPONENT ${MODULE_TARGET_NAME}_docs)
   endif()
 endif()
+
+asap_pop_module("${my_name}")

@@ -4,7 +4,25 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ===-----------------------------------------------------------------------===#
 
-message("=> [third-party modules]")
+message(STATUS "${ASAP_LOG_PROJECT_HIERARCHY} >> third-party modules")
+
+# Call `asap_add_package` to add third party packages using CPM, while
+# automatically adding/removing them to the project hierarchy stack.
+#
+# Refer to https://github.com/cpm-cmake/CPM.cmake for the full usage.
+#
+# Example:
+# ~~~
+# asap_add_package(
+#   NAME
+#   magic_enum
+#   GIT_TAG
+#   master
+#   GITHUB_REPOSITORY
+#   abdes/magic_enum
+#   OPTIONS
+#   "MAGIC_ENUM_OPT_INSTALL ON")
+# ~~~
 
 # ------------------------------------------------------------------------------
 # GSL
@@ -12,13 +30,12 @@ message("=> [third-party modules]")
 set(GSL_INSTALL
     ON
     CACHE BOOL FORCE "Generate and install GSL target")
-cpmaddpackage(NAME gsl GIT_TAG main GITHUB_REPOSITORY microsoft/GSL)
+asap_add_package(NAME gsl GIT_TAG main GITHUB_REPOSITORY microsoft/GSL)
 
 # ------------------------------------------------------------------------------
 # magic_enum
 # ------------------------------------------------------------------------------
-
-cpmaddpackage(
+asap_add_package(
   NAME
   magic_enum
   GIT_TAG
@@ -31,7 +48,7 @@ cpmaddpackage(
 # ------------------------------------------------------------------------------
 # Crypto++
 # ------------------------------------------------------------------------------
-cpmaddpackage(
+asap_add_package(
   NAME
   cryptopp-cmake
   GIT_TAG
@@ -48,7 +65,7 @@ if(cryptopp-cmake_ADDED)
   # static and the shared lib, depending on which one is used.
   target_include_directories(
     cryptopp SYSTEM PUBLIC $<BUILD_INTERFACE:${CRYPTOPP_PROJECT_DIR}>
-                                  $<INSTALL_INTERFACE:include>)
+                           $<INSTALL_INTERFACE:include>)
 endif()
 
 # ------------------------------------------------------------------------------
@@ -112,7 +129,7 @@ foreach(
   utility
   variant2
   winapi)
-  cpmaddpackage(
+  asap_add_package(
     NAME
     boost_${boost_lib}
     GIT_TAG
@@ -126,6 +143,7 @@ endforeach()
 # ------------------------------------------------------------------------------
 # miniupnpc
 # ------------------------------------------------------------------------------
+asap_push_module(miniupnp)
 cpmaddpackage(
   NAME
   miniupnp
@@ -153,11 +171,12 @@ if(miniupnp_ADDED)
 
   # target_compile_definitions(libminiupnpc-static PRIVATE DEBUG)
 endif()
+asap_pop_module(miniupnp)
 
 # ------------------------------------------------------------------------------
 # asap::common
 # ------------------------------------------------------------------------------
-cpmaddpackage(
+asap_add_package(
   NAME
   asap_common
   GIT_TAG
@@ -170,7 +189,7 @@ cpmaddpackage(
 # ------------------------------------------------------------------------------
 # asap::contract
 # ------------------------------------------------------------------------------
-cpmaddpackage(
+asap_add_package(
   NAME
   asap_contract
   GIT_TAG
@@ -183,7 +202,7 @@ cpmaddpackage(
 # ------------------------------------------------------------------------------
 # asap::logging
 # ------------------------------------------------------------------------------
-cpmaddpackage(
+asap_add_package(
   NAME
   asap_logging
   GIT_TAG
