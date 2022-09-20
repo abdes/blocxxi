@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "common/compilers.h"
 #include <p2p/kademlia/boost_asio.h>
 
 #include <logging/logging.h>
@@ -187,6 +188,8 @@ private:
     case Header::MessageType::FIND_VALUE_RESPONSE:
       network_.HandleNewResponse(sender, header, buffer);
       break;
+    default:
+      ASAP_UNREACHABLE();
     }
   }
 

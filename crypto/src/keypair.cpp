@@ -8,9 +8,16 @@
 
 #include <iostream> // TODO(Abdessattar): remove only for debug
 
+#include <common/compilers.h>
+
+ASAP_DIAGNOSTIC_PUSH
+#if defined(ASAP_GNUC_VERSION)
+#pragma GCC diagnostic ignored "-Wshadow"
+#endif
 #include <eccrypto.h> // for cryptopp ECC encryption
 #include <oids.h>     // for cryptopp ECC curve function
 #include <osrng.h>    // for cryptopp random number generation
+ASAP_DIAGNOSTIC_POP
 
 namespace blocxxi::crypto {
 
