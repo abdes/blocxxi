@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.0.1](http://github.com/abdes/asap/compare/v0.10.0...v1.0.1) (2022-09-20)
+
+### Bug Fixes
+
+* work around and resolve gcc warnings ([69c7433](http://github.com/abdes/asap/commit/69c7433ac655c5455542fec7be8312a0095de581))
+
 ## [1.0.0](http://github.com/abdes/asap/compare/v0.10.0...v1.0.0) (2022-09-20)
 
 ### Features
