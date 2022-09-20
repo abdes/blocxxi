@@ -184,7 +184,9 @@ asap_add_package(
   GITHUB_REPOSITORY
   asap-projects/asap-common
   OPTIONS
-  "ASAP_COMMON_INSTALL TRUE")
+  "ASAP_COMMON_INSTALL TRUE"
+  "ASAP_BUILD_TESTS OFF"
+  "ASAP_BUILD_EXAMPLES OFF")
 
 # ------------------------------------------------------------------------------
 # asap::contract
@@ -197,7 +199,9 @@ asap_add_package(
   GITHUB_REPOSITORY
   asap-projects/asap-contract
   OPTIONS
-  "ASAP_CONTRACT_INSTALL TRUE")
+  "ASAP_CONTRACT_INSTALL TRUE"
+  "ASAP_BUILD_TESTS OFF"
+  "ASAP_BUILD_EXAMPLES OFF")
 
 # ------------------------------------------------------------------------------
 # asap::logging
@@ -210,4 +214,6 @@ asap_add_package(
   GITHUB_REPOSITORY
   asap-projects/asap-logging
   OPTIONS
-  "ASAP_LOGGING_INSTALL TRUE")
+  "ASAP_LOGGING_INSTALL TRUE"
+  "ASAP_BUILD_TESTS OFF"
+  "ASAP_BUILD_EXAMPLES OFF")
