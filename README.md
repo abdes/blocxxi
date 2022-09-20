@@ -120,7 +120,7 @@ git config remote.upstream.tagopt --no-tags
   appropriate
 
 [build-matrix]: https://github.com/abdes/blocxxi/actions/workflows/cmake-build.yml?branch=develop
-[build-status-develop-badge]: https://github.com/abdes/asap/blocxxi/workflows/cmake-build.yml/badge.svg?branch=develop
+[build-status-develop-badge]: https://github.com/abdes/blocxxi/actions/workflows/cmake-build.yml/badge.svg?branch=develop
 [build-status-master-badge]: https://github.com/abdes/blocxxi/actions/workflows/cmake-build.yml/badge.svg?branch=master
 [commits]: https://github.com/abdes/blocxxi/commits
 [last-commit-badge]: https://img.shields.io/github/last-commit/abdes/blocxxi
