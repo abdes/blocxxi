@@ -122,7 +122,7 @@ jobs:
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 110 --slave /usr/bin/g++ g++ /usr/bin/g++-11 --slave /usr/bin/gcov gcov /usr/bin/gcov-11
 
       - name: Setup ccache
-        # if: runner.os != 'Windows'
+        if: runner.os != 'Windows'
         uses: Chocobo1/setup-ccache-action@v1
         with:
           prepend_symlinks_to_path: false
@@ -153,12 +153,19 @@ jobs:
           endif()
           set(ENV{PATH} "$ENV{GITHUB_WORKSPACE}${path_separator}$ENV{PATH}")
 
+          if (NOT "${{ runner.os }}" STREQUAL "Windows")
+            set(enable_ccache "ON")
+          else()
+            set(enable_ccache "OFF")
+          endif()
+
           execute_process(
             COMMAND cmake
               -S .
               -B build
               -D CMAKE_BUILD_TYPE=$ENV{BUILD_TYPE}
               -G Ninja
+              -D USE_CCACHE=${enable_ccache}
               -D CMAKE_MAKE_PROGRAM=ninja
               -D ASAP_BUILD_TESTS=ON
               -D ASAP_BUILD_EXAMPLES=ON
