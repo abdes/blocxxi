@@ -193,8 +193,6 @@ jobs:
               -G Ninja
               -D USE_CCACHE=${enable_ccache}
               -D CMAKE_MAKE_PROGRAM=ninja
-              -D CMAKE_C_COMPILER_LAUNCHER=ccache
-              -D CMAKE_CXX_COMPILER_LAUNCHER=ccache
               -D ASAP_BUILD_TESTS=ON
               -D ASAP_BUILD_EXAMPLES=ON
               -D CMAKE_INSTALL_PREFIX=install
@@ -219,19 +217,6 @@ jobs:
             endforeach()
           endif()
 
-          file(TO_CMAKE_PATH "$ENV{GITHUB_WORKSPACE}" ccache_basedir)
-          set(ENV{CCACHE_BASEDIR} "${ccache_basedir}")
-          set(ENV{CCACHE_DIR} "${ccache_basedir}/.ccache")
-          set(ENV{CCACHE_COMPRESS} "true")
-          set(ENV{CCACHE_COMPRESSLEVEL} "6")
-          set(ENV{CCACHE_MAXSIZE} "400M")
-          if ("${{ matrix.config.cxx }}" STREQUAL "cl")
-            set(ENV{CCACHE_MAXSIZE} "600M")
-          endif()
-
-          execute_process(COMMAND ccache -p)
-          execute_process(COMMAND ccache -z)
-
           execute_process(
             COMMAND cmake --build build --target all --target build-all-tests
             RESULT_VARIABLE result
@@ -245,15 +230,6 @@ jobs:
             message("::error::${error_message}")
             message(FATAL_ERROR "Build failed")
           endif()
-
-      - name: ccache statistics
-        shell: cmake -P {0}
-        run: |
-          file(TO_CMAKE_PATH "$ENV{GITHUB_WORKSPACE}" ccache_basedir)
-          set(ENV{CCACHE_BASEDIR} "${ccache_basedir}")
-          set(ENV{CCACHE_DIR} "${ccache_basedir}/.ccache")
-
-          execute_process(COMMAND ccache -s)
 
       - name: Run tests
         shell: cmake -P {0}

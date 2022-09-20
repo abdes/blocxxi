@@ -41,7 +41,7 @@ asap_add_package(
   GIT_TAG
   master
   GITHUB_REPOSITORY
-  abdes/magic_enum
+  neargye/magic_enum
   OPTIONS
   "MAGIC_ENUM_OPT_INSTALL ON")
 
