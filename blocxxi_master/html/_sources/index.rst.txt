@@ -19,6 +19,7 @@ Last Updated on |date|
    :titlesonly:
    :hidden:
 
+   tools/index
    license
    changelog.md
    version
@@ -32,15 +33,34 @@ system and follows its development workflow.
 Parts of the documentation
 ==========================
 
-.. :doc:`clap <clap:api>`
-.. ----------------------
-..   *start here to understand the classes provided by the library and how to use
-..   them.*
+:doc:`codec <codec:api>`
+------------------------
+  *start here to understand the codec utility module APIs.*
+
+:doc:`crypto <crypto:api>`
+--------------------------
+  *start here to understand the crypto utility module APIs.*
+
+:doc:`nat <nat:api>`
+--------------------
+  *start here to understand the NAT and port mapping utility module APIs.*
+
+:doc:`p2p <p2p:api>`
+--------------------
+  *start here to understand the core of the blocxxi project: its implementation
+  of a Kademlia based DHT.*
 
 `Developer Guides <https://abdes.github.io/asap/asap_master/html/project-development/index.html>`_
 --------------------------------------------------------------------------------------------------
   *head over to the `asap` project documentation for detailed guides on how to
   build and maintain the different targets in this project.*
+
+:doc:`Project Tools <tools/index>`
+----------------------------------
+*get an introduction to the programs and scripts under the `tools` folder,
+specifically made for the `asap` project. These can simplify recurring tasks and
+provide additional insights into the project, and sometimes examples of how to
+use the project artifacts.*
 
 Acknowledgements
 ================

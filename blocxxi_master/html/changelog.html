@@ -91,6 +91,18 @@
 </form><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
     <div class="bd-toc-item active">
         <ul class="current nav bd-sidenav">
+ <li class="toctree-l1 has-children">
+  <a class="reference internal" href="tools/index.html">
+   Project Tools
+  </a>
+  <input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/>
+  <label for="toctree-checkbox-1">
+   <i class="fas fa-chevron-down">
+   </i>
+  </label>
+  <ul class="simple">
+  </ul>
+ </li>
  <li class="toctree-l1">
   <a class="reference internal" href="license.html">
    License
@@ -281,6 +293,28 @@ title="Print to PDF"
         <ul class="visible nav section-nav flex-column">
  <li class="toc-h2 nav-item toc-entry">
   <a class="reference internal nav-link" href="#id1">
+   1.0.0 (2022-09-20)
+  </a>
+  <ul class="nav section-nav flex-column">
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#features">
+     Features
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#bug-fixes">
+     Bug Fixes
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#documentation">
+     Documentation
+    </a>
+   </li>
+  </ul>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#id2">
    0.10.0 (2022-08-04)
   </a>
  </li>
@@ -305,6 +339,28 @@ title="Print to PDF"
                             <ul class="visible nav section-nav flex-column">
  <li class="toc-h2 nav-item toc-entry">
   <a class="reference internal nav-link" href="#id1">
+   1.0.0 (2022-09-20)
+  </a>
+  <ul class="nav section-nav flex-column">
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#features">
+     Features
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#bug-fixes">
+     Bug Fixes
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#documentation">
+     Documentation
+    </a>
+   </li>
+  </ul>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#id2">
    0.10.0 (2022-08-04)
   </a>
  </li>
@@ -322,7 +378,56 @@ title="Print to PDF"
 <h1>Changelog<a class="headerlink" href="#changelog" title="Permalink to this headline">#</a></h1>
 <p>All notable changes to this project will be documented in this file. See <a class="reference external" href="https://github.com/conventional-changelog/standard-version">standard-version</a> for commit guidelines.</p>
 <section id="id1">
-<h2>0.10.0 (2022-08-04)<a class="headerlink" href="#id1" title="Permalink to this headline">#</a></h2>
+<h2><a class="reference external" href="http://github.com/abdes/asap/compare/v0.10.0...v1.0.0">1.0.0</a> (2022-09-20)<a class="headerlink" href="#id1" title="Permalink to this headline">#</a></h2>
+<section id="features">
+<h3>Features<a class="headerlink" href="#features" title="Permalink to this headline">#</a></h3>
+<ul class="simple">
+<li><p>add the <code class="docutils literal notranslate"><span class="pre">version-info</span></code> tool to print the project info (<a class="reference external" href="http://github.com/abdes/asap/commit/cb228e8af73fbf063371e4c597f757bf5e9a4b75">cb228e8</a>)</p></li>
+<li><p>enhance configure logs with project/module nesting hierarchy (<a class="reference external" href="http://github.com/abdes/asap/commit/f6c13f2a08c89cac57fb2f0dd857c8f382e50e7b">f6c13f2</a>)</p></li>
+<li><p>implement robust project-wide formatting (<a class="reference external" href="http://github.com/abdes/asap/commit/afcaebe544fc03684ae2f85d8507b1f4571d989b">afcaebe</a>)</p></li>
+</ul>
+</section>
+<section id="bug-fixes">
+<h3>Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permalink to this headline">#</a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="http://github.com/abdes/asap/issues/10">#10</a> no more template export header (<a class="reference external" href="http://github.com/abdes/asap/commit/dd8ffd5a8f36340963349c7ebcb7c1713c2f880a">dd8ffd5</a>)</p></li>
+<li><p><a class="reference external" href="http://github.com/abdes/asap/issues/11">#11</a> refactor compiler options management (<a class="reference external" href="http://github.com/abdes/asap/commit/78ae4933f2e263a55f6537e66347c6b11a24b961">78ae493</a>)</p></li>
+<li><p><a class="reference external" href="http://github.com/abdes/asap/issues/12">#12</a> disable used-but-marked-unused (<a class="reference external" href="http://github.com/abdes/asap/commit/6d42d83bfdd16123f05a69726058dc5f103143be">6d42d83</a>)</p></li>
+<li><p><a class="reference external" href="http://github.com/abdes/asap/issues/13">#13</a> move “caexcludepath” to dev-windows and exclude CPM cache (<a class="reference external" href="http://github.com/abdes/asap/commit/0571714e9436bfec26d6450b5bc37f2a5f478a55">0571714</a>)</p></li>
+<li><p><a class="reference external" href="http://github.com/abdes/asap/issues/14">#14</a> upgrade CPM to 0.35.6 (<a class="reference external" href="http://github.com/abdes/asap/commit/695414b8e66d4d42d7ef3aaef3c6a4b8399d16c2">695414b</a>)</p></li>
+<li><p><a class="reference external" href="http://github.com/abdes/asap/issues/16">#16</a> use CMAKE_CURRENT_SOURCE_DIR instead of CMAKE_SOURCE_DIR for cmake includes (<a class="reference external" href="http://github.com/abdes/asap/commit/4ac6928fc2a0bf806bbcaa3bea898b5ff018a164">4ac6928</a>)</p></li>
+<li><p><a class="reference external" href="http://github.com/abdes/asap/issues/17">#17</a> git should not be required (<a class="reference external" href="http://github.com/abdes/asap/commit/2c761046d0801f643aa0215d34f2795ff0093dfc">2c76104</a>)</p></li>
+<li><p><a class="reference external" href="http://github.com/abdes/asap/issues/18">#18</a> enforce end of line to LF (<a class="reference external" href="http://github.com/abdes/asap/commit/943ae479e09de999c324a9cfe3bbf8d688d255a3">943ae47</a>)</p></li>
+<li><p><a class="reference external" href="http://github.com/abdes/asap/issues/19">#19</a> use generator expressions instead of CMAKE_BUILD_TYPE (<a class="reference external" href="http://github.com/abdes/asap/commit/857d2997d4ec6c879036e10234b8baf907e91089">857d299</a>)</p></li>
+<li><p><a class="reference external" href="http://github.com/abdes/asap/issues/20">#20</a> local install should use CMAKE_INSTALL_PREFIX to set variables (<a class="reference external" href="http://github.com/abdes/asap/commit/2e1f1d49baff64dbf47dbbda234886ad2dfdbf1c">2e1f1d4</a>)</p></li>
+<li><p><a class="reference external" href="http://github.com/abdes/asap/issues/20">#20</a> use CMAKE_INSTALL_PREFIX to set variables (<a class="reference external" href="http://github.com/abdes/asap/commit/2fffd96392114993bbb72e3f614725f867d61ab1">2fffd96</a>)</p></li>
+<li><p><a class="reference external" href="http://github.com/abdes/asap/issues/9">#9</a> remove no longer used function (<a class="reference external" href="http://github.com/abdes/asap/commit/5a7416f9563aae303d68ca2bb878fef97fbb7130">5a7416f</a>)</p></li>
+<li><p>add missing diagnostic push pragma at end of file (<a class="reference external" href="http://github.com/abdes/asap/commit/1d59bc5d02b6ac96d2784d529995c6cb254a7265">1d59bc5</a>)</p></li>
+<li><p>contract mode definition should only be added when not testing asap_contract (<a class="reference external" href="http://github.com/abdes/asap/commit/c6d5e342e7a74236bb1b006be1e0d6bfe956a51a">c6d5e34</a>)</p></li>
+<li><p>don’t build cryptopp shared lib as we only use the static one (<a class="reference external" href="http://github.com/abdes/asap/commit/7e40b1eb187d0e5afa3c10af3e3c5dba8168ab50">7e40b1e</a>)</p></li>
+<li><p>eliminate compiler warnings (<a class="reference external" href="http://github.com/abdes/asap/commit/5c4ee9cd58ffe554236f5f9e853a838d963033b1">5c4ee9c</a>)</p></li>
+<li><p>generated <code class="docutils literal notranslate"><span class="pre">version.h</span></code> should follow project naming (<a class="reference external" href="http://github.com/abdes/asap/commit/329bcdfc8cb9ba4782d0cbf4b3f21ad677307644">329bcdf</a>)</p></li>
+<li><p>inline function to avoid compiler warning (<a class="reference external" href="http://github.com/abdes/asap/commit/3e985ddff4cc807da645fe78d61d1f7679689fcb">3e985dd</a>)</p></li>
+<li><p>install master project generated header files (<a class="reference external" href="http://github.com/abdes/asap/commit/3c5c1628b3c920e52200f7e14ecde2346b78a6f4">3c5c162</a>)</p></li>
+<li><p><strong>macos:</strong> check clang diagnostics support (<a class="reference external" href="http://github.com/abdes/asap/commit/79808b0058c407b9ae6d66f55e9fd71ca9360426">79808b0</a>)</p></li>
+<li><p>restore test setup deleted by mistake (<a class="reference external" href="http://github.com/abdes/asap/commit/cec7b9d92481d1480c54610892cbfd954b9e0068">cec7b9d</a>)</p></li>
+<li><p>top level install not working properly (<a class="reference external" href="http://github.com/abdes/asap/commit/4ac4a31001a2ab73764e3d9fe3f279b1e7b25aee">4ac4a31</a>)</p></li>
+<li><p>use cmake-format extension default behavior (<a class="reference external" href="http://github.com/abdes/asap/commit/a5d5c5eae39e4d3d0094c00848cfe777d331a219">a5d5c5e</a>)</p></li>
+<li><p>use correct path for the version include file (<a class="reference external" href="http://github.com/abdes/asap/commit/7997b68eeef236e6940b0ba168c79dbdd21b34ad">7997b68</a>)</p></li>
+<li><p>wrong variable used for target name (<a class="reference external" href="http://github.com/abdes/asap/commit/4ecd2bbfa896547e77cdbf7ba1c535f80125eef4">4ecd2bb</a>)</p></li>
+<li><p>wrong variable used of target name (<a class="reference external" href="http://github.com/abdes/asap/commit/04b5343ae541bd6d4f5ae1c1fa2eb85b93e0b5a3">04b5343</a>)</p></li>
+</ul>
+</section>
+<section id="documentation">
+<h3>Documentation<a class="headerlink" href="#documentation" title="Permalink to this headline">#</a></h3>
+<ul class="simple">
+<li><p>add example output from version-info tool (<a class="reference external" href="http://github.com/abdes/asap/commit/3a5515e74b0b0e5c06ba7e4500f7572a3bc4450f">3a5515e</a>)</p></li>
+<li><p>update after new formatting system (<a class="reference external" href="http://github.com/abdes/asap/commit/082e5134fd7d1cd03cc06218e10d5cf978b22409">082e513</a>)</p></li>
+</ul>
+</section>
+</section>
+<section id="id2">
+<h2>0.10.0 (2022-08-04)<a class="headerlink" href="#id2" title="Permalink to this headline">#</a></h2>
 <p>Initial version after refactoring to use <a class="reference external" href="https://github.com/abdes/asap">asap</a>.</p>
 </section>
 </section>
