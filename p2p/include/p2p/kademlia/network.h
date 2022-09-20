@@ -7,14 +7,13 @@
 #pragma once
 
 #include <memory>
-
-#include <boost/asio/io_context.hpp>
 #include <utility>
 
-// #include <common/assert.h>
+#include <p2p/kademlia/boost_asio.h>
+
+#include <contract/contract.h>
 #include <logging/logging.h>
-#include <p2p/kademlia/channel.h>
-#include <p2p/kademlia/message_serializer.h>
+
 #include <p2p/kademlia/response_dispatcher.h>
 
 namespace blocxxi::p2p::kademlia {
@@ -58,7 +57,7 @@ public:
   /// @name Constructors, etc.
   //@{
   /*!
-   * @brief Construct a Newtoek interface using the provided channels for
+   * @brief Construct a network interface using the provided channels for
    * communication
    * over IPv4 and IPv6.
    *
@@ -115,16 +114,16 @@ public:
    * received. It cannot be null.
    */
   void OnMessageReceived(MessageHandlerCallbackType handler) {
-    // ASAP_ASSERT(handler != nullptr);
+    ASAP_ASSERT(handler != nullptr);
     receive_handler_ = std::move(handler);
   }
 
-  /// Start receiving messsage from the network. MUST be called after a message
+  /// Start receiving message from the network. MUST be called after a message
   /// handler is registered through OnMessageReceived(handler).
   /// Calling Start() multiple times has no additional effect than the first
   /// time.
   void Start() {
-    // ASAP_ASSERT(receive_handler_ != nullptr);
+    ASAP_ASSERT(receive_handler_ != nullptr);
     static auto started = false;
     if (!started) {
       ScheduleReceive(*chan_ipv4_);

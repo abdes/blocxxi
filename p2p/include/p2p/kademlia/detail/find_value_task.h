@@ -1,7 +1,8 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #pragma once
 
@@ -243,7 +244,7 @@ void StartFindValueTask(KeyType const &key, TNetwork &network,
     TRoutingTable &routing_table, THandler &&handler,
     std::string const &task_name =
         FindValueTask<THandler, TNetwork, TRoutingTable, TData>::TASK_NAME) {
-  using handler_type = typename std::decay<THandler>::type;
+  using handler_type = std::decay_t<THandler>;
   using task = FindValueTask<handler_type, TNetwork, TRoutingTable, TData>;
 
   task::Start(

@@ -1,11 +1,18 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
+
+/*!
+ * \file
+ *
+ * \brief Platform independent error codes for the nat module.
+ */
 
 #pragma once
 
-#include <nat/blocxxi_nat_api.h>
+#include <nat/blocxxi_nat_export.h>
 
 #include <system_error>
 
@@ -29,9 +36,5 @@ BLOCXXI_NAT_API auto make_error_condition(error_type condition)
 
 } // namespace blocxxi::nat
 
-namespace std {
-
 template <>
-struct is_error_condition_enum<blocxxi::nat::error_type> : true_type {};
-
-} // namespace std
+struct std::is_error_condition_enum<blocxxi::nat::error_type> : true_type {};

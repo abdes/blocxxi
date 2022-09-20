@@ -13,11 +13,9 @@
 #include <codec/base16.h>
 
 #include <array>
-#include <cctype>
 #include <cstdint>
 #include <stdexcept>
 
-#include <common/compilers.h>
 #include <contract/contract.h>
 
 namespace {
@@ -40,8 +38,8 @@ template <unsigned N> struct HexLookupTable {
 
 template <typename LambdaType, unsigned... Is>
 constexpr auto HexTableGenerator(seq<Is...> /*unused*/, LambdaType MakeLo,
-    LambdaType MakeHi) -> HexLookupTable<sizeof...(Is)> {
-  return {{MakeLo(Is)...}, {MakeHi(Is)...}};
+    LambdaType MakeHi) -> HexLookupTable<static_cast<unsigned>(sizeof...(Is))> {
+  return {{{MakeLo(Is)...}}, {{MakeHi(Is)...}}};
 }
 
 template <unsigned N, typename LambdaType>
@@ -54,8 +52,8 @@ constexpr uint8_t c_lower_four_bits_mask = 0xFU;
 constexpr uint8_t c_upper_four_bits_mask = 0xF0U;
 
 /** Function that computes a value for each index **/
-constexpr std::array ALPHABET_UC{'0', '1', '2', '3', '4', '5', '6', '7', '8',
-    '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+constexpr std::array<char, 16> ALPHABET_UC{{'0', '1', '2', '3', '4', '5', '6',
+    '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'}};
 constexpr auto UpperMakeLo(unsigned idx) -> char {
   return (ALPHABET_UC.at(idx & c_lower_four_bits_mask));
 }
@@ -63,8 +61,8 @@ constexpr auto UpperMakeHi(unsigned idx) -> char {
   return (ALPHABET_UC.at((idx & c_upper_four_bits_mask) >> 4));
 }
 
-constexpr std::array ALPHABET_LC{'0', '1', '2', '3', '4', '5', '6', '7', '8',
-    '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+constexpr std::array<char, 16> ALPHABET_LC{{'0', '1', '2', '3', '4', '5', '6',
+    '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'}};
 constexpr auto LowerMakeLo(unsigned idx) -> char {
   return (ALPHABET_LC.at(idx & c_lower_four_bits_mask));
 }
@@ -88,12 +86,12 @@ template <unsigned N> struct DecLookupTable {
 
 template <typename LambdaType, unsigned... Is>
 constexpr auto DecTableGenerator(seq<Is...> /*unused*/, LambdaType DecForIndex)
-    -> DecLookupTable<sizeof...(Is)> {
+    -> DecLookupTable<static_cast<unsigned>(sizeof...(Is))> {
 #if defined(ASAP_CLANG_VERSION)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-braces"
 #endif
-  return {DecForIndex(Is)...};
+  return {{{DecForIndex(Is)...}}};
 #if defined(ASAP_CLANG_VERSION)
 #pragma clang diagnostic pop
 #endif
@@ -108,17 +106,17 @@ constexpr uint8_t c_invalid_value = 0xFF;
 
 constexpr auto DecForIndex(uint8_t idx) -> uint8_t {
   constexpr uint8_t c_value_of_a = 10;
-  uint8_t decodec_value = c_invalid_value;
+  uint8_t decoded_value = c_invalid_value;
   if ('0' <= idx && idx <= '9') {
-    decodec_value = idx - '0';
+    decoded_value = idx - '0';
   } else if ('A' <= idx && idx <= 'F') {
-    decodec_value = idx + c_value_of_a - 'A';
+    decoded_value = idx + c_value_of_a - 'A';
   } else if ('a' <= idx && idx <= 'f') {
-    decodec_value = idx + c_value_of_a - 'a';
+    decoded_value = idx + c_value_of_a - 'a';
   } else {
     // Keep the invalid value used to initialize the decoded_value variable
   }
-  return decodec_value;
+  return decoded_value;
 }
 
 // create compile-time table
@@ -136,12 +134,12 @@ auto blocxxi::codec::hex::Encode(gsl::span<const uint8_t> src, bool reverse,
   std::string out;
   out.reserve(2 * src.size());
   if (reverse) {
-    for (auto bin_iter = src.rbegin(); bin_iter != src.rend(); bin_iter++) {
+    for (auto bin_iter = src.rbegin(); bin_iter != src.rend(); ++bin_iter) {
       out.push_back(table.lo_.at(*bin_iter));
       out.push_back(table.hi_.at(*bin_iter));
     }
   } else {
-    for (auto bin : src) {
+    for (const auto bin : src) {
       out.push_back(table.hi_.at(bin));
       out.push_back(table.lo_.at(bin));
     }
@@ -165,7 +163,7 @@ void blocxxi::codec::hex::Decode(
   auto out = dest.begin();
   if (reverse) {
     auto src_begin = src.rbegin();
-    auto src_end = src.rend();
+    const auto src_end = src.rend();
     while ((src_begin != src_end) && (out != dest.end())) {
       uint8_t lookup =
           DEC_LOOKUP_TABLE.dec_.at(static_cast<uint8_t>(*src_begin));
@@ -174,19 +172,19 @@ void blocxxi::codec::hex::Decode(
                                 "'] not a valid hex digit");
       }
       auto dec = static_cast<uint8_t>(lookup << 4);
-      src_begin++;
+      ++src_begin;
       lookup = DEC_LOOKUP_TABLE.dec_.at(static_cast<uint8_t>(*src_begin));
       if (lookup == c_invalid_value) {
         throw std::domain_error("Character ['" + std::to_string(*src_begin) +
                                 "'] not a valid hex digit");
       }
       dec |= lookup;
-      src_begin++;
+      ++src_begin;
       *out++ = dec;
     }
   } else {
     auto src_begin = src.begin();
-    auto src_end = src.end();
+    const auto src_end = src.end();
     while ((src_begin != src_end) && (out != dest.end())) {
       uint8_t lookup =
           DEC_LOOKUP_TABLE.dec_.at(static_cast<uint8_t>(*src_begin));
@@ -195,14 +193,14 @@ void blocxxi::codec::hex::Decode(
                                 "'] not a valid hex digit");
       }
       auto dec = static_cast<uint8_t>(lookup << 4);
-      src_begin++;
+      ++src_begin;
       lookup = DEC_LOOKUP_TABLE.dec_.at(static_cast<uint8_t>(*src_begin));
       if (lookup == c_invalid_value) {
         throw std::domain_error("Character ['" + std::to_string(*src_begin) +
                                 "'] not a valid hex digit");
       }
       dec |= lookup;
-      src_begin++;
+      ++src_begin;
       *out++ = dec;
     }
   }

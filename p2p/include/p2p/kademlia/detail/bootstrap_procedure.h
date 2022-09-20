@@ -10,11 +10,9 @@
 
 #include <p2p/kademlia/message.h>
 
-#include "error_impl.h"
 #include "find_node_task.h"
 
 #include <memory>
-#include <system_error>
 
 namespace blocxxi::p2p::kademlia::detail {
 

@@ -11,7 +11,7 @@ include_guard(GLOBAL)
 # ------------------------------------------------------------------------------
 
 function(asap_set_compile_definitions target)
-  set(argOption)
+  set(argOption "NO_CONTRACT")
   set(argSingle "")
   set(argMulti "ADD" "REMOVE")
 
@@ -22,8 +22,6 @@ function(asap_set_compile_definitions target)
   cmake_parse_arguments(x "${argOption}" "${argSingle}" "${argMulti}" ${ARGN})
 
   set(all_flags)
-
-  list(APPEND all_flags "ASAP_CONTRACT_${OPTION_CONTRACT_MODE}")
 
   # Provide a way to distinguish between debug and release builds via
   # preprocessor define
@@ -52,4 +50,21 @@ function(asap_set_compile_definitions target)
   list(APPEND all_flags ${x_ADD})
   target_compile_definitions(${target} PRIVATE ${all_flags})
 
+  # If linking against asap_contract, set the contract mode based on the build
+  # type. Use generator expressions only, do not check for CMAKE_BUILD_TYPE
+  # which is not friendly with multi-config generators.
+  #
+  # Do not add this definition if we are testing asap-_contract
+  if(TARGET asap_contract AND NOT ASAP_CONTRACT_TESTING)
+    if(NOT DEFINED OPTION_CONTRACT_MODE)
+      target_compile_definitions(
+        ${target}
+        PRIVATE $<$<CONFIG:Debug>:ASAP_CONTRACT_AUDIT>
+                $<$<CONFIG:RelWithDebInfo>:ASAP_CONTRACT_DEFAULT>
+                $<$<CONFIG:Release,RelMinSize>:ASAP_CONTRACT_OFF>)
+    else()
+      target_compile_definitions(
+        ${target} PRIVATE "ASAP_CONTRACT_${OPTION_CONTRACT_MODE}")
+    endif()
+  endif()
 endfunction()

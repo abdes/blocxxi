@@ -6,9 +6,7 @@
 
 #pragma once
 
-#include <memory>
-
-#include <p2p/blocxxi_p2p_api.h>
+#include <p2p/blocxxi_p2p_export.h>
 #include <p2p/kademlia/message.h>
 
 namespace blocxxi::p2p::kademlia {
@@ -34,9 +32,12 @@ public:
   auto operator=(MessageSerializer const &) -> MessageSerializer & = delete;
 
   /// Movable (default)
-  MessageSerializer(MessageSerializer &&) = default;
+  MessageSerializer(MessageSerializer &&) noexcept = default;
   /// Movable (default)
-  auto operator=(MessageSerializer &&) -> MessageSerializer & = default;
+  auto operator=(MessageSerializer &&) noexcept
+      -> MessageSerializer & = default;
+
+  ~MessageSerializer() = default;
   //@}
 
   /*!
@@ -74,7 +75,7 @@ private:
       blocxxi::crypto::Hash160 const &token) -> Header;
 
   /// This node's id, used in serialized headers.
-  Node::IdType const my_id_;
+  Node::IdType my_id_;
 };
 
 template <typename TMessage>

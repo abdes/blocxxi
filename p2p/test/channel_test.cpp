@@ -4,23 +4,22 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
 
-#include <common/compilers.h>
-
 #include <gtest/gtest.h>
 
-ASAP_DIAGNOSTIC_PUSH
-#if defined(ASAP_GNUC_VERSION)
-#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
-#pragma GCC diagnostic ignored "-Woverloaded-virtual"
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#pragma GCC diagnostic ignored "-Wold-style-cast"
-#pragma GCC diagnostic ignored "-Wredundant-decls"
-#endif
-#include <boost/asio/io_context.hpp>
-#include <boost/asio/ip/udp.hpp>
-ASAP_DIAGNOSTIC_POP
+#include <common/compilers.h>
 
 #include <p2p/kademlia/channel.h>
+
+// Disable compiler and linter warnings originating from the unit test framework
+// and for which we cannot do anything. Additionally, every TEST or TEST_X macro
+// usage must be preceded by a '// NOLINTNEXTLINE'.
+ASAP_DIAGNOSTIC_PUSH
+#if defined(ASAP_CLANG_VERSION)
+#pragma clang diagnostic ignored "-Wused-but-marked-unused"
+#pragma clang diagnostic ignored "-Wglobal-constructors"
+#pragma clang diagnostic ignored "-Wexit-time-destructors"
+#pragma clang diagnostic ignored "-Wweak-vtables"
+#endif
 
 using namespace boost::asio;
 using namespace boost::asio::ip;
@@ -55,8 +54,8 @@ TEST(ChannelTest, CreateV4) {
 // NOLINTNEXTLINE
 TEST(ChannelTest, SendReceive) {
   boost::asio::io_context io_context;
-  auto receiver = AsyncUdpChannel::ipv4(io_context, "127.0.0.1", "30001");
-  auto sender = AsyncUdpChannel::ipv4(io_context, "127.0.0.1", "30002");
+  const auto receiver = AsyncUdpChannel::ipv4(io_context, "127.0.0.1", "30001");
+  const auto sender = AsyncUdpChannel::ipv4(io_context, "127.0.0.1", "30002");
   std::string str("Hello");
 
   auto received = false;
@@ -67,11 +66,12 @@ TEST(ChannelTest, SendReceive) {
         ASSERT_EQ("127.0.0.1", endpoint.address_.to_string());
         ASSERT_EQ(30002, endpoint.port_);
         received = true;
-        auto received_str = std::string(std::cbegin(buffer), std::cend(buffer));
+        const auto received_str =
+            std::string(std::cbegin(buffer), std::cend(buffer));
         ASSERT_EQ(str, received_str);
       });
 
-  Buffer buf(str.begin(), str.end());
+  const Buffer buf(str.begin(), str.end());
   auto sent = false;
   sender->AsyncSend(buf, IpEndpoint{make_address_v4("127.0.0.1"), 30001},
       [&sent](std::error_code errc) {
@@ -84,3 +84,4 @@ TEST(ChannelTest, SendReceive) {
 }
 
 } // namespace blocxxi::p2p::kademlia
+ASAP_DIAGNOSTIC_POP

@@ -4,8 +4,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
 
-#include <codec/base16.h>
-
 #include <utility>
 #include <vector>
 
@@ -14,6 +12,8 @@
 #include <common/compilers.h>
 #include <contract/ut/framework.h>
 #include <contract/ut/gtest.h>
+
+#include <codec/base16.h>
 
 // Disable compiler and linter warnings originating from the unit test framework
 // and for which we cannot do anything. Additionally, every TEST or TEST_X macro
@@ -92,19 +92,34 @@ const std::vector<EncodeTestParams> normal_cases{
     EncodeTestParams({0x00, 0x00, 0x00, 0xEF, 0x00}, true, false, "00FE000000"),
 };
 
+inline auto MakeTestCaseName(
+    const testing::TestParamInfo<Base16EncodeTest::ParamType> &info) {
+  std::string name = info.param.hex_;
+  if (name.empty()) {
+    name = "_empty";
+  }
+  if (info.param.lower_case_) {
+    name += "_lc";
+  }
+  if (info.param.reverse_) {
+    name += "_r";
+  }
+  return name;
+}
+
 // NOLINTNEXTLINE
-INSTANTIATE_TEST_SUITE_P(
-    NormalCases, Base16EncodeTest, ::testing::ValuesIn(normal_cases));
+INSTANTIATE_TEST_SUITE_P(NormalCases, Base16EncodeTest,
+    ::testing::ValuesIn(normal_cases), MakeTestCaseName);
 
 // NOLINTNEXTLINE
 TEST_P(Base16EncodeTest, ProperlyEncodesBinaryData) {
-  auto out = Encode(binary_, reverse_, lower_case_);
+  const auto out = Encode(binary_, reverse_, lower_case_);
   ASSERT_EQ(hex_, out);
 }
 
 // NOLINTNEXTLINE
-INSTANTIATE_TEST_SUITE_P(
-    NormalCases, Base16DecodeTest, ::testing::ValuesIn(normal_cases));
+INSTANTIATE_TEST_SUITE_P(NormalCases, Base16DecodeTest,
+    ::testing::ValuesIn(normal_cases), MakeTestCaseName);
 
 // NOLINTNEXTLINE
 TEST_P(Base16DecodeTest, ProperlyDecodesHexString) {
@@ -153,3 +168,4 @@ TEST(Base16DecodeInvalidInputTest, ThrowsDomainError) {
 }
 
 } // namespace blocxxi::codec::hex
+ASAP_DIAGNOSTIC_POP

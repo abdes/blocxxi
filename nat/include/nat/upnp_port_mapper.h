@@ -1,11 +1,12 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #pragma once
 
-#include <nat/blocxxi_nat_api.h>
+#include <nat/blocxxi_nat_export.h>
 
 #include <memory> // for unique_ptr
 
@@ -55,17 +56,15 @@ public:
   //@}
 
   /// @copydoc PortMapper::AddMapping()
-  auto AddMapping(Protocol protocol, unsigned external_port,
-      unsigned internal_port, std::string const &name,
-      std::chrono::seconds lease_time) -> std::error_condition override;
+  auto AddMapping(Mapping mapping, std::chrono::seconds lease_time)
+      -> std::error_condition override;
 
   /// @copydoc PortMapper::DeleteMapping()
   auto DeleteMapping(Protocol protocol, unsigned external_port)
       -> std::error_condition override;
 
-  /// @copydoc PortMapper::ToString()
   /// Always returns "upnp".
-  [[nodiscard]] auto ToString() const -> std::string override {
+  [[nodiscard]] auto MapperType() const -> std::string override {
     return "upnp";
   }
 

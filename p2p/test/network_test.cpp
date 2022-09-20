@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
 
+#include <common/compilers.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -15,6 +16,17 @@ using testing::_; // NOLINT
 using testing::AtLeast;
 using testing::NiceMock;
 using testing::Return;
+
+// Disable compiler and linter warnings originating from the unit test framework
+// and for which we cannot do anything. Additionally, every TEST or TEST_X macro
+// usage must be preceded by a '// NOLINTNEXTLINE'.
+ASAP_DIAGNOSTIC_PUSH
+#if defined(ASAP_CLANG_VERSION)
+#pragma clang diagnostic ignored "-Wused-but-marked-unused"
+#pragma clang diagnostic ignored "-Wglobal-constructors"
+#pragma clang diagnostic ignored "-Wexit-time-destructors"
+#pragma clang diagnostic ignored "-Wweak-vtables"
+#endif
 
 namespace blocxxi::p2p::kademlia {
 
@@ -97,3 +109,4 @@ TEST(NetworkTest, StartSchedulesRceiveOnAllchannels) {
 }
 
 } // namespace blocxxi::p2p::kademlia
+ASAP_DIAGNOSTIC_POP

@@ -6,26 +6,15 @@
 
 #pragma once
 
-#include <p2p/blocxxi_p2p_api.h>
-
-#include <common/compilers.h>
-#include <logging/logging.h>
-
 #include <chrono>     // for std:: time related types
 #include <functional> // for std::function (callbacks)
 #include <map>        // for multimap storing timers<->callbacks
 
-ASAP_DIAGNOSTIC_PUSH
-#if defined(ASAP_GNUC_VERSION)
-#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
-#pragma GCC diagnostic ignored "-Woverloaded-virtual"
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#pragma GCC diagnostic ignored "-Wold-style-cast"
-#pragma GCC diagnostic ignored "-Wredundant-decls"
-#endif
-#include <boost/asio/basic_waitable_timer.hpp>
-#include <boost/asio/io_service.hpp>
-ASAP_DIAGNOSTIC_POP
+#include <p2p/kademlia/boost_asio.h>
+
+#include <logging/logging.h>
+
+#include <p2p/blocxxi_p2p_export.h>
 
 namespace blocxxi::p2p::kademlia {
 
@@ -114,7 +103,7 @@ private:
   using TimePointType = ClockType::time_point;
 
   /// Function callback type invoked at expiration of a timer.
-  using CallbackType = std::function<void(void)>;
+  using CallbackType = std::function<void()>;
 
   /// A collection type for the association of timers expiry point in time to
   /// callbacks.
@@ -123,7 +112,7 @@ private:
   /*! The boost::asio::basic_waitable_timer template accepts an optional
    * WaitTraits
    * template parameter. The underlying time_t clock has one-second granularity,
-   * so these traits may be customised to reduce the latency between the clock
+   * so these traits may be customized to reduce the latency between the clock
    * ticking over and a wait operation's completion. When the timeout is near
    * (less than one second away) we poll the clock more frequently to detect the
    * time change closer to when it occurs. The user can select the appropriate

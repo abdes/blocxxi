@@ -1,17 +1,41 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
+
+/*!
+ * \file
+ *
+ * \brief Abstract base class for NAT port mapping implementations (e.g. UPNP,
+ * PMP, etc.).
+ */
 
 #pragma once
 
-#include <nat/blocxxi_nat_api.h>
-
-#include <chrono> // for duration
-#include <iosfwd> // for implementation of operator<<
-#include <iostream>
-#include <system_error> // for std:;error_condition
+#include <chrono>
+#include <system_error>
 #include <utility>
+
+#include <common/compilers.h>
+
+// Disable compiler warnings produced by fmtlib.
+ASAP_DIAGNOSTIC_PUSH
+#if defined(ASAP_CLANG_VERSION)
+#pragma clang diagnostic ignored "-Wundefined-func-template"
+#pragma clang diagnostic ignored "-Wfloat-equal"
+#pragma clang diagnostic ignored "-Wswitch-enum"
+#endif
+#if defined(ASAP_GNUC_VERSION)
+ASAP_PRAGMA(GCC diagnostic ignored "-Wswitch-default")
+ASAP_PRAGMA(GCC diagnostic ignored "-Wswitch-enum")
+#endif
+#include <fmt/format.h>
+ASAP_DIAGNOSTIC_POP
+
+#include <magic_enum.hpp>
+
+#include <nat/blocxxi_nat_export.h>
 
 namespace blocxxi::nat {
 
@@ -21,17 +45,28 @@ public:
   /// The possible values for the PortMappingProtocol.
   enum class Protocol { TCP, UDP };
 
-  static auto ProtocolString(Protocol protocol) -> char const * {
-    switch (protocol) {
-    case Protocol::TCP:
-      return "TCP";
-    case Protocol::UDP:
-      return "UDP";
-    }
-    // Only needed for compilers that complain about not all control paths
-    // return a value.
-    return "UDP";
-  }
+  static auto ProtocolString(Protocol protocol) noexcept -> std::string_view;
+
+  /// Default lease time in seconds.
+  static constexpr std::chrono::seconds c_default_lease_time{3600};
+
+  struct Mapping {
+    /// The protocol of the port mapping. Possible values are TCP or UDP.
+    Protocol protocol{Protocol::UDP};
+    /// The external port that the NAT gateway would “listen” on for connection
+    /// requests to a corresponding InternalPort on an InternalClient. Inbound
+    /// packets to this external port on the WAN interface of the gateway SHOULD
+    /// be forwarded to InternalClient on the InternalPort on which the message
+    /// was received.
+    unsigned external_port{0};
+    /// The port on InternalClient that the gateway SHOULD forward connection
+    /// requests to. A value of 0 is not allowed. NAT implementations that do
+    /// not permit different values for ExternalPort and InternalPort will
+    /// return an error.
+    unsigned internal_port{0};
+    /// A textual description of the port mapping for diagnostics etc.
+    std::string const &name;
+  };
 
   /// Default.
   PortMapper() = default;
@@ -43,7 +78,12 @@ public:
   }
 
   /// Default.
-  virtual ~PortMapper() = default;
+  virtual ~PortMapper();
+
+  PortMapper(const PortMapper &) = default;
+  PortMapper(PortMapper &&) = default;
+  auto operator=(const PortMapper &) -> PortMapper & = default;
+  auto operator=(PortMapper &&) -> PortMapper & = default;
 
   /*!
    * @brief Add a mapping between a port on the local machine to a port that
@@ -68,26 +108,18 @@ public:
    * It is RECOMMENDED that a lease time of 3600 seconds would be used as a
    * default value.
    *
-   * @param [in] protocol represents the protocol of the port mapping. Possible
-   * values are TCP or UDP.
-   * @param [in] external_port represents the external port that the NAT gateway
-   * would “listen” on for connection requests to a corresponding InternalPort
-   * on an InternalClient. Inbound packets to this external port on the WAN
-   * interface of the gateway SHOULD be forwarded to InternalClient on the
-   * InternalPort on which the message was received.
-   * @param [in] internal_port represents the port on InternalClient that the
-   * gateway SHOULD forward connection requests to. A value of 0 is not allowed.
-   * NAT implementations that do not permit different values for ExternalPort
-   * and InternalPort will return an error.
-   * @param [in] name a string representation of a port mapping.
+   * @param [in] mapping the port mapping to add.
    * @param [in] lease_time determines the lifetime in seconds of a port-mapping
    * lease. Non-zero values indicate the duration after which a port mapping
    * will be removed, unless a control point refreshes the mapping.
    * @return An error status indicating success or failure.
    */
-  virtual auto AddMapping(Protocol protocol, unsigned external_port,
-      unsigned internal_port, std::string const &name,
-      std::chrono::seconds lease_time) -> std::error_condition = 0;
+  virtual auto AddMapping(Mapping mapping, std::chrono::seconds lease_time)
+      -> std::error_condition = 0;
+
+  auto AddMapping(Mapping mapping) -> std::error_condition {
+    return AddMapping(mapping, c_default_lease_time);
+  }
 
   /*!
    * @brief Delete a previously instantiated port mapping.
@@ -113,19 +145,35 @@ public:
 
   /// Should return the name of the concrete port mapping method.
   /// This is used for logging.
-  [[nodiscard]] virtual auto ToString() const -> std::string = 0;
+  [[nodiscard]] virtual auto MapperType() const -> std::string = 0;
 
 protected:
   std::string external_ip_;
   std::string internal_ip_;
 };
 
-/// Send the string representation of the protocol constant to the
-/// output stream.
-inline auto operator<<(std::ostream &out, PortMapper::Protocol protocol)
-    -> std::ostream & {
-  out << PortMapper::ProtocolString(protocol);
-  return out;
-}
-
 } // namespace blocxxi::nat
+
+template <>
+struct fmt::formatter<blocxxi::nat::PortMapper::Protocol>
+    : formatter<std::string_view> {
+  // parse is inherited from formatter<string_view>.
+  template <typename FormatContext>
+  auto format(const blocxxi::nat::PortMapper::Protocol &protocol,
+      FormatContext &ctx) const {
+    string_view name = magic_enum::enum_name(protocol);
+    return formatter<string_view>::format(name, ctx);
+  }
+};
+
+template <>
+struct fmt::formatter<blocxxi::nat::PortMapper> : formatter<std::string_view> {
+  // parse is inherited from formatter<string_view>.
+  template <typename FormatContext>
+  auto format(
+      const blocxxi::nat::PortMapper &mapper, FormatContext &ctx) const {
+    std::string text = fmt::format("{}:{}:{}", mapper.MapperType(),
+        mapper.ExternalIP(), mapper.InternalIP());
+    return formatter<string_view>::format(text, ctx);
+  }
+};

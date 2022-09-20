@@ -6,21 +6,9 @@
 
 #pragma once
 
-#include <common/compilers.h>
+#include "./runner_base.h"
 
-ASAP_DIAGNOSTIC_PUSH
-#if defined(ASAP_GNUC_VERSION)
-#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
-#pragma GCC diagnostic ignored "-Woverloaded-virtual"
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#pragma GCC diagnostic ignored "-Wold-style-cast"
-#pragma GCC diagnostic ignored "-Wredundant-decls"
-#endif
-#include <boost/asio/io_context.hpp>
-#include <boost/asio/signal_set.hpp>
-ASAP_DIAGNOSTIC_POP
-
-#include "runner_base.h"
+#include <p2p/kademlia/boost_asio.h>
 
 namespace blocxxi {
 

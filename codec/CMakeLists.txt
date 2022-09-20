@@ -4,13 +4,16 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ===------------------------------------------------------------------------===#
 
+set(my_name "codec")
+asap_push_module("${my_name}")
+
 # ------------------------------------------------------------------------------
 # Meta information about the this module
 # ------------------------------------------------------------------------------
 
 asap_declare_module(
   MODULE_NAME
-  "codec"
+  "${my_name}"
   DESCRIPTION
   "Encoding/Decoding utilities"
   GITHUB_REPO
@@ -32,7 +35,7 @@ asap_declare_module(
 # Main module target
 # ------------------------------------------------------------------------------
 
-set(MODULE_TARGET_NAME "${META_PROJECT_NAME}_${META_MODULE_NAME}")
+set(MODULE_TARGET_NAME "blocxxi_codec")
 
 asap_add_library(
   ${MODULE_TARGET_NAME}
@@ -47,7 +50,7 @@ asap_add_library(
 
 target_link_libraries(
   ${MODULE_TARGET_NAME}
-  PRIVATE 
+  PRIVATE
   PUBLIC asap::common asap::contract GSL)
 
 target_include_directories(
@@ -143,3 +146,5 @@ if(${META_PROJECT_ID}_INSTALL)
       COMPONENT ${MODULE_TARGET_NAME}_docs)
   endif()
 endif()
+
+asap_pop_module("${my_name}")

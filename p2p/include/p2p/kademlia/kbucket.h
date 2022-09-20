@@ -6,25 +6,33 @@
 
 #pragma once
 
-#include <p2p/blocxxi_p2p_api.h>
-
 #include <chrono>
 #include <deque>
 #include <utility> // for std::pair
 
-#include <logging/logging.h>
-#include <p2p/kademlia/node.h>
-#include <p2p/kademlia/parameters.h>
-
+#include <common/compilers.h>
 ASAP_DIAGNOSTIC_PUSH
 #if defined(ASAP_GNUC_VERSION)
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #pragma GCC diagnostic ignored "-Wsign-conversion"
 #pragma GCC diagnostic ignored "-Wold-style-cast"
 #endif
+#if defined(ASAP_CLANG_VERSION) &&                                             \
+    ASAP_HAS_WARNING("-Wreserved-macro-identifier")
+#pragma clang diagnostic ignored "-Wreserved-macro-identifier"
+#endif
+#if defined(ASAP_CLANG_VERSION) && ASAP_HAS_WARNING("-Wreserved-identifier")
+#pragma clang diagnostic ignored "-Wreserved-identifier"
+#endif
 #include <boost/iterator/iterator_adaptor.hpp>
 #include <boost/iterator/reverse_iterator.hpp>
 ASAP_DIAGNOSTIC_POP
+
+#include <logging/logging.h>
+
+#include <p2p/blocxxi_p2p_export.h>
+#include <p2p/kademlia/node.h>
+#include <p2p/kademlia/parameters.h>
 
 namespace blocxxi::p2p::kademlia {
 
@@ -64,8 +72,8 @@ public:
     /// Conversion constructor mainly between const and non-const iterators.
     template <class OtherValue>
     NodeIterator(NodeIterator<OtherValue, TIterator> const &other,
-        typename std::enable_if<std::is_convertible<OtherValue *,
-            TValue *>::value>::type /*unused*/)
+        std::enable_if_t<
+            std::is_convertible_v<OtherValue *, TValue *>> /*unused*/)
         : NodeIterator::iterator_adaptor_(other.base()) {
     }
   };
@@ -147,7 +155,7 @@ public:
   /// Return a pair of values where the first value refers to the number of
   /// nodes in the bucket, while the second one refers to the number of nodes in
   /// the replacements list.
-  auto Size() const -> std::pair<unsigned int, unsigned int>;
+  auto Size() const -> std::pair<size_t, size_t>;
 
   /// Check if the bucket is empty (no nodes in the bucket).
   /// Naturally if a bucket is empty, it also does not have any replacement

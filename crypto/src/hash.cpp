@@ -1,7 +1,8 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #include <common/compilers.h>
 
@@ -12,10 +13,15 @@ ASAP_DIAGNOSTIC_PUSH
 #if defined(ASAP_GNUC_VERSION)
 #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #endif
+#if defined(ASAP_CLANG_VERSION) &&                                             \
+    ASAP_HAS_WARNING("-Wreserved-macro-identifier")
+#pragma clang diagnostic ignored "-Wreserved-macro-identifier"
+#endif
+#if defined(ASAP_CLANG_VERSION) && ASAP_HAS_WARNING("-Wreserved-identifier")
+#pragma clang diagnostic ignored "-Wreserved-identifier"
+#endif
 #include <boost/endian/conversion.hpp>
 ASAP_DIAGNOSTIC_POP
-
-#include <common/platform.h>
 
 namespace blocxxi::crypto::detail {
 

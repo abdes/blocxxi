@@ -1,11 +1,12 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #pragma once
 
-#include <crypto/blocxxi_crypto_api.h>
+#include <crypto/blocxxi_crypto_export.h>
 
 #include <array>  // for std::array
 #include <bitset> // for std::bitset
@@ -37,6 +38,8 @@ BLOCXXI_CRYPTO_API auto CountLeadingZeroBits(gsl::span<std::uint32_t const> buf)
 
 } // namespace detail
 
+constexpr std::size_t c_hash_align_at = 32;
+
 /*!
    Represents a N bits hash digest or any other kind of N bits sequence.
    The structure is 32-bit aligned and must be at least 32-bits wide. It
@@ -44,8 +47,9 @@ BLOCXXI_CRYPTO_API auto CountLeadingZeroBits(gsl::span<std::uint32_t const> buf)
    zero-length (size() is always > 0). It offers a number of additional
    convenience methods, such as bitwise arithemtics, comparisons etc.
  */
-template <unsigned int BITS> class Hash {
-  static_assert(BITS % 32 == 0, "Hash size in bits must be a multiple of 32");
+template <std::size_t BITS> class Hash {
+  static_assert(BITS % c_hash_align_at == 0,
+      "Hash size in bits must be a multiple of 32");
   static_assert(BITS > 0, "Hash size in bits must be greater than 0");
 
 public:
@@ -94,7 +98,7 @@ public:
   \param buf source sequence of bytes.
   */
   explicit Hash(gsl::span<std::uint8_t const> buf) noexcept : storage_({}) {
-    auto src_size = buf.size();
+    const auto src_size = buf.size();
     // TODO(Abdessattar): replace with contract
     // ASAP_ASSERT_PRECOND(src_size <= Size());
     auto start = begin();
@@ -273,12 +277,12 @@ public:
   // Capacity
 
   /// The size of the hash in bytes.
-  constexpr static auto Size() -> std::size_t {
+  constexpr static auto Size() -> size_type {
     return BITS / 8;
   }
 
   /// The size of the hash in bytes.
-  constexpr static auto BitSize() -> std::size_t {
+  constexpr static auto BitSize() -> size_type {
     return BITS;
   }
 
@@ -364,8 +368,8 @@ public:
   \param start position at which to assign the sequence in the hash.
   */
   void Assign(gsl::span<std::uint8_t const> buf, iterator start) noexcept {
-    size_type src_size = buf.size();
-    auto dst_size = static_cast<size_type>(end() - start);
+    const size_type src_size = buf.size();
+    const auto dst_size = static_cast<size_type>(end() - start);
     // TODO(Abdessattar): replace with contract
     // ASAP_ASSERT_PRECOND(src_size <= dst_size);
     std::memcpy(start, buf.data(), std::min(src_size, dst_size));
@@ -384,7 +388,7 @@ public:
     std::bitset<BITS> bits; // [0,0,...,0]
     std::size_t shift_left = BITS;
     for (uint32_t num_part : storage_) {
-      shift_left -= 32;
+      shift_left -= c_hash_align_at;
       num_part = detail::HostToNetwork(num_part);
       std::bitset<BITS> bs_part(num_part);
       bits |= bs_part << shift_left;
@@ -392,8 +396,7 @@ public:
     return bits;
   }
 
-  [[nodiscard]] auto ToBitStringShort(std::size_t length = 32U) const
-      -> std::string {
+  [[nodiscard]] auto ToBitStringShort(size_type length) const -> std::string {
     auto truncate = false;
     if (length < BITS) {
       truncate = true;
@@ -406,6 +409,11 @@ public:
     return str;
   }
 
+  [[nodiscard]] auto ToBitStringShort() const -> std::string {
+    constexpr size_type c_default_shortened_length = 32;
+    return ToBitStringShort(c_default_shortened_length);
+  }
+
 private:
   /// The size of the underlying data buffer in terms of 32-bit DWORD
   static constexpr std::size_t SIZE_DWORD = BITS / 32;
@@ -413,7 +421,7 @@ private:
   /// The underlying data buffer is built as an array of unsigned 32-bit
   /// integers to facilitate the math operations. Note however that iteration
   /// over the Hash and random access to the data should always be presented as
-  /// if it were a byte array layed out in network order (big endian).
+  /// if it were a byte array laid out in network order (big endian).
   ///
   /// > First DWORD is the most significant 4 bytes.
   std::array<std::uint32_t, SIZE_DWORD> storage_;
@@ -423,26 +431,26 @@ private:
 /// Additional Comparison operators (not needing to be friend)
 //@{
 
-template <unsigned int BITS>
+template <std::size_t BITS>
 inline auto operator!=(const Hash<BITS> &lhs, const Hash<BITS> &rhs) -> bool {
   return !(lhs == rhs);
 }
-template <unsigned int BITS>
+template <std::size_t BITS>
 inline auto operator>(const Hash<BITS> &lhs, const Hash<BITS> &rhs) -> bool {
   return rhs < lhs;
 }
-template <unsigned int BITS>
+template <std::size_t BITS>
 inline auto operator<=(const Hash<BITS> &lhs, const Hash<BITS> &rhs) -> bool {
   return !(lhs > rhs);
 }
-template <unsigned int BITS>
+template <std::size_t BITS>
 inline auto operator>=(const Hash<BITS> &lhs, const Hash<BITS> &rhs) -> bool {
   return !(lhs < rhs);
 }
 //@}
 
 /// Bitwise XOR
-template <unsigned int BITS>
+template <std::size_t BITS>
 inline auto operator^(Hash<BITS> lhs, Hash<BITS> const &rhs) noexcept
     -> Hash<BITS> {
   return lhs.operator^=(rhs);
@@ -452,13 +460,13 @@ inline auto operator^(Hash<BITS> lhs, Hash<BITS> const &rhs) noexcept
 
 /// Exchanges the contents of one with other. Does not cause
 /// iterators and references to associate with the other container.
-template <unsigned int BITS>
-inline void swap(Hash<BITS> &lhs, Hash<BITS> &rhs) {
+template <std::size_t BITS>
+inline void swap(Hash<BITS> &lhs, Hash<BITS> &rhs) noexcept {
   lhs.swap(rhs);
 }
 
 /// Dump the hex-encoded contents of the hash to the stream.
-template <unsigned int BITS>
+template <std::size_t BITS>
 inline auto operator<<(std::ostream &out, Hash<BITS> const &hash)
     -> std::ostream & {
   out << hash.ToHex();

@@ -1,7 +1,8 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #include <crypto/keypair.h>
 
@@ -37,7 +38,7 @@ void MakeRandomPrivateKey(PrivateKeyType &private_key) {
 void MakePrivateKeyFromSecret(
     PrivateKeyType &private_key, const KeyPair::PrivateKey &secret) {
   // Initialize the PrivateKey from the given private exponent
-  cr::Integer privateExponent(secret.Data(), KeyPair::PrivateKey::Size(),
+  const cr::Integer privateExponent(secret.Data(), KeyPair::PrivateKey::Size(),
       cr::Integer::UNSIGNED, cr::ByteOrder::BIG_ENDIAN_ORDER);
   private_key.Initialize(cr::ASN1::secp256k1(), privateExponent);
 }
@@ -52,16 +53,18 @@ void UpdateSecret(
     KeyPair::PrivateKey &hash, const PrivateKeyType &private_key) {
   // Save the private exponent part of the key in our secret part
   auto const &pex = private_key.GetPrivateExponent();
-  pex.Encode(hash.Data(), 32);
+  constexpr std::size_t c_secret_length = 32;
+  pex.Encode(hash.Data(), c_secret_length);
 }
 
 void UpdatePublic(KeyPair::PublicKey &hash, const PublicKeyType &public_key) {
   // Save the public key in our public part (which must be 64 bytes long)
-  auto q = public_key.GetPublicElement();
-  auto qx = q.x;
-  auto qy = q.y;
-  qx.Encode(hash.Data(), 32);
-  qy.Encode(hash.Data() + 32, 32);
+  const auto &pk_ecp = public_key.GetPublicElement();
+  const auto pk_ecp_x = pk_ecp.x;
+  const auto pk_ecp_y = pk_ecp.y;
+  constexpr std::size_t c_public_part_length = 32;
+  pk_ecp_x.Encode(hash.Data(), c_public_part_length);
+  pk_ecp_y.Encode(hash.Data() + c_public_part_length, c_public_part_length);
 }
 
 } // namespace
@@ -84,9 +87,9 @@ KeyPair::KeyPair() {
 }
 
 KeyPair::KeyPair(const KeyPair::PrivateKey &secret) {
-  PrivateKeyType private_key;
   PublicKeyType public_key;
   try {
+    PrivateKeyType private_key;
     MakePrivateKeyFromSecret(private_key, secret);
     DerivePublicKey(public_key, private_key);
   } catch (std::exception &ex) {
@@ -105,7 +108,7 @@ KeyPair::KeyPair(const std::string &secret_hex) {
   PublicKeyType public_key;
   try {
     // Don't reverse so that the encoded data is big endian
-    auto secret = KeyPair::PrivateKey::FromHex(secret_hex, false);
+    const auto secret = KeyPair::PrivateKey::FromHex(secret_hex, false);
     MakePrivateKeyFromSecret(private_key, secret);
     DerivePublicKey(public_key, private_key);
   } catch (const std::exception &ex) {

@@ -1,8 +1,12 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
+#include <gtest/gtest.h>
+
+#include <common/compilers.h>
 #include <logging/logging.h>
 
 #include <nat/nat.h>
@@ -15,9 +19,6 @@ ASAP_DIAGNOSTIC_PUSH
 #pragma clang diagnostic ignored "-Wglobal-constructors"
 #endif
 
-#include <gtest/gtest.h>
-
-using asap::logging::Logger;
 using asap::logging::Registry;
 using blocxxi::nat::GetPortMapper;
 using blocxxi::nat::PortMapper;
@@ -26,24 +27,23 @@ using blocxxi::nat::PortMapper;
 TEST(PortFwdTest, Example) {
   auto &logger = Registry::GetLogger("testing");
 
-  auto pf = GetPortMapper("");
-  if (!pf) {
+  const auto mapper = GetPortMapper("");
+  if (!mapper) {
     ASLOG_TO_LOGGER(logger, debug, "port forwarder init failed.");
   } else {
-    ASLOG_TO_LOGGER(logger, info, "External IP : {}", pf->ExternalIP());
-    ASLOG_TO_LOGGER(logger, info, "Internal IP : {}", pf->InternalIP());
+    ASLOG_TO_LOGGER(logger, info, "External IP : {}", mapper->ExternalIP());
+    ASLOG_TO_LOGGER(logger, info, "Internal IP : {}", mapper->InternalIP());
 
-    unsigned short port = 7272;
-    auto failure = pf->AddMapping(
-        PortMapper::Protocol::UDP, port, port, "test", std::chrono::seconds(0));
-    if (failure) {
-      ASLOG_TO_LOGGER(logger, debug, "port ({}) forwarding failed.", port);
+    constexpr uint16_t c_port = 7272;
+    if (mapper->AddMapping({PortMapper::Protocol::UDP, c_port, c_port, "test"},
+            std::chrono::seconds(0))) {
+      ASLOG_TO_LOGGER(logger, debug, "port ({}) forwarding failed.", c_port);
     } else {
-      failure = pf->DeleteMapping(PortMapper::Protocol::UDP, port);
-      if (failure) {
+      if (mapper->DeleteMapping(PortMapper::Protocol::UDP, c_port)) {
         ASLOG_TO_LOGGER(
-            logger, debug, "port ({}) forwarding removal failed.", port);
+            logger, debug, "port ({}) forwarding removal failed.", c_port);
       }
     }
   }
 }
+ASAP_DIAGNOSTIC_POP

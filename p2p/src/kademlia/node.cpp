@@ -33,9 +33,9 @@ inline auto SharedPrefixSize(const Node &a, const Node &b) -> unsigned int {
   auto lz = 0U;
   auto ida = a.Id();
   auto idb = b.Id();
-  auto size = Node::IdType::Size();
+  constexpr auto size = Node::IdType::Size();
   for (auto i = 0U; i < size; ++i) {
-    auto x = ida[i] ^ idb[i];
+    const auto x = ida[i] ^ idb[i];
     if (x == 0) {
       lz += 8;
     } else {
@@ -47,8 +47,8 @@ inline auto SharedPrefixSize(const Node &a, const Node &b) -> unsigned int {
 }
 
 auto Node::LogDistanceTo(blocxxi::crypto::Hash160 const &hash) const -> size_t {
-  auto dist = DistanceTo(hash);
-  auto lzc = dist.LeadingZeroBits();
+  const auto dist = DistanceTo(hash);
+  const auto lzc = dist.LeadingZeroBits();
   return (Node::IdType::BitSize() - 1 - lzc);
 }
 
@@ -72,19 +72,19 @@ auto Node::FromUrlString(const std::string &url) -> Node {
   // Validate the URL string and extract the different parts out of it
   auto pos = url.find("://");
   if (pos != std::string::npos) {
-    auto start = 0U;
-    auto url_type = url.substr(start, pos - start);
+    size_t start = 0;
+    const auto url_type = url.substr(start, pos - start);
     if (url_type == "knode") {
       start = pos + 3;
       pos = url.find('@', start);
       if (pos != std::string::npos) {
-        auto id = url.substr(start, pos - start);
+        const auto id = url.substr(start, pos - start);
         if (id.length() == 40) {
           start = pos + 1;
           pos = url.rfind(':');
           if (pos != std::string::npos) {
             auto address = url.substr(start, pos - start);
-            auto port = url.substr(pos + 1);
+            const auto port = url.substr(pos + 1);
 
             return {IdType::FromHex(id), address,
                 static_cast<unsigned short>(std::stoi(port))};

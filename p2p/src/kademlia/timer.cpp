@@ -27,8 +27,8 @@ void Timer::ScheduleNextTick(TimePointType const &expiration_time) {
     // Call the user callbacks.
     // The callbacks to execute are the first n callbacks expiring at a time
     // before now().
-    auto begin = timeouts_.begin();
-    auto end = timeouts_.upper_bound(ClockType::now());
+    const auto begin = timeouts_.begin();
+    const auto end = timeouts_.upper_bound(ClockType::now());
     for (auto entry = begin; entry != end; ++entry) {
       ASLOG(trace, "invoke callback for timer expiring at {}",
           entry->first.time_since_epoch().count());

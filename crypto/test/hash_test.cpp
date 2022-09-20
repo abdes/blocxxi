@@ -1,11 +1,12 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
-
-#include <crypto/hash.h>
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #include <common/compilers.h>
+
+#include <crypto/hash.h>
 
 #if defined(ASAP_MSVC_VERSION) && !defined(ASAP_CLANG_VERSION)
 #include <iso646.h>
@@ -28,39 +29,40 @@ ASAP_DIAGNOSTIC_PUSH
 
 #include <gtest/gtest.h>
 
+// NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
 namespace blocxxi::crypto {
 
 // TODO(Abdessattar): Implement unit tests for blocxxi::crypto::Hash
 
 // NOLINTNEXTLINE
 TEST(HashTest, DefaultConstructorSetsAllToZero) {
-  auto h = Hash<96>();
+  const auto h = Hash<96>();
   ASSERT_TRUE(h.IsAllZero());
 }
 
 // NOLINTNEXTLINE
 TEST(HashTest, MinIsZero) {
-  auto h1 = Hash<256>::Min();
+  const auto h1 = Hash<256>::Min();
   ASSERT_TRUE(h1.IsAllZero());
-  auto h2 = Hash<192>::Min();
+  const auto h2 = Hash<192>::Min();
   ASSERT_TRUE(h2.IsAllZero());
 }
 
 // NOLINTNEXTLINE
 TEST(HashTest, MaxIsAllSetToOne) {
   auto h1 = Hash<128>::Max();
-  for (auto const &b : h1) {
+  for (const auto &b : h1) {
     ASSERT_EQ(0xFF, b);
   }
   auto h2 = Hash<512>::Max();
-  for (auto const &b : h2) {
+  for (const auto &b : h2) {
     ASSERT_EQ(0xFF, b);
   }
 }
 
 // NOLINTNEXTLINE
 TEST(HashTest, AtThrowsOutOfRange) {
-  auto const &h = Hash<32>();
+  const auto &h = Hash<32>();
   ASSERT_EQ(32 / 8, h.Size());
   for (auto i = 0U; i < Hash<32>::Size(); ++i) {
     // NOLINTNEXTLINE
@@ -79,9 +81,9 @@ TEST(HashTest, CountLeadingZeroBits) {
   h = Hash<64>::Max();
   auto expected = 0;
   for (auto &pb : h) {
-    std::uint8_t bitset = 0xff;
     for (auto i = 1; i <= 8; i++) {
-      pb = bitset >> i;
+      constexpr std::uint8_t bit_set = 0xff;
+      pb = bit_set >> i;
       expected += 1;
       ASSERT_EQ(expected, h.LeadingZeroBits());
     }
@@ -187,22 +189,24 @@ TEST(HashTest, Swap) {
   ASSERT_TRUE(min == Hash<32>::Max());
   ASSERT_TRUE(max == Hash<32>::Min());
 
-  swap(min, max);
+  std::swap(min, max);
   ASSERT_TRUE(min == Hash<32>::Min());
   ASSERT_TRUE(max == Hash<32>::Max());
 }
 
 // NOLINTNEXTLINE
 TEST(HashTest, LessThenComparison) {
-  std::uint8_t small[]{1, 2, 3, 4};
-  Hash<32> hsmall(gsl::make_span(small));
+  std::array<uint8_t, 4> small{{1, 2, 3, 4}};
+  constexpr std::size_t c_hash_size = 32;
+  const Hash<c_hash_size> hsmall(gsl::make_span(small));
   ASSERT_GE(hsmall, hsmall);
   ASSERT_LE(hsmall, hsmall);
   ASSERT_EQ(hsmall, hsmall);
 
-  uint8_t greater[4][4]{{2, 2, 3, 4}, {1, 3, 3, 4}, {1, 2, 4, 4}, {1, 2, 3, 5}};
-  for (auto val : greater) {
-    Hash<32> hval(gsl::make_span<uint8_t>(val, val + 4));
+  constexpr std::array<std::array<uint8_t, 4>, 4> greater{
+      {{{2, 2, 3, 4}}, {{1, 3, 3, 4}}, {{1, 2, 4, 4}}, {{1, 2, 3, 5}}}};
+  for (const auto &val : greater) {
+    Hash<c_hash_size> hval(gsl::make_span(val));
     ASSERT_GT(hval, hsmall);
     ASSERT_LT(hsmall, hval);
     ASSERT_GE(hval, hsmall);
@@ -212,13 +216,13 @@ TEST(HashTest, LessThenComparison) {
 
 // NOLINTNEXTLINE
 TEST(HashTest, BitWiseXor) {
-  std::uint8_t h1[]{1, 2, 3, 4, 5, 6, 7, 8};
-  std::uint8_t h2[]{7, 0, 6, 6, 150, 65, 23, 12};
+  constexpr std::uint8_t h1[]{1, 2, 3, 4, 5, 6, 7, 8};
+  constexpr std::uint8_t h2[]{7, 0, 6, 6, 150, 65, 23, 12};
 
-  std::uint8_t x[]{1 xor 7, 2 xor 0, 3 xor 6, 4 xor 6, 5 xor 150, 6 xor 65,
-      7 xor 23, 8 xor 12};
+  constexpr std::uint8_t x[]{1 xor 7, 2 xor 0, 3 xor 6, 4 xor 6, 5 xor 150,
+      6 xor 65, 7 xor 23, 8 xor 12};
 
-  auto res = Hash<64>(h1) xor Hash<64>(h2);
+  const auto res = Hash<64>(h1) xor Hash<64>(h2);
   ASSERT_EQ(res, Hash<64>(x));
   ASSERT_EQ(Hash<64>(h1) xor Hash<64>(h2), Hash<64>(h2) xor Hash<64>(h1));
 }
@@ -226,25 +230,27 @@ TEST(HashTest, BitWiseXor) {
 // NOLINTNEXTLINE
 TEST(HashTest, ToHex) {
   std::uint8_t hash_bytes[]{1, 2, 3, 4, 5, 6, 7, 8};
-  Hash<64> hash(gsl::make_span(hash_bytes));
+  const Hash<64> hash(gsl::make_span(hash_bytes));
   ASSERT_EQ("0102030405060708", hash.ToHex());
 }
 
 // NOLINTNEXTLINE
 TEST(HashTest, FromHex) {
   const std::string hex("0102030405060708");
-  auto hash = Hash<64>::FromHex(hex);
+  const auto hash = Hash<64>::FromHex(hex);
   std::uint8_t hash_bytes[]{1, 2, 3, 4, 5, 6, 7, 8};
-  Hash<64> hash_ref(gsl::make_span(hash_bytes));
+  const Hash<64> hash_ref(gsl::make_span(hash_bytes));
   ASSERT_EQ(hash_ref, hash);
 }
 
 // NOLINTNEXTLINE
 TEST(HashTest, ToBitSet) {
   std::uint8_t hash_bytes[]{1, 2, 3, 4, 5, 6, 7, 8};
-  Hash<64> hash(gsl::make_span(hash_bytes));
+  const Hash<64> hash(gsl::make_span(hash_bytes));
   ASSERT_EQ("0000000100000010000000110000010000000101000001100000011100001000",
       hash.ToBitSet().to_string());
 }
 
 } // namespace blocxxi::crypto
+// NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
+ASAP_DIAGNOSTIC_POP

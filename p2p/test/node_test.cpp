@@ -1,13 +1,13 @@
-//        Copyright The Authors 2018.
-//    Distributed under the 3-Clause BSD License.
-//    (See accompanying file LICENSE or copy at
-//   https://opensource.org/licenses/BSD-3-Clause)
-
-#include <common/compilers.h>
-
-#include <gtest/gtest.h>
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
 
 #include <forward_list>
+
+#include <common/compilers.h>
+#include <gtest/gtest.h>
 
 #include <p2p/kademlia/node.h>
 
@@ -16,8 +16,23 @@ ASAP_DIAGNOSTIC_PUSH
 #pragma GCC diagnostic ignored "-Wsign-conversion"
 #pragma GCC diagnostic ignored "-Wold-style-cast"
 #endif
+#if defined(ASAP_CLANG_VERSION)
+#pragma clang diagnostic ignored "-Wextra-semi-stmt"
+#pragma clang diagnostic ignored "-Wmissing-noreturn"
+#endif
 #include <boost/multiprecision/cpp_int.hpp>
 ASAP_DIAGNOSTIC_POP
+
+// Disable compiler and linter warnings originating from the unit test framework
+// and for which we cannot do anything. Additionally, every TEST or TEST_X macro
+// usage must be preceded by a '// NOLINTNEXTLINE'.
+ASAP_DIAGNOSTIC_PUSH
+#if defined(ASAP_CLANG_VERSION)
+#pragma clang diagnostic ignored "-Wused-but-marked-unused"
+#pragma clang diagnostic ignored "-Wglobal-constructors"
+#pragma clang diagnostic ignored "-Wexit-time-destructors"
+#pragma clang diagnostic ignored "-Wweak-vtables"
+#endif
 
 namespace blocxxi::p2p::kademlia {
 
@@ -92,15 +107,15 @@ TEST(NodeTest, LogDistance) {
 
 // NOLINTNEXTLINE
 TEST(NodeTest, FromUrlString) {
-  auto node_id = Node::IdType::RandomHash().ToHex();
+  const auto node_id = Node::IdType::RandomHash().ToHex();
   const auto *address = "192.168.1.35";
   const auto *port = "4242";
-  auto str = std::string("knode://")
-                 .append(node_id)
-                 .append("@")
-                 .append(address)
-                 .append(":")
-                 .append(port);
+  const auto str = std::string("knode://")
+                       .append(node_id)
+                       .append("@")
+                       .append(address)
+                       .append(":")
+                       .append(port);
 
   Node node;
   // NOLINTNEXTLINE
@@ -112,3 +127,4 @@ TEST(NodeTest, FromUrlString) {
 }
 
 } // namespace blocxxi::p2p::kademlia
+ASAP_DIAGNOSTIC_POP

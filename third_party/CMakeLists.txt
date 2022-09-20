@@ -4,7 +4,25 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ===-----------------------------------------------------------------------===#
 
-message("=> [third-party modules]")
+message(STATUS "${ASAP_LOG_PROJECT_HIERARCHY} >> third-party modules")
+
+# Call `asap_add_package` to add third party packages using CPM, while
+# automatically adding/removing them to the project hierarchy stack.
+#
+# Refer to https://github.com/cpm-cmake/CPM.cmake for the full usage.
+#
+# Example:
+# ~~~
+# asap_add_package(
+#   NAME
+#   magic_enum
+#   GIT_TAG
+#   master
+#   GITHUB_REPOSITORY
+#   abdes/magic_enum
+#   OPTIONS
+#   "MAGIC_ENUM_OPT_INSTALL ON")
+# ~~~
 
 # ------------------------------------------------------------------------------
 # GSL
@@ -12,52 +30,42 @@ message("=> [third-party modules]")
 set(GSL_INSTALL
     ON
     CACHE BOOL FORCE "Generate and install GSL target")
-cpmaddpackage(NAME gsl GIT_TAG main GITHUB_REPOSITORY microsoft/GSL)
+asap_add_package(NAME gsl GIT_TAG main GITHUB_REPOSITORY microsoft/GSL)
+
+# ------------------------------------------------------------------------------
+# magic_enum
+# ------------------------------------------------------------------------------
+asap_add_package(
+  NAME
+  magic_enum
+  GIT_TAG
+  master
+  GITHUB_REPOSITORY
+  abdes/magic_enum
+  OPTIONS
+  "MAGIC_ENUM_OPT_INSTALL ON")
 
 # ------------------------------------------------------------------------------
 # Crypto++
 # ------------------------------------------------------------------------------
-cpmaddpackage(
+asap_add_package(
   NAME
-  cryptopp
+  cryptopp-cmake
   GIT_TAG
-  CRYPTOPP_8_6_0
+  master
   GITHUB_REPOSITORY
-  weidai11/cryptopp
-  DOWNLOAD_ONLY
-  YES)
-if(cryptopp_ADDED)
-  function(add_cryptopp_subdir)
-    set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
-    set(BUILD_TESTING OFF)
-    set(BUILD_SHARED OFF)
-    add_subdirectory(${CRYPTOPP_CMAKE_DIR} ${CRYPTOPP_BUILD_DIR})
-  endfunction()
-
-  set(CRYPTOPP_CMAKE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/cryptopp-cmake)
-  set(CRYPTOPP_BUILD_DIR ${CMAKE_BINARY_DIR}/third_party_deps/cryptopp-build)
-
-  set(cryptopp_DISPLAY_CMAKE_SUPPORT_WARNING FALSE)
-  set(CRYPTOPP_PROJECT_DIR
-      ${cryptopp_SOURCE_DIR}
-      CACHE PATH "Crypto++ project directory")
-  # Let cmake do the rest using the cryptopp-cmake CMakeLists.txt
-  add_cryptopp_subdir()
-
+  abdes/cryptopp-cmake
+  OPTIONS
+  "CRYPTOPP_BUILD_TESTING OFF"
+  "CRYPTOPP_INSTALL ON")
+if(cryptopp-cmake_ADDED)
   # Because cryptopp generates so many g++ warnings (that we treat as errors),
   # just consider its include files like system includes so our own code does
-  # not fail and we keep the -Werror for g++. Do this for boith targets, the
-  # static and the shared lib
-  if(BUILD_STATIC)
-    target_include_directories(
-      cryptopp-static SYSTEM PUBLIC $<BUILD_INTERFACE:${CRYPTOPP_PROJECT_DIR}>
-                                    $<INSTALL_INTERFACE:include>)
-  endif()
-  if(BUILD_SHARED)
-    target_include_directories(
-      cryptopp-shared SYSTEM PUBLIC $<BUILD_INTERFACE:${CRYPTOPP_PROJECT_DIR}>
-                                    $<INSTALL_INTERFACE:include>)
-  endif()
+  # not fail and we keep the -Werror for g++. Do this for both targets, the
+  # static and the shared lib, depending on which one is used.
+  target_include_directories(
+    cryptopp SYSTEM PUBLIC $<BUILD_INTERFACE:${CRYPTOPP_PROJECT_DIR}>
+                           $<INSTALL_INTERFACE:include>)
 endif()
 
 # ------------------------------------------------------------------------------
@@ -121,11 +129,11 @@ foreach(
   utility
   variant2
   winapi)
-  cpmaddpackage(
+  asap_add_package(
     NAME
     boost_${boost_lib}
     GIT_TAG
-    "boost-1.79.0"
+    "boost-1.80.0"
     GITHUB_REPOSITORY
     boostorg/${boost_lib}
     OPTIONS
@@ -135,6 +143,7 @@ endforeach()
 # ------------------------------------------------------------------------------
 # miniupnpc
 # ------------------------------------------------------------------------------
+asap_push_module(miniupnp)
 cpmaddpackage(
   NAME
   miniupnp
@@ -162,11 +171,12 @@ if(miniupnp_ADDED)
 
   # target_compile_definitions(libminiupnpc-static PRIVATE DEBUG)
 endif()
+asap_pop_module(miniupnp)
 
 # ------------------------------------------------------------------------------
 # asap::common
 # ------------------------------------------------------------------------------
-cpmaddpackage(
+asap_add_package(
   NAME
   asap_common
   GIT_TAG
@@ -179,7 +189,7 @@ cpmaddpackage(
 # ------------------------------------------------------------------------------
 # asap::contract
 # ------------------------------------------------------------------------------
-cpmaddpackage(
+asap_add_package(
   NAME
   asap_contract
   GIT_TAG
@@ -192,7 +202,7 @@ cpmaddpackage(
 # ------------------------------------------------------------------------------
 # asap::logging
 # ------------------------------------------------------------------------------
-cpmaddpackage(
+asap_add_package(
   NAME
   asap_logging
   GIT_TAG

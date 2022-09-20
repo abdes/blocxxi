@@ -6,28 +6,16 @@
 
 #pragma once
 
-#include <common/compilers.h>
+#include <memory>
 
-ASAP_DIAGNOSTIC_PUSH
-#if defined(ASAP_GNUC_VERSION)
-#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
-#pragma GCC diagnostic ignored "-Woverloaded-virtual"
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#pragma GCC diagnostic ignored "-Wold-style-cast"
-#pragma GCC diagnostic ignored "-Wredundant-decls"
-#endif
-#include <boost/asio.hpp>
-ASAP_DIAGNOSTIC_POP
+#include <p2p/kademlia/boost_asio.h>
 
 // #include <common/assert.h>
 #include <logging/logging.h>
 
 #include <p2p/kademlia/buffer.h>
-#include <p2p/kademlia/endpoint.h>
-
 #include <p2p/kademlia/detail/error_impl.h>
-
-#include <memory>
+#include <p2p/kademlia/endpoint.h>
 
 namespace blocxxi::p2p::kademlia {
 
@@ -122,7 +110,7 @@ public:
   static auto ipv4(boost::asio::io_context &io_context, std::string const &host,
       std::string const &service) -> PointerType {
     try {
-      auto endpoints = ResolveEndpoint(io_context, host, service);
+      const auto endpoints = ResolveEndpoint(io_context, host, service);
 
       for (auto const &endpoint : endpoints) {
         if (endpoint.address_.is_v4()) {
@@ -158,7 +146,7 @@ public:
   static auto ipv6(boost::asio::io_context &io_context, std::string const &host,
       std::string const &service) -> PointerType {
     try {
-      auto endpoints = ResolveEndpoint(io_context, host, service);
+      const auto endpoints = ResolveEndpoint(io_context, host, service);
 
       for (auto const &endpoint : endpoints) {
         if (endpoint.address_.is_v6()) {
@@ -248,7 +236,10 @@ public:
       callback(make_error_code(std::errc::value_too_large));
     } else {
       // Copy the buffer as it has to live past the end of this call.
-      auto message_copy = std::make_shared<Buffer>(message);
+      const auto message_copy = std::make_shared<Buffer>(message);
+      // Capture the message_copy so that it stays alive until the completion
+      // callback is called.
+      // ReSharper disable once CppLambdaCaptureNeverUsed
       auto on_completion = [callback, message_copy](
                                boost::system::error_code const &failure,
                                std::size_t /* bytes_sent */) {
@@ -297,9 +288,9 @@ public:
     typename protocol_type::resolver resolver{io_context};
     // One raw endpoint (e.g. localhost) can be resolved to
     // multiple endpoints (e.g. IPv4 / IPv6 address).
-    std::vector<EndpointType> endpoints;
 
     try {
+      std::vector<EndpointType> endpoints;
       auto results_iter = resolver.resolve(host, service);
       for (decltype(results_iter) end; results_iter != end; ++results_iter) {
         // Convert from underlying_endpoint_type to endpoint_type.

@@ -6,19 +6,9 @@
 
 #pragma once
 
-#include <logging/logging.h>
+#include <p2p/kademlia/boost_asio.h>
 
-ASAP_DIAGNOSTIC_PUSH
-#if defined(ASAP_GNUC_VERSION)
-#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
-#pragma GCC diagnostic ignored "-Woverloaded-virtual"
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#pragma GCC diagnostic ignored "-Wold-style-cast"
-#pragma GCC diagnostic ignored "-Wredundant-decls"
-#endif
-#include <boost/asio/io_context.hpp>
-#include <boost/asio/steady_timer.hpp>
-ASAP_DIAGNOSTIC_POP
+#include <logging/logging.h>
 
 #include <p2p/kademlia/buffer.h>
 #include <p2p/kademlia/detail/bootstrap_procedure.h>
@@ -92,8 +82,10 @@ public:
 
   void Start() {
     ASLOG(debug, "Engine Start: {}", routing_table_.ThisNode().ToString());
-    network_.OnMessageReceived(std::bind(&Engine::HandleNewMessage, this,
-        std::placeholders::_1, std::placeholders::_2));
+    network_.OnMessageReceived([this](auto &&endpoint, auto &&buffer) {
+      HandleNewMessage(std::forward<decltype(endpoint)>(endpoint),
+          std::forward<decltype(buffer)>(buffer));
+    });
 
     network_.Start();
 
@@ -190,7 +182,9 @@ private:
     case Header::MessageType::FIND_VALUE_REQUEST:
       HandleFindValueRequest(sender, header, buffer);
       break;
-    default:
+    case Header::MessageType::PING_RESPONSE:
+    case Header::MessageType::FIND_NODE_RESPONSE:
+    case Header::MessageType::FIND_VALUE_RESPONSE:
       network_.HandleNewResponse(sender, header, buffer);
       break;
     }
@@ -251,7 +245,7 @@ private:
 
     auto neighbors = routing_table_.FindNeighbors(peer_to_find_id);
 
-    for (auto node : neighbors) {
+    for (const auto &node : neighbors) {
       response.peers_.push_back(node);
     }
 
@@ -275,7 +269,7 @@ private:
       return;
     }
 
-    auto found = value_store_.find(request.value_key_);
+    const auto found = value_store_.find(request.value_key_);
     if (found == value_store_.end()) {
       SendFindPeerResponse(sender, header.random_token_, request.value_key_);
     } else {
@@ -306,7 +300,7 @@ private:
     ASLOG(debug, "received new message from '{}'", sender.ToString());
 
     Header header;
-    std::size_t consumed = 0;
+    std::size_t consumed;
     try {
       consumed = Deserialize(buffer, header);
     } catch (std::exception const &ex) {

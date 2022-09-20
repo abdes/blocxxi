@@ -29,7 +29,7 @@ asap_add_test(
 
 target_include_directories(${MAIN_TEST_TARGET_NAME} PRIVATE "../src")
 
-gtest_discover_tests(${MAIN_TEST_TARGET_NAME})
+gtest_discover_tests(${MAIN_TEST_TARGET_NAME} NO_PRETTY_VALUES)
 
 # Add support for (optional) code quality tools
 asap_add_sanitizers(${MAIN_TEST_TARGET_NAME})

@@ -22,7 +22,9 @@ ASAP_DIAGNOSTIC_POP
 
 #include <logging/logging.h>
 #include <nat/nat.h>
+#include <p2p/kademlia/channel.h>
 #include <p2p/kademlia/engine.h>
+#include <p2p/kademlia/message_serializer.h>
 #include <p2p/kademlia/session.h>
 
 #include "../utils/console_runner.h"
@@ -34,20 +36,19 @@ namespace bpo = boost::program_options;
 namespace kad = blocxxi::p2p::kademlia;
 
 using blocxxi::nat::PortMapper;
-using blocxxi::p2p::kademlia::AsyncUdpChannel;
-using blocxxi::p2p::kademlia::Channel;
-using blocxxi::p2p::kademlia::Engine;
-using blocxxi::p2p::kademlia::KeyType;
-using blocxxi::p2p::kademlia::MessageSerializer;
-using blocxxi::p2p::kademlia::Network;
-using blocxxi::p2p::kademlia::Node;
-using blocxxi::p2p::kademlia::ResponseDispatcher;
-using blocxxi::p2p::kademlia::RoutingTable;
-using blocxxi::p2p::kademlia::Session;
+using kad::AsyncUdpChannel;
+using kad::Channel;
+using kad::Engine;
+using kad::KeyType;
+using kad::MessageSerializer;
+using kad::Network;
+using kad::Node;
+using kad::ResponseDispatcher;
+using kad::RoutingTable;
+using kad::Session;
 
-using NetworkType =
-    blocxxi::p2p::kademlia::Network<AsyncUdpChannel, MessageSerializer>;
-using EngineType = blocxxi::p2p::kademlia::Engine<RoutingTable, NetworkType>;
+using NetworkType = kad::Network<AsyncUdpChannel, MessageSerializer>;
+using EngineType = kad::Engine<RoutingTable, NetworkType>;
 
 inline void Shutdown() {
   auto &logger = asap::logging::Registry::GetLogger("simple-node");
@@ -58,16 +59,16 @@ inline void Shutdown() {
 auto main(int argc, char **argv) -> int {
   auto &logger = asap::logging::Registry::GetLogger("simple-node");
 
-  constexpr uint16_t c_default_port = 9000;
-
-  boost::thread server_thread;
   std::string nat_spec;
   std::string ipv6_address;
   uint16_t port = 0;
   std::vector<std::string> boot_list;
   bool show_debug_gui{false};
   try {
+    boost::thread server_thread;
+    constexpr uint16_t c_default_port = 9000;
     // Command line arguments
+    // TODO(Abdessattar): replace with asap-clap
     bpo::options_description desc("Allowed options");
     // clang-format off
     desc.add_options()
@@ -116,14 +117,14 @@ auto main(int argc, char **argv) -> int {
           "using the 'extip:' NAT spec.");
       return -1;
     }
-    mapper->AddMapping(PortMapper::Protocol::UDP, port, port,
-        "ndagent kademlia", std::chrono::seconds(0));
+    mapper->AddMapping(
+        {PortMapper::Protocol::UDP, port, port, "simple-node kademlia"},
+        std::chrono::seconds(0));
 
     boost::asio::io_context io_context;
 
     auto my_node = Node{Node::IdType::RandomHash(), mapper->ExternalIP(), port};
-    auto routing_table =
-        RoutingTable{my_node, blocxxi::p2p::kademlia::CONCURRENCY_K};
+    auto routing_table = RoutingTable{my_node, kad::CONCURRENCY_K};
 
     auto ipv4 = AsyncUdpChannel::ipv4(io_context, mapper->InternalIP(),
         std::to_string(static_cast<unsigned int>(port)));

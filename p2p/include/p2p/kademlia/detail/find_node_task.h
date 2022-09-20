@@ -48,7 +48,7 @@ private:
       : BaseLookupTask(key, routing_table.FindNeighbors(key, PARALLELISM_ALPHA),
             task_name),
         network_(network), routing_table_(routing_table),
-        on_complete_(on_complete) {
+        on_complete_(std::move(on_complete)) {
     ASLOG(debug, "{} find node task on key={}", this->Name(), key.ToHex());
   }
 

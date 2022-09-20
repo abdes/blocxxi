@@ -17,7 +17,7 @@
 
 #include <gsl/gsl>
 
-#include <codec/blocxxi_codec_api.h>
+#include <codec/blocxxi_codec_export.h>
 
 /// Hexadecimal (base16) encoding/decoding utilities.
 namespace blocxxi::codec::hex {
