@@ -124,6 +124,7 @@ jobs:
         shell: cmake -P {0}
         run: |
           if("${{ runner.os }}" STREQUAL "Windows")
+            # If ccache behaves badly on windows, skip this step
             execute_process(COMMAND choco install ccache)
           elseif("${{ runner.os }}" STREQUAL "macOS")
             execute_process(COMMAND brew install ccache)
@@ -142,6 +143,8 @@ jobs:
           endif()
 
       - name: Setup ccache
+        # If ccache behaves badly on windows, skip this step
+        # if: runner.os != 'Windows'
         uses: Chocobo1/setup-ccache-action@v1
         with:
           install_ccache: false
@@ -174,6 +177,8 @@ jobs:
           endif()
           set(ENV{PATH} "$ENV{GITHUB_WORKSPACE}${path_separator}$ENV{PATH}")
 
+          # If ccache shows some strange behavior on windows, you can easily
+          # disable it here by setting the variable to "OFF"
           if (NOT "${{ runner.os }}" STREQUAL "Windows")
             set(enable_ccache "ON")
           else()
