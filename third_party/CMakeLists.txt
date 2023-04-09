@@ -89,12 +89,14 @@ foreach(
   core
   coroutine
   date_time
+  describe
   detail
   dynamic_bitset
   endian
   exception
   function
   function_types
+  functional
   fusion
   integer
   intrusive
@@ -133,7 +135,7 @@ foreach(
     NAME
     boost_${boost_lib}
     GIT_TAG
-    "boost-1.80.0"
+    "boost-1.81.0"
     GITHUB_REPOSITORY
     boostorg/${boost_lib}
     OPTIONS
