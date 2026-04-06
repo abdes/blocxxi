@@ -66,22 +66,33 @@ def run_local_mode(args):
         host, port = endpoint.rsplit(":", 1)
         port = int(port)
 
-        query = {
+        udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        udp.settimeout(2.0)
+
+        ping_query = {
             b"y": b"q",
             b"q": b"ping",
             b"t": b"aa",
             b"a": {b"id": b"abcdefghij0123456789"},
         }
-        payload = lt.bencode(query)
+        udp.sendto(lt.bencode(ping_query), (host, port))
+        ping_bytes, response_addr = udp.recvfrom(2048)
+        decoded_ping = lt.bdecode(ping_bytes)
 
-        udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        udp.settimeout(2.0)
-        udp.sendto(payload, (host, port))
-        response_bytes, response_addr = udp.recvfrom(2048)
-        decoded = lt.bdecode(response_bytes)
+        find_node_query = {
+            b"y": b"q",
+            b"q": b"find_node",
+            b"t": b"ab",
+            b"a": {
+                b"id": b"abcdefghij0123456789",
+                b"target": bytes.fromhex(ready.split()[2]),
+            },
+        }
+        udp.sendto(lt.bencode(find_node_query), (host, port))
+        find_node_bytes, _ = udp.recvfrom(2048)
+        decoded_find_node = lt.bdecode(find_node_bytes)
 
         observed_queries = []
-        success = False
         end = time.time() + args.duration
         while time.time() < end:
             if process.stdout is None:
@@ -94,20 +105,31 @@ def run_local_mode(args):
             print(line)
             if line.startswith("QUERY "):
                 observed_queries.append(line)
-                success = True
-                break
+                if len(observed_queries) >= 2:
+                    break
 
         result = {
             "mode": "local",
             "fixture": endpoint,
-            "success": success
-            and decoded.get(b"y") == b"r"
-            and decoded.get(b"t") == b"aa",
+            "interaction_attempted": ["ping", "find_node"],
+            "success": (
+                decoded_ping.get(b"y") == b"r"
+                and decoded_ping.get(b"t") == b"aa"
+                and decoded_find_node.get(b"y") == b"r"
+                and decoded_find_node.get(b"t") == b"ab"
+                and b"nodes" in decoded_find_node.get(b"r", {})
+                and len(decoded_find_node[b"r"][b"nodes"]) == 26
+                and len(observed_queries) >= 2
+            ),
             "response_from": f"{response_addr[0]}:{response_addr[1]}",
-            "decoded_response": normalize_bdecode(decoded),
+            "decoded_ping": normalize_bdecode(decoded_ping),
+            "decoded_find_node": normalize_bdecode(decoded_find_node),
             "observed_queries": observed_queries,
+            "verdict": "product-behavior-confirmed"
+            if len(observed_queries) >= 2
+            else "inconclusive",
         }
-        return 0 if success else 1, result
+        return 0 if result["success"] else 1, result
     finally:
         process.terminate()
         try:
@@ -148,8 +170,16 @@ def run_public_mode(args):
               successes.append(line.split(" ", 1)[1])
         result = {
             "mode": "public",
+            "routers_attempted": args.bootstrap,
             "successes": successes,
             "required_bootstraps": args.bootstrap,
+            "interaction_attempted": "find_node bootstrap",
+            "timeout_error_classification": (
+                "no-bootstrap-response" if not successes else "none"
+            ),
+            "verdict": "product-behavior-confirmed"
+            if successes
+            else "inconclusive",
             "success": bool(successes),
         }
         return 0 if successes else 1, result
