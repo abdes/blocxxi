@@ -89,6 +89,24 @@ auto MakeAnnouncePeerQuery(std::string transaction_id, Node::IdType const& targe
   return Buffer(encoded.begin(), encoded.end());
 }
 
+auto MakeSampleInfohashesQuery(
+  std::string transaction_id, Node::IdType const& target) -> Buffer
+{
+  auto query = KrpcMessage {};
+  query.transaction_id_ = std::move(transaction_id);
+  query.payload_ = KrpcQuery {
+    "sample_infohashes",
+    {
+      { "id", blocxxi::codec::bencode::Value("abcdefghij0123456789") },
+      { "target",
+        blocxxi::codec::bencode::Value(std::string(
+          reinterpret_cast<char const*>(target.Data()), target.Size())) },
+    },
+  };
+  auto encoded = Encode(query);
+  return Buffer(encoded.begin(), encoded.end());
+}
+
 } // namespace
 
 // NOLINTNEXTLINE
@@ -255,6 +273,64 @@ TEST(MainlineDhtNodeTest, RejectsAnnouncePeerWithInvalidToken)
     [](std::error_code const& failure) { ASSERT_FALSE(failure); });
   io_context.run_for(std::chrono::seconds(1));
   ASSERT_TRUE(got_error);
+}
+
+// NOLINTNEXTLINE
+TEST(MainlineDhtNodeTest, SampleInfohashesReturnsStoredInfohashes)
+{
+  asio::io_context io_context;
+  auto receiver
+    = AsyncUdpChannel::ipv4(io_context, "127.0.0.1", "30119");
+  auto sender = AsyncUdpChannel::ipv4(io_context, "127.0.0.1", "30120");
+
+  auto self = MakeTestNode("127.0.0.1", 30119);
+  auto target = self.Id();
+  auto node = MainlineDhtNode(io_context, self, std::move(receiver));
+  node.Start();
+
+  auto token = std::string {};
+  auto get_peers = MakeGetPeersQuery("sa", target);
+  sender->AsyncReceive([&token](std::error_code const& failure, IpEndpoint const&,
+                        BufferReader const& buffer) {
+    ASSERT_FALSE(failure);
+    auto message = DecodeKrpc(std::string_view(
+      reinterpret_cast<char const*>(buffer.data()), buffer.size()));
+    auto const& response = std::get<KrpcResponse>(message.payload_);
+    token = response.values_.at("token").AsString();
+  });
+  sender->AsyncSend(get_peers, IpEndpoint { "127.0.0.1", 30119 },
+    [](std::error_code const& failure) { ASSERT_FALSE(failure); });
+  io_context.run_for(std::chrono::seconds(1));
+
+  auto announce = MakeAnnouncePeerQuery("sb", target, token, 49002, false);
+  sender->AsyncReceive([](std::error_code const& failure, IpEndpoint const&,
+                        BufferReader const&) { ASSERT_FALSE(failure); });
+  sender->AsyncSend(announce, IpEndpoint { "127.0.0.1", 30119 },
+    [](std::error_code const& failure) { ASSERT_FALSE(failure); });
+  io_context.run_for(std::chrono::seconds(1));
+
+  auto sample_infohashes = MakeSampleInfohashesQuery("sc", target);
+  auto got_sample = false;
+  sender->AsyncReceive([&got_sample, target](std::error_code const& failure,
+                        IpEndpoint const&, BufferReader const& buffer) {
+    ASSERT_FALSE(failure);
+    auto message = DecodeKrpc(std::string_view(
+      reinterpret_cast<char const*>(buffer.data()), buffer.size()));
+    auto const& response = std::get<KrpcResponse>(message.payload_);
+    ASSERT_TRUE(response.values_.contains("samples"));
+    ASSERT_TRUE(response.values_.contains("num"));
+    auto const samples = response.values_.at("samples").AsString();
+    ASSERT_EQ(samples.size(), Node::IdType::Size());
+    ASSERT_EQ(samples, std::string(
+                         reinterpret_cast<char const*>(target.Data()),
+                         target.Size()));
+    ASSERT_EQ(response.values_.at("num").AsInteger(), 1);
+    got_sample = true;
+  });
+  sender->AsyncSend(sample_infohashes, IpEndpoint { "127.0.0.1", 30119 },
+    [](std::error_code const& failure) { ASSERT_FALSE(failure); });
+  io_context.run_for(std::chrono::seconds(1));
+  ASSERT_TRUE(got_sample);
 }
 
 } // namespace blocxxi::p2p::kademlia

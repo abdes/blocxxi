@@ -134,6 +134,31 @@ def run_local_mode(args):
         confirm_get_peers_bytes, _ = udp.recvfrom(2048)
         decoded_confirm_get_peers = lt.bdecode(confirm_get_peers_bytes)
 
+        sample_target = lt.sha1_hash(bytes.fromhex(ready.split()[2]))
+        settings = lt.default_settings()
+        settings["alert_mask"] = int(
+            lt.alert_category.dht
+            | lt.alert_category.dht_operation
+            | lt.alert_category.status
+        )
+        session = lt.session(settings)
+        session.dht_sample_infohashes((host, port), sample_target)
+        sample_alerts = []
+        sample_success = False
+        sample_end = time.time() + 3.0
+        while time.time() < sample_end:
+            alert = session.wait_for_alert(300)
+            if alert is None:
+                continue
+            for item in session.pop_alerts():
+                name = item.__class__.__name__
+                if "dht" in name.lower():
+                    message = str(item)
+                    sample_alerts.append({"name": name, "message": message})
+                    print(name, message)
+                    if name == "dht_sample_infohashes_alert":
+                        sample_success = True
+
         observed_queries = []
         end = time.time() + args.duration
         while time.time() < end:
@@ -180,6 +205,8 @@ def run_local_mode(args):
             "decoded_get_peers": normalize_bdecode(decoded_get_peers),
             "decoded_announce_peer": normalize_bdecode(decoded_announce_peer),
             "decoded_confirm_get_peers": normalize_bdecode(decoded_confirm_get_peers),
+            "sample_infohashes_direct_query_success": sample_success,
+            "sample_infohashes_alerts": sample_alerts,
             "observed_queries": observed_queries,
             "verdict": "product-behavior-confirmed"
             if (

@@ -62,6 +62,8 @@ private:
   [[nodiscard]] auto MakeBootstrapQuery(std::string transaction_id) const
     -> KrpcMessage;
   [[nodiscard]] auto MakeToken(IpEndpoint const& sender) const -> std::string;
+  [[nodiscard]] auto MakeSampleInfohashesPayload() const
+    -> blocxxi::codec::bencode::Value::DictionaryType;
   void RecordAnnouncedPeer(
     std::string info_hash, IpEndpoint const& sender, KrpcQuery const& query);
   void SendBootstrapQueries();

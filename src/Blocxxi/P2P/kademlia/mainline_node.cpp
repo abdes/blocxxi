@@ -104,6 +104,8 @@ auto MainlineDhtNode::MakeResponse(
       values.emplace(
         "nodes", blocxxi::codec::bencode::Value(EncodeCompactNode(self_)));
     }
+  } else if (method == "sample_infohashes") {
+    values = MakeSampleInfohashesPayload();
   } else if (method == "announce_peer") {
     auto const token = RequireString(query, "token");
     auto found = issued_tokens_.find(sender.ToString());
@@ -155,6 +157,28 @@ auto MainlineDhtNode::MakeBootstrapQuery(std::string transaction_id) const
 auto MainlineDhtNode::MakeToken(IpEndpoint const& sender) const -> std::string
 {
   return sender.ToString();
+}
+
+auto MainlineDhtNode::MakeSampleInfohashesPayload() const
+  -> blocxxi::codec::bencode::Value::DictionaryType
+{
+  auto samples = std::string {};
+  samples.reserve(announced_peers_.size() * Node::IdType::Size());
+  for (auto const& [info_hash, peers] : announced_peers_) {
+    if (!peers.empty()) {
+      samples.append(info_hash);
+    }
+  }
+
+  return {
+    { "id", blocxxi::codec::bencode::Value(HashToBytes(self_.Id())) },
+    { "interval", blocxxi::codec::bencode::Value(std::int64_t { 21600 }) },
+    { "nodes", blocxxi::codec::bencode::Value(EncodeCompactNode(self_)) },
+    { "num",
+      blocxxi::codec::bencode::Value(
+        static_cast<std::int64_t>(announced_peers_.size())) },
+    { "samples", blocxxi::codec::bencode::Value(std::move(samples)) },
+  };
 }
 
 void MainlineDhtNode::RecordAnnouncedPeer(
