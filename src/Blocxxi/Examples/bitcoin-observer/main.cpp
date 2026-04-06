@@ -163,6 +163,12 @@ auto main(int argc, char** argv) -> int
       if (!blocks.metadata.front().transaction_sizes.empty()) {
         std::cout << "live-block-first-tx-bytes="
                   << blocks.metadata.front().transaction_sizes.front() << '\n';
+        std::cout << "live-block-first-tx-version="
+                  << blocks.metadata.front().transaction_versions.front() << '\n';
+        std::cout << "live-block-first-tx-vin="
+                  << blocks.metadata.front().transaction_input_counts.front() << '\n';
+        std::cout << "live-block-first-tx-vout="
+                  << blocks.metadata.front().transaction_output_counts.front() << '\n';
       }
     }
     return 0;

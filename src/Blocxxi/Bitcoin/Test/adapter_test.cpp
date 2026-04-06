@@ -619,6 +619,12 @@ TEST(BitcoinAdapterTest, SignetLiveClientFetchesBoundedBlockBodiesFromPeer)
   EXPECT_EQ(result.metadata.front().transaction_count, 1U);
   ASSERT_EQ(result.metadata.front().transaction_sizes.size(), 1U);
   EXPECT_EQ(result.metadata.front().transaction_sizes.front(), 10U);
+  ASSERT_EQ(result.metadata.front().transaction_versions.size(), 1U);
+  EXPECT_EQ(result.metadata.front().transaction_versions.front(), 1U);
+  ASSERT_EQ(result.metadata.front().transaction_input_counts.size(), 1U);
+  ASSERT_EQ(result.metadata.front().transaction_output_counts.size(), 1U);
+  EXPECT_EQ(result.metadata.front().transaction_input_counts.front(), 0U);
+  EXPECT_EQ(result.metadata.front().transaction_output_counts.front(), 0U);
   EXPECT_NE(std::find(result.command_trace.begin(), result.command_trace.end(), "block"),
     result.command_trace.end());
 }

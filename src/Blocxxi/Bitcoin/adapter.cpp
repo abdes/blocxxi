@@ -394,8 +394,17 @@ auto ParseHeadersPayload(std::span<std::uint8_t const> payload,
 
   for (auto index = std::uint64_t { 0 }; index < metadata.transaction_count; ++index) {
     auto const start = offset;
-    if (!read_bytes(4U)) {
+    auto version = std::uint32_t { 0 };
+    if (offset + 4U > payload.size()) {
       return std::nullopt;
+    }
+    std::memcpy(&version, payload.data() + offset, sizeof(version));
+    offset += 4U;
+
+    auto has_witness = false;
+    if (offset + 2U <= payload.size() && payload[offset] == 0U && payload[offset + 1U] != 0U) {
+      has_witness = true;
+      offset += 2U;
     }
 
     auto const input_count = read_compact();
@@ -429,10 +438,28 @@ auto ParseHeadersPayload(std::span<std::uint8_t const> payload,
       }
     }
 
+    if (has_witness) {
+      for (auto vin = std::uint64_t { 0 }; vin < *input_count; ++vin) {
+        auto const stack_items = read_compact();
+        if (!stack_items.has_value()) {
+          return std::nullopt;
+        }
+        for (auto item = std::uint64_t { 0 }; item < *stack_items; ++item) {
+          auto const witness_size = read_compact();
+          if (!witness_size.has_value() || !read_bytes(*witness_size)) {
+            return std::nullopt;
+          }
+        }
+      }
+    }
+
     if (!read_bytes(4U)) {
       return std::nullopt;
     }
     metadata.transaction_sizes.push_back(offset - start);
+    metadata.transaction_versions.push_back(version);
+    metadata.transaction_input_counts.push_back(*input_count);
+    metadata.transaction_output_counts.push_back(*output_count);
   }
 
   return metadata;
