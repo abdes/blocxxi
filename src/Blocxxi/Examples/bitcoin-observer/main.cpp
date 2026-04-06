@@ -18,9 +18,11 @@ struct Args {
   bool live_signet { false };
   bool live_import { false };
   bool live_block { false };
+  bool live_witness_block { false };
   std::string host { "seed.signet.bitcoin.sprovoost.nl" };
   std::uint16_t port { 38333 };
   std::string state_root {};
+  std::size_t search_limit { 256U };
 };
 
 auto ParseArgs(int argc, char** argv) -> Args
@@ -42,12 +44,16 @@ auto ParseArgs(int argc, char** argv) -> Args
       args.live_import = true;
     } else if (current == "--live-block") {
       args.live_block = true;
+    } else if (current == "--live-witness-block") {
+      args.live_witness_block = true;
     } else if (current == "--signet-host") {
       args.host = std::string(require_value(current));
     } else if (current == "--signet-port") {
       args.port = static_cast<std::uint16_t>(std::stoul(std::string(require_value(current))));
     } else if (current == "--state-root") {
       args.state_root = std::string(require_value(current));
+    } else if (current == "--search-limit") {
+      args.search_limit = std::stoul(std::string(require_value(current)));
     } else {
       throw std::invalid_argument("unknown argument: " + std::string(current));
     }
@@ -174,6 +180,49 @@ auto main(int argc, char** argv) -> int
       }
     }
     return 0;
+  }
+
+  if (args.live_witness_block) {
+    auto client = blocxxi::bitcoin::SignetLiveClient({
+      .host = args.host,
+      .port = args.port,
+    });
+    auto headers = blocxxi::bitcoin::SignetHeadersResult {};
+    auto status = client.FetchHeaders(headers);
+    if (!status.ok() || headers.header_hashes.empty()) {
+      std::cerr << (status.ok() ? "no headers available" : status.message) << '\n';
+      return 1;
+    }
+
+    for (auto index = std::size_t { 0 }; index < headers.header_hashes.size()
+         && index < args.search_limit;
+         ++index) {
+      auto blocks = blocxxi::bitcoin::SignetBlocksResult {};
+      auto const hash = headers.header_hashes[index];
+      status = client.FetchBlocks(std::span<std::string const>(&hash, 1U), blocks);
+      if (!status.ok() || blocks.metadata.empty()) {
+        continue;
+      }
+
+      auto const& metadata = blocks.metadata.front();
+      for (auto tx = std::size_t { 0 }; tx < metadata.transaction_has_witness.size(); ++tx) {
+        if (!metadata.transaction_has_witness[tx]) {
+          continue;
+        }
+
+        std::cout << "live-witness-block-peer=" << blocks.peer_address << '\n';
+        std::cout << "live-witness-block-hash=" << blocks.blocks.front().block_hash_hex
+                  << '\n';
+        std::cout << "live-witness-tx-index=" << tx << '\n';
+        std::cout << "live-witness-txid=" << metadata.transaction_ids[tx] << '\n';
+        std::cout << "live-witness-wtxid=" << metadata.transaction_witness_ids[tx]
+                  << '\n';
+        return 0;
+      }
+    }
+
+    std::cerr << "no witness-bearing block found within bounded search window\n";
+    return 1;
   }
 
   auto node = blocxxi::node::Node();

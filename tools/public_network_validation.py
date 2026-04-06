@@ -187,6 +187,87 @@ def parse_headers_payload(payload: bytes) -> tuple[int, list[str]]:
     return count, headers
 
 
+def parse_block_transaction_count(payload: bytes) -> int:
+    if len(payload) < 81:
+        raise RuntimeError("block payload too small")
+    tx_count, _ = read_compact_size(payload, 80)
+    return tx_count
+
+
+def parse_first_transaction_witness_flag(payload: bytes) -> tuple[bool, str | None, str | None]:
+    if len(payload) < 81:
+        raise RuntimeError("block payload too small")
+
+    tx_count, offset = read_compact_size(payload, 80)
+    if tx_count == 0:
+        return False, None, None
+
+    tx_start = offset
+    version = payload[offset : offset + 4]
+    offset += 4
+
+    has_witness = False
+    if offset + 2 <= len(payload) and payload[offset] == 0 and payload[offset + 1] != 0:
+        has_witness = True
+        offset += 2
+
+    vin_count, vin_count_end = read_compact_size(payload, offset)
+    vin_start = offset
+    offset = vin_count_end
+    for _ in range(vin_count):
+        offset += 36
+        script_len, offset = read_compact_size(payload, offset)
+        offset += script_len
+        offset += 4
+
+    vout_count, vout_count_end = read_compact_size(payload, offset)
+    vout_start = offset
+    offset = vout_count_end
+    for _ in range(vout_count):
+        offset += 8
+        script_len, offset = read_compact_size(payload, offset)
+        offset += script_len
+
+    if has_witness:
+        for _ in range(vin_count):
+            stack_items, offset = read_compact_size(payload, offset)
+            for _ in range(stack_items):
+                item_len, offset = read_compact_size(payload, offset)
+                offset += item_len
+
+    locktime = payload[offset : offset + 4]
+    offset += 4
+
+    wtxid = double_sha256(payload[tx_start:offset])[::-1].hex()
+    txid_payload = bytearray()
+    txid_payload.extend(version)
+    txid_payload.extend(payload[vin_start:vin_count_end])
+    cursor = vin_count_end
+    for _ in range(vin_count):
+        txid_payload.extend(payload[cursor : cursor + 36])
+        cursor += 36
+        script_len, script_end = read_compact_size(payload, cursor)
+        txid_payload.extend(payload[cursor:script_end])
+        cursor = script_end
+        txid_payload.extend(payload[cursor : cursor + script_len])
+        cursor += script_len
+        txid_payload.extend(payload[cursor : cursor + 4])
+        cursor += 4
+    txid_payload.extend(payload[vout_start:vout_count_end])
+    cursor = vout_count_end
+    for _ in range(vout_count):
+        txid_payload.extend(payload[cursor : cursor + 8])
+        cursor += 8
+        script_len, script_end = read_compact_size(payload, cursor)
+        txid_payload.extend(payload[cursor:script_end])
+        cursor = script_end
+        txid_payload.extend(payload[cursor : cursor + script_len])
+        cursor += script_len
+    txid_payload.extend(locktime)
+    txid = double_sha256(bytes(txid_payload))[::-1].hex()
+    return has_witness, txid, wtxid
+
+
 def signet_handshake_validation(
     host: str, port: int, timeout: float
 ) -> tuple[str, list[str], int | None, list[str]]:
@@ -282,6 +363,52 @@ def signet_getheaders_validation(
     raise RuntimeError(f"unable to fetch signet headers from {host}:{port}")
 
 
+def fetch_block_by_hash(host: str, port: int, timeout: float, block_hash_hex: str) -> bytes:
+    addresses = resolve_addresses(host, port)
+    getdata_payload = compact_size(1) + struct.pack("<I", 2) + wire_hash_from_hex(block_hash_hex)
+
+    for address in addresses:
+        family = socket.AF_INET6 if ":" in address else socket.AF_INET
+        probe = socket.socket(family, socket.SOCK_STREAM)
+        probe.settimeout(timeout)
+        try:
+            probe.connect((address, port))
+            probe.sendall(
+                encode_message("version", encode_version_payload(address, port))
+            )
+
+            saw_version = False
+            saw_verack = False
+            deadline = time.monotonic() + timeout
+            while time.monotonic() < deadline and not (saw_version and saw_verack):
+                command, payload = read_message(probe)
+                if command == "version":
+                    saw_version = True
+                    probe.sendall(encode_message("verack", b""))
+                elif command == "verack":
+                    saw_verack = True
+                elif command == "ping":
+                    probe.sendall(encode_message("pong", payload))
+
+            if not (saw_version and saw_verack):
+                continue
+
+            probe.sendall(encode_message("getdata", getdata_payload))
+            deadline = time.monotonic() + timeout
+            while time.monotonic() < deadline:
+                command, payload = read_message(probe)
+                if command == "ping":
+                    probe.sendall(encode_message("pong", payload))
+                    continue
+                if command == "block":
+                    return payload
+        except (OSError, RuntimeError):
+            pass
+        finally:
+            probe.close()
+    raise RuntimeError(f"unable to fetch block {block_hash_hex} from {host}:{port}")
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -316,6 +443,12 @@ def parse_args() -> argparse.Namespace:
         "--signet-locator-hash",
         default=SIGNET_GENESIS_HASH,
         help="Locator hash for the signet getheaders request",
+    )
+    parser.add_argument(
+        "--witness-search-limit",
+        type=int,
+        default=64,
+        help="Maximum number of headers to scan for a witness-bearing block",
     )
     return parser.parse_args()
 
@@ -368,6 +501,26 @@ def main() -> int:
     print(f"SIGNET_LOCATOR_HASH {args.signet_locator_hash}")
     print(f"SIGNET_FIRST_HEADER {headers[0]}")
     print(f"SIGNET_LAST_HEADER {headers[-1]}")
+
+    print("=== SIGNET WITNESS BLOCK SEARCH ===")
+    witness_found = False
+    for block_hash in headers[: args.witness_search_limit]:
+        try:
+            block_payload = fetch_block_by_hash(
+                args.signet_host, args.signet_port, args.tcp_timeout, block_hash
+            )
+            has_witness, txid, wtxid = parse_first_transaction_witness_flag(block_payload)
+            if has_witness:
+                print(f"SIGNET_WITNESS_BLOCK {block_hash}")
+                print(f"SIGNET_WITNESS_TXID {txid}")
+                print(f"SIGNET_WITNESS_WTXID {wtxid}")
+                witness_found = True
+                break
+        except RuntimeError:
+            continue
+
+    if not witness_found:
+        print("SIGNET_WITNESS_BLOCK not-found")
     return 0
 
 
