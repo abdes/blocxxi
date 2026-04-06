@@ -35,11 +35,13 @@ target_sources(
   PRIVATE
     adapter.h
     adapter.cpp
+    ingestion.h
+    ingestion.cpp
     api_export.h
   PUBLIC
     FILE_SET HEADERS
     BASE_DIRS ${NOVA_SOURCE_DIR}
-    FILES adapter.h api_export.h
+    FILES adapter.h ingestion.h api_export.h
 )
 
 arrange_target_files_for_ide(${META_MODULE_TARGET})

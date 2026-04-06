@@ -9,4 +9,5 @@ m_gtest_program(
   SOURCES
     main.cpp
     adapter_test.cpp
+    ingestion_test.cpp
 )
