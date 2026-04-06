@@ -8,11 +8,9 @@ m_gtest_program(
   Unit
   SOURCES
     main.cpp
+    krpc_test.cpp
+    mainline_node_test.cpp
+    mainline_session_test.cpp
     node_test.cpp
-    kbucket_test.cpp
-    routingtable_test.cpp
     channel_test.cpp
-    network_test.cpp
-    timer_test.cpp
-    response_dispatcher_test.cpp
 )

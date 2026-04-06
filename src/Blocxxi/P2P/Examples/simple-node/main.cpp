@@ -8,8 +8,7 @@
 
 #include <Blocxxi/Nat/nat.h>
 #include <Blocxxi/P2P/kademlia/channel.h>
-#include <Blocxxi/P2P/kademlia/engine.h>
-#include <Blocxxi/P2P/kademlia/message_serializer.h>
+#include <Blocxxi/P2P/kademlia/krpc.h>
 #include <Blocxxi/P2P/kademlia/session.h>
 #include <Nova/Base/Logging.h>
 
@@ -28,16 +27,9 @@ namespace kad = blocxxi::p2p::kademlia;
 
 using blocxxi::nat::PortMapper;
 using kad::AsyncUdpChannel;
-using kad::Engine;
-using kad::KeyType;
-using kad::MessageSerializer;
-using kad::Network;
+using kad::MainlineDhtNode;
 using kad::Node;
-using kad::RoutingTable;
 using kad::Session;
-
-using NetworkType = kad::Network<AsyncUdpChannel, MessageSerializer>;
-using EngineType = kad::Engine<RoutingTable, NetworkType>;
 
 namespace {
 
@@ -181,6 +173,16 @@ auto ParseCommandLine(int argc, char** argv) -> CommandLineOptions
   return options;
 }
 
+auto NormalizeBootstrap(std::string bootstrap) -> std::string
+{
+  if (bootstrap.starts_with("knode://")) {
+    auto const node = Node::FromUrlString(bootstrap);
+    return node.Endpoint().Address().to_string() + ":"
+      + std::to_string(node.Endpoint().Port());
+  }
+  return bootstrap;
+}
+
 } // namespace
 
 inline void Shutdown() { LOG_F(INFO, "Shutdown complete"); }
@@ -219,48 +221,50 @@ auto main(int argc, char** argv) -> int
 
     auto my_node
       = Node { Node::IdType::RandomHash(), mapper->ExternalIP(), options.port };
-    auto routing_table = RoutingTable { my_node, kad::CONCURRENCY_K };
 
     auto ipv4 = AsyncUdpChannel::ipv4(io_context, mapper->InternalIP(),
       std::to_string(static_cast<unsigned int>(options.port)));
-
-    auto ipv6 = AsyncUdpChannel::ipv6(io_context, options.ipv6_address,
-      std::to_string(static_cast<unsigned int>(options.port)));
-
-    auto serializer = std::make_unique<MessageSerializer>(my_node.Id());
-    auto network = NetworkType { io_context, std::move(serializer),
-      std::move(ipv4), std::move(ipv6) };
-
-    auto engine
-      = EngineType { io_context, std::move(routing_table), std::move(network) };
+    auto session = Session(
+      MainlineDhtNode(io_context, my_node, std::move(ipv4)));
+    session.OnQuery([](std::string_view method, kad::IpEndpoint const& sender) {
+      LOG_F(INFO, "mainline query '{}' from {}", method, sender.ToString());
+    });
+    session.OnBootstrapSuccess([](std::string const& bootstrap) {
+      LOG_F(INFO, "bootstrap succeeded via {}", bootstrap);
+    });
     for (auto const& bootstrap_node : options.boot_list) {
-      engine.AddBootstrapNode(bootstrap_node);
+      session.AddBootstrapNode(NormalizeBootstrap(bootstrap_node));
     }
-
-    using SessionType = Session<EngineType>;
-    auto session = SessionType(io_context, std::move(engine));
     session.Start();
 
     auto server_thread = std::thread([&io_context]() { io_context.run(); });
 
     if (!options.boot_list.empty()) {
-      auto value = SessionType::DataType { 0x01, 0x02 };
-      auto key = KeyType::RandomHash();
-      session.StoreValue(key, value,
-        [&session, &value, &key](std::error_code const& store_errc) {
-          if (store_errc) {
-            LOG_F(ERROR, "store value failed: {}", store_errc.message());
+      auto key = Node::IdType::RandomHash();
+      auto const bootstrap = NormalizeBootstrap(options.boot_list.front());
+      auto const separator = bootstrap.rfind(':');
+      auto endpoint = kad::IpEndpoint(bootstrap.substr(0, separator),
+        static_cast<std::uint16_t>(std::stoul(bootstrap.substr(separator + 1))));
+
+      session.AsyncGetPeers(
+        key, endpoint,
+        [key](std::error_code const& errc, kad::KrpcMessage const& response) {
+          if (errc) {
+            LOG_F(ERROR, "get_peers failed: {}", errc.message());
+            return;
+          }
+          auto const& values = std::get<kad::KrpcResponse>(response.payload_).values_;
+          if (values.contains("token")) {
+            LOG_F(INFO, "get_peers token received for {}",
+              key.ToHex());
+          }
+          if (values.contains("values")) {
+            for (auto const& peer : values.at("values").AsList()) {
+              auto endpoint = kad::DecodeCompactPeer(peer.AsString());
+              LOG_F(INFO, "peer: {}", endpoint.ToString());
+            }
           } else {
-            value.clear();
-            session.FindValue(key,
-              [](std::error_code const& find_errc,
-                SessionType::DataType const& search_value) {
-                if (find_errc) {
-                  LOG_F(ERROR, "find value failed: {}", find_errc.message());
-                } else {
-                  LOG_F(INFO, "value: {} {}", search_value[0], search_value[1]);
-                }
-              });
+            LOG_F(INFO, "get_peers returned closer nodes for {}", key.ToHex());
           }
         });
     }

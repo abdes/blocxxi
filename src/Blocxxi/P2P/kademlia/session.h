@@ -6,89 +6,10 @@
 
 #pragma once
 
-#include <system_error>
-
-#include <Blocxxi/P2P/kademlia/asio.h>
-
-#include <Nova/Base/Logging.h>
-
-#include <Blocxxi/P2P/kademlia/key.h>
+#include <Blocxxi/P2P/kademlia/mainline_session.h>
 
 namespace blocxxi::p2p::kademlia {
 
-template <typename TEngine> class Session final {
-public:
-  /// The logger id used for logging within this class.
-  static constexpr const char* LOGGER_NAME = "p2p-kademlia";
-
-  // We need to import the internal logger retrieval method symbol in this
-  // context to avoid g++ complaining about the method not being declared before
-  // being used. THis is due to the fact that the current class is a template
-  // class and that method does not take any template argument that will enable
-  // the compiler to resolve it unambiguously.
-
-  using EngineType = TEngine;
-  ///
-  using DataType = std::vector<std::uint8_t>;
-  ///
-  using StoreHandlerType = std::function<void(std::error_code const& error)>;
-  ///
-  using LoadHandlerType
-    = std::function<void(std::error_code const& error, DataType const& data)>;
-
-  explicit Session(asio::io_context& io_context, EngineType&& engine)
-    : io_context_(io_context)
-    , engine_(std::move(engine))
-  {
-    LOG_F(1, "Creating Session DONE");
-  }
-
-  Session(Session const&) = delete;
-  auto operator=(Session const&) -> Session& = delete;
-
-  Session(Session&&) noexcept = default;
-  auto operator=(Session&&) noexcept -> Session& = default;
-
-  ~Session() { LOG_F(1, "Destroy Session"); }
-
-  auto GetEngine() const -> EngineType const& { return engine_; }
-
-  void Start()
-  {
-    LOG_F(1, "Session Start");
-    engine_.Start();
-  }
-
-  /*  void RunOne() {
-      engine_.RunOne();
-    }
-
-    void RunAll() {
-      engine_.RunAll();
-    }
-  */
-  void Stop()
-  {
-    LOG_F(1, "Session Stop");
-    engine_.Stop();
-  }
-
-  void StoreValue(
-    KeyType const& key, DataType const& data, StoreHandlerType handler)
-  {
-    engine_.AsyncStoreValue(key, data, handler);
-  }
-
-  void FindValue(KeyType const& key, LoadHandlerType handler)
-  {
-    engine_.AsyncFindValue(key, handler);
-  }
-
-private:
-  ///
-  asio::io_context& io_context_;
-  ///
-  EngineType engine_;
-};
+using Session = MainlineSession;
 
 } // namespace blocxxi::p2p::kademlia
