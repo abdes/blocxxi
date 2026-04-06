@@ -640,4 +640,80 @@ TEST(BitcoinAdapterTest, SignetLiveClientFetchesBoundedBlockBodiesFromPeer)
     result.command_trace.end());
 }
 
+TEST(BitcoinAdapterTest, WitnessTransactionsProduceDistinctTxidAndWtxid)
+{
+  auto io_context = asio::io_context {};
+  auto acceptor
+    = asio::ip::tcp::acceptor(io_context, { asio::ip::make_address("127.0.0.1"), 0 });
+  auto const port = acceptor.local_endpoint().port();
+
+  auto const header = MakeHeaderBytes(4U, 51U, 1598918409U);
+  auto block_payload = std::vector<std::uint8_t>(header.begin(), header.end());
+  block_payload.push_back(1U); // tx count
+
+  auto tx = std::vector<std::uint8_t> {};
+  tx.push_back(1U); // version little-endian
+  tx.push_back(0U);
+  tx.push_back(0U);
+  tx.push_back(0U);
+  tx.push_back(0U); // marker
+  tx.push_back(1U); // flags
+  tx.push_back(1U); // vin count
+  tx.insert(tx.end(), 32U, 0U); // prevout hash
+  tx.insert(tx.end(), { 0xFF, 0xFF, 0xFF, 0xFF }); // prevout index
+  tx.push_back(0U); // scriptSig size
+  tx.insert(tx.end(), { 0xFF, 0xFF, 0xFF, 0xFF }); // sequence
+  tx.push_back(1U); // vout count
+  tx.insert(tx.end(), { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }); // value
+  tx.push_back(0U); // scriptPubKey size
+  tx.push_back(1U); // witness stack items
+  tx.push_back(1U); // witness item size
+  tx.push_back(0x42); // witness item data
+  tx.insert(tx.end(), { 0x00, 0x00, 0x00, 0x00 }); // locktime
+
+  block_payload.insert(block_payload.end(), tx.begin(), tx.end());
+
+  auto const wtxid_hash = DoubleSha256(tx);
+  auto wtxid_reversed = std::array<std::uint8_t, 32> {};
+  std::reverse_copy(wtxid_hash.begin(), wtxid_hash.end(), wtxid_reversed.begin());
+  auto const expected_wtxid = ToHex(wtxid_reversed);
+
+  auto server = std::thread([&]() {
+    auto socket = asio::ip::tcp::socket(io_context);
+    acceptor.accept(socket);
+    (void)ReadMessage(socket); // version
+
+    auto version_reply = std::vector<std::uint8_t> {};
+    AppendLittleEndian(version_reply, 70016U, 4U);
+    asio::write(socket, asio::buffer(EncodeMessage("version", version_reply)));
+    asio::write(socket,
+      asio::buffer(EncodeMessage("verack", std::span<std::uint8_t const> {})));
+
+    (void)ReadMessage(socket); // verack
+    (void)ReadMessage(socket); // getdata
+    asio::write(socket, asio::buffer(EncodeMessage("block", block_payload)));
+  });
+
+  auto client = SignetLiveClient({
+    .host = "127.0.0.1",
+    .port = port,
+  });
+  auto result = SignetBlocksResult {};
+  auto const expected_block_hash = HeaderHashHex(header);
+  auto const status = client.FetchBlocks(
+    std::span<std::string const>(&expected_block_hash, 1U), result);
+
+  server.join();
+
+  ASSERT_TRUE(status.ok());
+  ASSERT_EQ(result.metadata.size(), 1U);
+  ASSERT_EQ(result.metadata.front().transaction_ids.size(), 1U);
+  ASSERT_EQ(result.metadata.front().transaction_witness_ids.size(), 1U);
+  ASSERT_EQ(result.metadata.front().transaction_has_witness.size(), 1U);
+  EXPECT_TRUE(result.metadata.front().transaction_has_witness.front());
+  EXPECT_EQ(result.metadata.front().transaction_witness_ids.front(), expected_wtxid);
+  EXPECT_NE(result.metadata.front().transaction_ids.front(),
+    result.metadata.front().transaction_witness_ids.front());
+}
+
 } // namespace blocxxi::bitcoin
