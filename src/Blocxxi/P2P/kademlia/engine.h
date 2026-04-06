@@ -66,7 +66,7 @@ public:
 
   ~Engine() { LOG_F(1, "Destroy Engine"); }
 
-  [[nodiscard]] auto GetRoutingTable() const -> RoutingTable const&
+  [[nodiscard]] auto GetRoutingTable() const -> RoutingTableType const&
   {
     return routing_table_;
   }
@@ -102,6 +102,12 @@ public:
     ScheduleBucketRefreshTimer();
   }
 
+  void Stop()
+  {
+    LOG_F(1, "Engine Stop");
+    refresh_timer_.cancel();
+  }
+
   void ScheduleBucketRefreshTimer()
   {
     // Start the buckets refresh period timer
@@ -122,10 +128,9 @@ public:
       LOG_F(1, "[REFRESH] periodic bucket refresh timer expired");
 
       // Select the next bucket, ping its least recently seen node
-      static auto bucket_index = 0U;
       auto bucket = routing_table_.cbegin();
-      if (bucket_index < routing_table_.BucketsCount()) {
-        std::advance(bucket, bucket_index);
+      if (next_bucket_to_refresh_ < routing_table_.BucketsCount()) {
+        std::advance(bucket, next_bucket_to_refresh_);
         if (!bucket->Empty()) {
           auto const& least_recent = bucket->LeastRecentlySeenNode();
           asio::post(io_context_, [this, least_recent]() {
@@ -134,9 +139,9 @@ public:
               least_recent, network_, routing_table_, []() { });
           });
         }
-        ++bucket_index;
+        ++next_bucket_to_refresh_;
       } else {
-        bucket_index = 0;
+        next_bucket_to_refresh_ = 0;
       }
 
       // Refresh buckets that have not been updated for a certain time
@@ -399,6 +404,7 @@ private:
   ValueStoreType value_store_;
 
   asio::steady_timer refresh_timer_;
+  std::size_t next_bucket_to_refresh_ { 0 };
 };
 
 } // namespace blocxxi::p2p::kademlia

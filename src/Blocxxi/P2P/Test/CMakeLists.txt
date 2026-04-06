@@ -8,6 +8,7 @@ m_gtest_program(
   Unit
   SOURCES
     main.cpp
+    engine_test.cpp
     krpc_test.cpp
     message_test.cpp
     node_test.cpp
