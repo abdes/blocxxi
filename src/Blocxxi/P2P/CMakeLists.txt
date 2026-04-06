@@ -11,12 +11,7 @@ nova_module_declare(
 )
 nova_push_module("${META_MODULE_NAME}")
 
-find_package(
-  asio
-  REQUIRED
-  CONFIG
-  PATHS "${CMAKE_BINARY_DIR}/generators"
-)
+find_package(asio REQUIRED CONFIG PATHS "${CMAKE_BINARY_DIR}/generators")
 
 add_library(${META_MODULE_TARGET})
 add_library(${META_MODULE_TARGET_ALIAS} ALIAS ${META_MODULE_TARGET})
@@ -35,10 +30,29 @@ set_target_properties(
       ${META_MODULE_NAME}
 )
 
-file(GLOB_RECURSE BLOCXXI_P2P_HEADERS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/kademlia/*.h ${CMAKE_CURRENT_SOURCE_DIR}/api_export.h)
-file(GLOB_RECURSE BLOCXXI_P2P_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/kademlia/*.cpp)
-list(TRANSFORM BLOCXXI_P2P_HEADERS REPLACE "^${CMAKE_CURRENT_SOURCE_DIR}/" "")
-list(TRANSFORM BLOCXXI_P2P_SOURCES REPLACE "^${CMAKE_CURRENT_SOURCE_DIR}/" "")
+file(
+  GLOB_RECURSE BLOCXXI_P2P_HEADERS
+  CONFIGURE_DEPENDS
+  ${CMAKE_CURRENT_SOURCE_DIR}/kademlia/*.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/api_export.h
+)
+file(
+  GLOB_RECURSE BLOCXXI_P2P_SOURCES
+  CONFIGURE_DEPENDS
+  ${CMAKE_CURRENT_SOURCE_DIR}/kademlia/*.cpp
+)
+list(
+  TRANSFORM BLOCXXI_P2P_HEADERS
+  REPLACE
+    "^${CMAKE_CURRENT_SOURCE_DIR}/"
+    ""
+)
+list(
+  TRANSFORM BLOCXXI_P2P_SOURCES
+  REPLACE
+    "^${CMAKE_CURRENT_SOURCE_DIR}/"
+    ""
+)
 
 target_sources(
   ${META_MODULE_TARGET}
@@ -62,8 +76,19 @@ target_include_directories(
 
 target_compile_features(${META_MODULE_TARGET} PUBLIC cxx_std_20)
 target_compile_options(${META_MODULE_TARGET} PUBLIC ${NOVA_COMMON_CXX_FLAGS})
-target_compile_definitions(${META_MODULE_TARGET} PUBLIC $<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:BLOCXXI_P2P_STATIC>)
-target_link_libraries(${META_MODULE_TARGET} PUBLIC nova::base blocxxi::crypto asio::asio)
+target_compile_definitions(
+  ${META_MODULE_TARGET}
+  PUBLIC
+    $<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:BLOCXXI_P2P_STATIC>
+)
+target_link_libraries(
+  ${META_MODULE_TARGET}
+  PUBLIC
+    nova::base
+    blocxxi::codec
+    blocxxi::crypto
+    asio::asio
+)
 
 if(NOVA_BUILD_TESTS)
   add_subdirectory("Test")
@@ -74,7 +99,8 @@ endif()
 
 nova_module_install(
   EXPORT ${META_MODULE_NAMESPACE}
-  TARGETS ${META_MODULE_TARGET}
+  TARGETS
+    ${META_MODULE_TARGET}
 )
 
 nova_pop_module("${META_MODULE_NAME}")
