@@ -13,6 +13,26 @@ namespace blocxxi::codec::bencode {
 
 namespace {
 
+template <typename Number>
+auto ParseNumber(std::string_view input, char const* error_message) -> Number
+{
+  auto value = Number {};
+  auto const* begin = input.data();
+  auto const* end = begin + input.size();
+  auto [ptr, error] = std::from_chars(begin, end, value);
+  if (error != std::errc() || ptr != end) {
+    throw std::invalid_argument(error_message);
+  }
+  return value;
+}
+
+void AppendEncodedString(std::string_view value, std::string& out)
+{
+  out.append(std::to_string(value.size()));
+  out.push_back(':');
+  out.append(value);
+}
+
 void AppendEncoded(Value const& value, std::string& out);
 
 auto DecodeValue(std::string_view encoded, std::size_t& offset) -> Value
@@ -29,14 +49,9 @@ auto DecodeValue(std::string_view encoded, std::size_t& offset) -> Value
       throw std::invalid_argument("unterminated bencode integer");
     }
 
-    std::int64_t integer = 0;
     auto const number = encoded.substr(offset, end - offset);
-    auto const* begin = number.data();
-    auto const* finish = number.data() + number.size();
-    auto [ptr, error] = std::from_chars(begin, finish, integer);
-    if (error != std::errc() || ptr != finish) {
-      throw std::invalid_argument("invalid bencode integer");
-    }
+    auto const integer
+      = ParseNumber<std::int64_t>(number, "invalid bencode integer");
     offset = end + 1;
     return Value(integer);
   }
@@ -80,14 +95,9 @@ auto DecodeValue(std::string_view encoded, std::size_t& offset) -> Value
     throw std::invalid_argument("unterminated bencode string length");
   }
 
-  std::size_t length = 0;
   auto const length_field = encoded.substr(offset, colon - offset);
-  auto const* begin = length_field.data();
-  auto const* finish = length_field.data() + length_field.size();
-  auto [ptr, error] = std::from_chars(begin, finish, length);
-  if (error != std::errc() || ptr != finish) {
-    throw std::invalid_argument("invalid bencode string length");
-  }
+  auto const length
+    = ParseNumber<std::size_t>(length_field, "invalid bencode string length");
 
   offset = colon + 1;
   if (offset + length > encoded.size()) {
@@ -108,9 +118,7 @@ void AppendEncoded(Value const& value, std::string& out)
     out.push_back('e');
     return;
   case Value::Type::String:
-    out.append(std::to_string(value.AsString().size()));
-    out.push_back(':');
-    out.append(value.AsString());
+    AppendEncodedString(value.AsString(), out);
     return;
   case Value::Type::List:
     out.push_back('l');
@@ -122,7 +130,7 @@ void AppendEncoded(Value const& value, std::string& out)
   case Value::Type::Dictionary:
     out.push_back('d');
     for (auto const& [key, item] : value.AsDictionary()) {
-      AppendEncoded(Value(key), out);
+      AppendEncodedString(key, out);
       AppendEncoded(item, out);
     }
     out.push_back('e');
