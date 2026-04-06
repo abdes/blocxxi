@@ -62,7 +62,7 @@ This gives two complementary layers:
 The libtorrent-based harness lives at:
 
 ```text
-tools/mainline_dht_interop.py
+src/Blocxxi/P2P/Test/mainline_dht_interop.py
 ```
 
 It drives the compiled:
@@ -85,7 +85,7 @@ which is backed by the production:
 Command:
 
 ```bash
-python tools/mainline_dht_interop.py --mode local --duration 6
+python src/Blocxxi/P2P/Test/mainline_dht_interop.py --mode local --duration 6
 ```
 
 Local mode launches a blocxxi `mainline-node` fixture on localhost and then
@@ -121,7 +121,7 @@ Typical artifact:
 Command:
 
 ```bash
-python tools/mainline_dht_interop.py --mode public --duration 8 \
+python src/Blocxxi/P2P/Test/mainline_dht_interop.py --mode public --duration 8 \
   --bootstrap router.bittorrent.com:6881 \
   --bootstrap router.utorrent.com:6881 \
   --bootstrap dht.transmissionbt.com:6881
@@ -215,13 +215,13 @@ ctest -C Debug --output-on-failure -R 'MainlineDhtNodeTest|MainlineSessionTest|N
 ### Run the local harness
 
 ```bash
-python tools/mainline_dht_interop.py --mode local --duration 6
+python src/Blocxxi/P2P/Test/mainline_dht_interop.py --mode local --duration 6
 ```
 
 ### Run the public harness
 
 ```bash
-python tools/mainline_dht_interop.py --mode public --duration 8 \
+python src/Blocxxi/P2P/Test/mainline_dht_interop.py --mode public --duration 8 \
   --bootstrap router.bittorrent.com:6881 \
   --bootstrap router.utorrent.com:6881 \
   --bootstrap dht.transmissionbt.com:6881

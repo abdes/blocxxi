@@ -243,7 +243,7 @@ The example resolves them before sending queries.
 Use the harness:
 
 ```bash
-python tools/mainline_dht_interop.py --mode local --duration 6
+python src/Blocxxi/P2P/Test/mainline_dht_interop.py --mode local --duration 6
 ```
 
 This validates the local Mainline path for:
@@ -258,7 +258,7 @@ This validates the local Mainline path for:
 ### Public proof
 
 ```bash
-python tools/mainline_dht_interop.py --mode public --duration 8 \
+python src/Blocxxi/P2P/Test/mainline_dht_interop.py --mode public --duration 8 \
   --bootstrap router.bittorrent.com:6881 \
   --bootstrap router.utorrent.com:6881 \
   --bootstrap dht.transmissionbt.com:6881
