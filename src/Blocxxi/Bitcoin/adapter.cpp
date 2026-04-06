@@ -380,6 +380,61 @@ auto ParseHeadersPayload(std::span<std::uint8_t const> payload,
     return std::nullopt;
   }
   metadata.transaction_count = *tx_count;
+
+  auto read_bytes = [&](std::size_t count) -> bool {
+    if (offset + count > payload.size()) {
+      return false;
+    }
+    offset += count;
+    return true;
+  };
+  auto read_compact = [&]() -> std::optional<std::uint64_t> {
+    return ReadCompactSize(payload, offset);
+  };
+
+  for (auto index = std::uint64_t { 0 }; index < metadata.transaction_count; ++index) {
+    auto const start = offset;
+    if (!read_bytes(4U)) {
+      return std::nullopt;
+    }
+
+    auto const input_count = read_compact();
+    if (!input_count.has_value()) {
+      return std::nullopt;
+    }
+    for (auto vin = std::uint64_t { 0 }; vin < *input_count; ++vin) {
+      if (!read_bytes(36U)) {
+        return std::nullopt;
+      }
+      auto const script_size = read_compact();
+      if (!script_size.has_value() || !read_bytes(*script_size)) {
+        return std::nullopt;
+      }
+      if (!read_bytes(4U)) {
+        return std::nullopt;
+      }
+    }
+
+    auto const output_count = read_compact();
+    if (!output_count.has_value()) {
+      return std::nullopt;
+    }
+    for (auto vout = std::uint64_t { 0 }; vout < *output_count; ++vout) {
+      if (!read_bytes(8U)) {
+        return std::nullopt;
+      }
+      auto const script_size = read_compact();
+      if (!script_size.has_value() || !read_bytes(*script_size)) {
+        return std::nullopt;
+      }
+    }
+
+    if (!read_bytes(4U)) {
+      return std::nullopt;
+    }
+    metadata.transaction_sizes.push_back(offset - start);
+  }
+
   return metadata;
 }
 

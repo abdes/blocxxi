@@ -160,6 +160,10 @@ auto main(int argc, char** argv) -> int
                 << '\n';
       std::cout << "live-block-prev=" << blocks.metadata.front().previous_hash_hex
                 << '\n';
+      if (!blocks.metadata.front().transaction_sizes.empty()) {
+        std::cout << "live-block-first-tx-bytes="
+                  << blocks.metadata.front().transaction_sizes.front() << '\n';
+      }
     }
     return 0;
   }

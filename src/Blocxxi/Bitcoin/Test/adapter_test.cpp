@@ -565,7 +565,17 @@ TEST(BitcoinAdapterTest, SignetLiveClientFetchesBoundedBlockBodiesFromPeer)
   auto const expected_hash = HeaderHashHex(header);
   auto block_payload = std::vector<std::uint8_t>(header.begin(), header.end());
   block_payload.push_back(1U); // tx count
-  block_payload.push_back(0U); // dummy tx version prefix byte
+  block_payload.push_back(1U); // tx version
+  block_payload.push_back(0U);
+  block_payload.push_back(0U);
+  block_payload.push_back(0U);
+  block_payload.push_back(0U);
+  block_payload.push_back(0U); // vin count
+  block_payload.push_back(0U); // vout count
+  block_payload.push_back(0U); // locktime
+  block_payload.push_back(0U);
+  block_payload.push_back(0U);
+  block_payload.push_back(0U);
 
   auto server = std::thread([&]() {
     auto socket = asio::ip::tcp::socket(io_context);
@@ -607,6 +617,8 @@ TEST(BitcoinAdapterTest, SignetLiveClientFetchesBoundedBlockBodiesFromPeer)
   EXPECT_EQ(result.metadata.front().version, 4U);
   EXPECT_EQ(result.metadata.front().nonce, 41U);
   EXPECT_EQ(result.metadata.front().transaction_count, 1U);
+  ASSERT_EQ(result.metadata.front().transaction_sizes.size(), 1U);
+  EXPECT_EQ(result.metadata.front().transaction_sizes.front(), 10U);
   EXPECT_NE(std::find(result.command_trace.begin(), result.command_trace.end(), "block"),
     result.command_trace.end());
 }
