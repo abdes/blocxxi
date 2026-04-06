@@ -16,6 +16,7 @@ namespace {
 
 struct Args {
   bool live_signet { false };
+  bool live_import { false };
   std::string host { "seed.signet.bitcoin.sprovoost.nl" };
   std::uint16_t port { 38333 };
 };
@@ -35,6 +36,8 @@ auto ParseArgs(int argc, char** argv) -> Args
 
     if (current == "--live-signet") {
       args.live_signet = true;
+    } else if (current == "--live-import") {
+      args.live_import = true;
     } else if (current == "--signet-host") {
       args.host = std::string(require_value(current));
     } else if (current == "--signet-port") {
@@ -69,6 +72,48 @@ auto main(int argc, char** argv) -> int
     if (!result.header_hashes.empty()) {
       std::cout << "live-first-header=" << result.header_hashes.front() << '\n';
       std::cout << "live-last-header=" << result.header_hashes.back() << '\n';
+    }
+    return 0;
+  }
+
+  if (args.live_import) {
+    auto node = blocxxi::node::Node();
+    auto status = node.Start();
+    if (!status.ok()) {
+      std::cerr << status.message << '\n';
+      return 1;
+    }
+
+    auto adapter = blocxxi::bitcoin::HeaderSyncAdapter({
+      .network = blocxxi::bitcoin::Network::Signet,
+      .peer_hint = args.host,
+      .header_sync_only = true,
+    });
+    status = adapter.Bind(node);
+    if (!status.ok()) {
+      std::cerr << status.message << '\n';
+      return 1;
+    }
+
+    auto result = blocxxi::bitcoin::SignetHeadersResult {};
+    status = adapter.ImportLiveSignetHeaders({
+        .host = args.host,
+        .port = args.port,
+      },
+      &result);
+    if (!status.ok()) {
+      std::cerr << status.message << '\n';
+      return 1;
+    }
+
+    std::cout << "live-import-peer=" << result.peer_address << '\n';
+    std::cout << "live-imported-heights=" << adapter.ImportedHeights().size() << '\n';
+    std::cout << "live-kernel-height=" << node.Snapshot().height << '\n';
+    if (!result.headers.empty()) {
+      std::cout << "live-import-first-header=" << result.headers.front().hash_hex
+                << '\n';
+      std::cout << "live-import-last-header=" << result.headers.back().hash_hex
+                << '\n';
     }
     return 0;
   }

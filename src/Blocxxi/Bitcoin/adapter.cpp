@@ -50,6 +50,12 @@ using TcpSocket = asio::ip::tcp::socket;
   return encoded;
 }
 
+[[nodiscard]] auto WireHashToHex(std::span<std::uint8_t const> bytes) -> std::string
+{
+  auto reversed = std::vector<std::uint8_t>(bytes.rbegin(), bytes.rend());
+  return ToHex(reversed);
+}
+
 [[nodiscard]] auto DoubleSha256(std::span<std::uint8_t const> payload)
   -> std::array<std::uint8_t, 32>
 {
@@ -272,7 +278,9 @@ auto SendMessage(
 }
 
 auto ParseHeadersPayload(std::span<std::uint8_t const> payload,
-  std::vector<std::string>& header_hashes) -> core::Status
+  std::uint32_t locator_height,
+  std::vector<std::string>& header_hashes,
+  std::vector<Header>& headers) -> core::Status
 {
   auto offset = std::size_t { 0 };
   auto const count = ReadCompactSize(payload, offset);
@@ -295,10 +303,20 @@ auto ParseHeadersPayload(std::span<std::uint8_t const> payload,
         core::StatusCode::Rejected, "headers payload contains invalid txn count");
     }
 
+    auto version = std::uint32_t { 0 };
+    std::memcpy(&version, header.data(), sizeof(version));
     auto const hash = DoubleSha256(header);
     auto reversed = std::array<std::uint8_t, 32> {};
     std::reverse_copy(hash.begin(), hash.end(), reversed.begin());
-    header_hashes.push_back(ToHex(reversed));
+    auto const hash_hex = ToHex(reversed);
+    header_hashes.push_back(hash_hex);
+    headers.push_back(Header {
+      .height = locator_height + static_cast<std::uint32_t>(index) + 1U,
+      .hash_hex = hash_hex,
+      .previous_hash_hex = WireHashToHex(
+        std::span<std::uint8_t const>(header.data() + 4U, 32U)),
+      .version = version,
+    });
   }
 
   return core::Status::Success();
@@ -397,7 +415,8 @@ auto SignetLiveClient::FetchHeaders(SignetHeadersResult& result) -> core::Status
         continue;
       }
       if (message->command == "headers") {
-        auto status = ParseHeadersPayload(message->payload, result.header_hashes);
+        auto status = ParseHeadersPayload(message->payload, options_.locator_height,
+          result.header_hashes, result.headers);
         if (!status.ok()) {
           return status;
         }
@@ -474,6 +493,31 @@ auto HeaderSyncAdapter::SubmitHeaders(std::span<Header const> headers)
     imported_heights_.end(), imported.begin(), imported.end());
   last_header_ = headers.back();
   return core::Status::Success();
+}
+
+auto HeaderSyncAdapter::ImportLiveSignetHeaders(
+  SignetLiveOptions options, SignetHeadersResult* live_result) -> core::Status
+{
+  if (node_ == nullptr) {
+    return core::Status::Failure(
+      core::StatusCode::Rejected, "adapter must be bound to a node first");
+  }
+
+  auto client = SignetLiveClient(std::move(options));
+  auto result = SignetHeadersResult {};
+  if (auto status = client.FetchHeaders(result); !status.ok()) {
+    return status;
+  }
+  if (result.headers.empty()) {
+    return core::Status::Failure(
+      core::StatusCode::Rejected, "live signet fetch returned no headers");
+  }
+
+  auto status = SubmitHeaders(result.headers);
+  if (status.ok() && live_result != nullptr) {
+    *live_result = std::move(result);
+  }
+  return status;
 }
 
 auto HeaderSyncAdapter::ValidateHeader(

@@ -11,7 +11,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <sstream>
 #include <span>
+#include <string>
 #include <string_view>
 #include <thread>
 #include <vector>
@@ -124,6 +126,21 @@ auto ReadMessage(asio::ip::tcp::socket& socket)
   auto reversed = std::array<std::uint8_t, 32> {};
   std::reverse_copy(hash.begin(), hash.end(), reversed.begin());
   return ToHex(reversed);
+}
+
+auto WritePreviousHash(
+  std::array<std::uint8_t, 80>& header, std::string const& previous_hash_hex) -> void
+{
+  auto bytes = std::array<std::uint8_t, 32> {};
+  for (auto index = std::size_t { 0 }; index < 32U; ++index) {
+    auto const chunk = previous_hash_hex.substr(index * 2U, 2U);
+    auto parsed = std::uint32_t { 0 };
+    auto stream = std::stringstream {};
+    stream << std::hex << chunk;
+    stream >> parsed;
+    bytes[31U - index] = static_cast<std::uint8_t>(parsed);
+  }
+  std::copy(bytes.begin(), bytes.end(), header.begin() + 4U);
 }
 
 } // namespace
@@ -328,12 +345,87 @@ TEST(BitcoinAdapterTest, SignetLiveClientFetchesHeadersFromBoundedPeer)
   EXPECT_EQ(result.protocol_version, 70016);
   EXPECT_EQ(result.peer_address, "127.0.0.1");
   EXPECT_EQ(result.header_hashes.size(), 2U);
+  ASSERT_EQ(result.headers.size(), 2U);
+  EXPECT_EQ(result.headers.front().height, 1U);
+  EXPECT_EQ(result.headers.back().height, 2U);
   EXPECT_EQ(result.header_hashes.front(), expected1);
   EXPECT_EQ(result.header_hashes.back(), expected2);
+  EXPECT_EQ(result.headers.front().hash_hex, expected1);
+  EXPECT_EQ(result.headers.back().hash_hex, expected2);
   EXPECT_NE(std::find(result.command_trace.begin(), result.command_trace.end(), "version"),
     result.command_trace.end());
   EXPECT_NE(std::find(result.command_trace.begin(), result.command_trace.end(), "verack"),
     result.command_trace.end());
+}
+
+TEST(BitcoinAdapterTest, HeaderSyncAdapterImportsLiveHeadersIntoKernel)
+{
+  auto io_context = asio::io_context {};
+  auto acceptor
+    = asio::ip::tcp::acceptor(io_context, { asio::ip::make_address("127.0.0.1"), 0 });
+  auto const port = acceptor.local_endpoint().port();
+
+  auto const header1 = MakeHeaderBytes(4U, 21U, 1598918403U);
+  auto header2 = MakeHeaderBytes(4U, 22U, 1598918404U);
+  auto const expected1 = HeaderHashHex(header1);
+  WritePreviousHash(header2, expected1);
+  auto const expected2 = HeaderHashHex(header2);
+
+  auto server = std::thread([&]() {
+    auto socket = asio::ip::tcp::socket(io_context);
+    acceptor.accept(socket);
+
+    auto const [version_command, _version_payload] = ReadMessage(socket);
+    EXPECT_EQ(version_command, "version");
+
+    auto version_reply = std::vector<std::uint8_t> {};
+    AppendLittleEndian(version_reply, 70016U, 4U);
+    asio::write(socket, asio::buffer(EncodeMessage("version", version_reply)));
+    asio::write(socket,
+      asio::buffer(EncodeMessage("verack", std::span<std::uint8_t const> {})));
+
+    auto const [verack_command, _verack_payload] = ReadMessage(socket);
+    EXPECT_EQ(verack_command, "verack");
+    auto const [getheaders_command, _getheaders_payload] = ReadMessage(socket);
+    EXPECT_EQ(getheaders_command, "getheaders");
+
+    auto headers_payload = std::vector<std::uint8_t> {};
+    AppendCompactSize(headers_payload, 2U);
+    headers_payload.insert(headers_payload.end(), header1.begin(), header1.end());
+    headers_payload.push_back(0U);
+    headers_payload.insert(headers_payload.end(), header2.begin(), header2.end());
+    headers_payload.push_back(0U);
+    asio::write(socket, asio::buffer(EncodeMessage("headers", headers_payload)));
+  });
+
+  auto node = node::Node();
+  ASSERT_TRUE(node.Start().ok());
+  auto adapter = HeaderSyncAdapter({
+    .network = Network::Signet,
+    .peer_hint = "127.0.0.1",
+    .header_sync_only = true,
+  });
+  ASSERT_TRUE(adapter.Bind(node).ok());
+
+  auto live_result = SignetHeadersResult {};
+  auto const status = adapter.ImportLiveSignetHeaders({
+      .host = "127.0.0.1",
+      .port = port,
+    },
+    &live_result);
+
+  server.join();
+
+  ASSERT_TRUE(status.ok());
+  EXPECT_EQ(adapter.ImportedHeights(),
+    (std::vector<std::uint32_t> { 1U, 2U }));
+  EXPECT_EQ(node.Snapshot().height, 2U);
+  ASSERT_EQ(node.Blocks().size(), 3U);
+  EXPECT_NE(node.Blocks()[1].transactions.front().PayloadText().find(expected1),
+    std::string::npos);
+  EXPECT_EQ(live_result.headers.size(), 2U);
+  EXPECT_EQ(live_result.headers.front().hash_hex, expected1);
+  EXPECT_EQ(live_result.headers.back().hash_hex, expected2);
 }
 
 } // namespace blocxxi::bitcoin

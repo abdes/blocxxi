@@ -46,6 +46,7 @@ struct SignetLiveOptions {
   std::string locator_hash_hex {
     "00000008819873e925422c1ff0f99f7cc9bbb232af63a077a480a3633bee1ef6"
   };
+  std::uint32_t locator_height { 0 };
 };
 
 struct SignetHeadersResult {
@@ -53,6 +54,7 @@ struct SignetHeadersResult {
   std::int32_t protocol_version { 0 };
   std::vector<std::string> command_trace {};
   std::vector<std::string> header_hashes {};
+  std::vector<Header> headers {};
 };
 
 class SignetLiveClient {
@@ -74,6 +76,8 @@ public:
   BLOCXXI_BITCOIN_API auto SubmitHeader(Header const& header) -> core::Status;
   BLOCXXI_BITCOIN_API auto SubmitHeaders(std::span<Header const> headers)
     -> core::Status;
+  BLOCXXI_BITCOIN_API auto ImportLiveSignetHeaders(SignetLiveOptions options = {},
+    SignetHeadersResult* live_result = nullptr) -> core::Status;
 
   [[nodiscard]] auto OptionsView() const -> Options const& { return options_; }
   [[nodiscard]] auto ImportedHeights() const -> std::vector<std::uint32_t>
