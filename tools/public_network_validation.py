@@ -22,7 +22,10 @@ MAINLINE_DEFAULTS = [
     "82.221.103.244:6881",
 ]
 SIGNET_MAGIC = bytes.fromhex("0a03cf40")
-BITCOIN_PROTOCOL_VERSION = 70015
+SIGNET_GENESIS_HASH = (
+    "00000008819873e925422c1ff0f99f7cc9bbb232af63a077a480a3633bee1ef6"
+)
+BITCOIN_PROTOCOL_VERSION = 70016
 
 
 def run_mainline_validation(example: Path, duration_ms: int) -> tuple[int, str]:
@@ -73,6 +76,17 @@ def compact_size(length: int) -> bytes:
     return b"\xff" + struct.pack("<Q", length)
 
 
+def read_compact_size(payload: bytes, offset: int = 0) -> tuple[int, int]:
+    first = payload[offset]
+    if first < 253:
+        return first, offset + 1
+    if first == 253:
+        return struct.unpack_from("<H", payload, offset + 1)[0], offset + 3
+    if first == 254:
+        return struct.unpack_from("<I", payload, offset + 1)[0], offset + 5
+    return struct.unpack_from("<Q", payload, offset + 1)[0], offset + 9
+
+
 def double_sha256(payload: bytes) -> bytes:
     return hashlib.sha256(hashlib.sha256(payload).digest()).digest()
 
@@ -115,6 +129,17 @@ def encode_version_payload(remote_address: str, remote_port: int) -> bytes:
     )
 
 
+def encode_getheaders_payload(locator_hashes: list[bytes]) -> bytes:
+    return b"".join(
+        [
+            struct.pack("<i", BITCOIN_PROTOCOL_VERSION),
+            compact_size(len(locator_hashes)),
+            *locator_hashes,
+            b"\x00" * 32,
+        ]
+    )
+
+
 def recv_exact(connection: socket.socket, size: int) -> bytes:
     chunks = bytearray()
     while len(chunks) < size:
@@ -137,6 +162,25 @@ def read_message(connection: socket.socket) -> tuple[str, bytes]:
     if double_sha256(payload)[:4] != checksum:
         raise RuntimeError(f"checksum mismatch for {command}")
     return command, payload
+
+
+def header_hash_to_wire(block_hash_hex: str) -> bytes:
+    return bytes.fromhex(block_hash_hex)[::-1]
+
+
+def parse_headers_payload(payload: bytes) -> tuple[int, list[str]]:
+    count, offset = read_compact_size(payload, 0)
+    headers: list[str] = []
+    for _ in range(count):
+        header = payload[offset : offset + 80]
+        if len(header) != 80:
+            raise RuntimeError("truncated headers payload")
+        offset += 80
+        tx_count, offset = read_compact_size(payload, offset)
+        if tx_count != 0:
+            raise RuntimeError("headers message included non-zero txn count")
+        headers.append(double_sha256(header)[::-1].hex())
+    return count, headers
 
 
 def signet_handshake_validation(
@@ -173,6 +217,65 @@ def signet_handshake_validation(
         finally:
             probe.close()
     raise RuntimeError(f"unable to complete signet handshake with {host}:{port}")
+
+
+def signet_getheaders_validation(
+    host: str, port: int, timeout: float
+) -> tuple[str, int, list[str]]:
+    addresses = resolve_addresses(host, port)
+
+    for address in addresses:
+        family = socket.AF_INET6 if ":" in address else socket.AF_INET
+        probe = socket.socket(family, socket.SOCK_STREAM)
+        probe.settimeout(timeout)
+        try:
+            probe.connect((address, port))
+            probe.sendall(
+                encode_message("version", encode_version_payload(address, port))
+            )
+
+            handshake_deadline = time.monotonic() + timeout
+            saw_version = False
+            saw_verack = False
+            while time.monotonic() < handshake_deadline and not (saw_version and saw_verack):
+                command, payload = read_message(probe)
+                if command == "version":
+                    saw_version = True
+                    probe.sendall(encode_message("verack", b""))
+                elif command == "verack":
+                    saw_verack = True
+                elif command == "ping":
+                    probe.sendall(encode_message("pong", payload))
+
+            if not (saw_version and saw_verack):
+                continue
+
+            probe.sendall(
+                encode_message(
+                    "getheaders",
+                    encode_getheaders_payload(
+                        [header_hash_to_wire(SIGNET_GENESIS_HASH)]
+                    ),
+                )
+            )
+
+            headers_deadline = time.monotonic() + timeout
+            while time.monotonic() < headers_deadline:
+                command, payload = read_message(probe)
+                if command == "ping":
+                    probe.sendall(encode_message("pong", payload))
+                    continue
+                if command == "headers":
+                    count, headers = parse_headers_payload(payload)
+                    if count <= 0:
+                        raise RuntimeError("received empty headers response")
+                    return address, count, headers
+        except (OSError, RuntimeError):
+            pass
+        finally:
+            probe.close()
+
+    raise RuntimeError(f"unable to fetch signet headers from {host}:{port}")
 
 
 def parse_args() -> argparse.Namespace:
@@ -247,6 +350,14 @@ def main() -> int:
     print(f"MAINLINE_BOOTSTRAP_OK {bootstrap_ok}")
     print(f"MAINLINE_DISCOVERED_TOTAL {discovered_count}")
     print(f"SIGNET_HANDSHAKE_OK {connected}:{args.signet_port}")
+    headers_peer, headers_count, headers = signet_getheaders_validation(
+        args.signet_host, args.signet_port, args.tcp_timeout
+    )
+    print("=== SIGNET GETHEADERS VALIDATION ===")
+    print(f"SIGNET_HEADERS_PEER {headers_peer}:{args.signet_port}")
+    print(f"SIGNET_HEADERS_COUNT {headers_count}")
+    print(f"SIGNET_FIRST_HEADER {headers[0]}")
+    print(f"SIGNET_LAST_HEADER {headers[-1]}")
     return 0
 
 

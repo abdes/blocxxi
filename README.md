@@ -268,6 +268,7 @@ python tools/public_network_validation.py
 This validates:
 - public Mainline DHT discovery via `mainline-node`
 - public signet peer version/verack handshake
+- public signet `getheaders`/`headers` exchange
 
 ---
 
