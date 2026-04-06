@@ -92,6 +92,10 @@ enum class EventType {
   BlockCommitted,
   DiscoveryAttached,
   AdapterAttached,
+  ServiceRegistered,
+  ServiceStarted,
+  ServiceCompleted,
+  ServiceFailed,
 };
 
 struct ChainEvent {

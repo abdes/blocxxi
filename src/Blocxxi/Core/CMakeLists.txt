@@ -32,6 +32,8 @@ target_sources(
   ${META_MODULE_TARGET}
   PRIVATE
     api_export.h
+    event_record.h
+    event_record.cpp
     result.h
     result.cpp
     primitives.h
@@ -39,7 +41,7 @@ target_sources(
   PUBLIC
     FILE_SET HEADERS
     BASE_DIRS ${NOVA_SOURCE_DIR}
-    FILES api_export.h result.h primitives.h
+    FILES api_export.h event_record.h result.h primitives.h
 )
 
 arrange_target_files_for_ide(

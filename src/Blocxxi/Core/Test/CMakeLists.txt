@@ -8,5 +8,6 @@ m_gtest_program(
   Unit
   SOURCES
     main.cpp
+    event_record_test.cpp
     primitives_test.cpp
 )

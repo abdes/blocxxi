@@ -10,4 +10,5 @@ m_gtest_program(
     main.cpp
     hash_test.cpp
     keypair_test.cpp
+    signature_test.cpp
 )
