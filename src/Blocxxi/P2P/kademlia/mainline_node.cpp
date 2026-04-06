@@ -261,8 +261,11 @@ void MainlineDhtNode::SendQuery(
     auto request = pending_requests_.find(transaction_id);
     if (request != pending_requests_.end()) {
       auto response = KrpcMessage {};
-      request->second(std::make_error_code(std::errc::timed_out), response);
+      auto callback = std::move(request->second);
       pending_requests_.erase(request);
+      pending_request_timers_.erase(transaction_id);
+      callback(std::make_error_code(std::errc::timed_out), response);
+      return;
     }
     pending_request_timers_.erase(transaction_id);
   });
@@ -278,13 +281,15 @@ void MainlineDhtNode::SendQuery(
       auto found = pending_requests_.find(transaction_id);
       if (found != pending_requests_.end()) {
         auto response = KrpcMessage {};
-        found->second(failure, response);
+        auto callback = std::move(found->second);
         pending_requests_.erase(found);
-      }
-      if (auto timer = pending_request_timers_.find(transaction_id);
-          timer != pending_request_timers_.end()) {
-        timer->second->cancel();
-        pending_request_timers_.erase(timer);
+        if (auto timer = pending_request_timers_.find(transaction_id);
+            timer != pending_request_timers_.end()) {
+          timer->second->cancel();
+          pending_request_timers_.erase(timer);
+        }
+        callback(failure, response);
+        return;
       }
     });
 }
@@ -407,13 +412,14 @@ void MainlineDhtNode::ScheduleReceive()
           } else {
             auto request = pending_requests_.find(message.transaction_id_);
             if (request != pending_requests_.end()) {
+              auto callback = std::move(request->second);
+              pending_requests_.erase(request);
               if (auto timer = pending_request_timers_.find(message.transaction_id_);
                   timer != pending_request_timers_.end()) {
                 timer->second->cancel();
                 pending_request_timers_.erase(timer);
               }
-              request->second(std::error_code {}, message);
-              pending_requests_.erase(request);
+              callback(std::error_code {}, message);
             }
           }
         }

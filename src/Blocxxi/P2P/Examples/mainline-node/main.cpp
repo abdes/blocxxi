@@ -21,6 +21,7 @@
 namespace {
 
 using blocxxi::p2p::kademlia::AsyncUdpChannel;
+using blocxxi::p2p::kademlia::DecodeCompactNode;
 using blocxxi::p2p::kademlia::DecodeCompactPeer;
 using blocxxi::p2p::kademlia::DecodeKrpc;
 using blocxxi::p2p::kademlia::GetType;
@@ -89,7 +90,7 @@ auto ParseArgs(int argc, char** argv) -> Args
   return args;
 }
 
-auto ParseEndpoint(std::string const& endpoint)
+auto ParseEndpoint(asio::io_context& io_context, std::string const& endpoint)
   -> blocxxi::p2p::kademlia::IpEndpoint
 {
   auto const separator = endpoint.rfind(':');
@@ -98,9 +99,13 @@ auto ParseEndpoint(std::string const& endpoint)
   }
 
   auto const host = endpoint.substr(0, separator);
-  auto const port = static_cast<std::uint16_t>(
-    std::stoul(endpoint.substr(separator + 1)));
-  return { host, port };
+  auto const service = endpoint.substr(separator + 1);
+  auto endpoints = AsyncUdpChannel::ResolveEndpoint(io_context, host, service);
+  if (endpoints.empty()) {
+    throw std::invalid_argument("failed to resolve endpoint: " + endpoint);
+  }
+
+  return endpoints.front();
 }
 
 void PrintResponse(KrpcMessage const& response)
@@ -132,6 +137,16 @@ void PrintResponse(KrpcMessage const& response)
       auto peer = DecodeCompactPeer(value.AsString());
       std::cout << "CLIENT_PEER " << peer.Address().to_string() << ":"
                 << peer.Port() << std::endl;
+    }
+  }
+  if (body.contains("nodes")) {
+    auto const& nodes = body.at("nodes").AsString();
+    std::cout << "CLIENT_NODES_BYTES " << nodes.size() << std::endl;
+    for (std::size_t offset = 0; offset + 26 <= nodes.size(); offset += 26) {
+      auto node = DecodeCompactNode(nodes.substr(offset, 26));
+      std::cout << "CLIENT_NODE " << node.Endpoint().Address().to_string() << ":"
+                << node.Endpoint().Port() << " " << node.Id().ToHex()
+                << std::endl;
     }
   }
   if (body.contains("samples")) {
@@ -177,7 +192,7 @@ auto main(int argc, char** argv) -> int
     session.Start();
 
     if (args.remote_ && args.query_) {
-      auto const remote = ParseEndpoint(*args.remote_);
+      auto const remote = ParseEndpoint(io_context, *args.remote_);
       auto const target = args.target_.value_or(self.Id());
 
       auto on_complete = [&](std::error_code const& failure,
@@ -187,8 +202,10 @@ auto main(int argc, char** argv) -> int
         } else {
           PrintResponse(response);
         }
-        session.Stop();
-        io_context.stop();
+        asio::post(io_context, [&session, &io_context]() {
+          session.Stop();
+          io_context.stop();
+        });
       };
 
       if (*args.query_ == "ping") {
