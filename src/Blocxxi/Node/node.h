@@ -8,6 +8,7 @@
 
 #include <Blocxxi/Node/api_export.h>
 
+#include <chrono>
 #include <cstddef>
 #include <filesystem>
 #include <memory>
@@ -16,6 +17,7 @@
 
 #include <Blocxxi/Core/primitives.h>
 #include <Blocxxi/Core/result.h>
+#include <Blocxxi/Node/service.h>
 
 namespace blocxxi::node {
 
@@ -54,11 +56,18 @@ public:
   BLOCXXI_NODE_API auto Subscribe(core::EventHandler handler) -> std::size_t;
   BLOCXXI_NODE_API auto RegisterPlugin(std::shared_ptr<core::Plugin> plugin)
     -> std::size_t;
+  BLOCXXI_NODE_API auto RegisterService(ServicePointer service) -> std::size_t;
   BLOCXXI_NODE_API auto SubmitTransaction(core::Transaction transaction)
     -> core::Status;
   BLOCXXI_NODE_API auto CommitPending(std::string source = "local")
     -> core::Status;
   BLOCXXI_NODE_API auto SubmitBlock(core::Block block) -> core::Status;
+  BLOCXXI_NODE_API auto RunServicesOnce() -> core::Status;
+  BLOCXXI_NODE_API auto RunServicesFor(std::chrono::milliseconds duration,
+    std::chrono::milliseconds idle_sleep = std::chrono::milliseconds { 10 })
+    -> core::Status;
+  [[nodiscard]] BLOCXXI_NODE_API auto ServiceStates() const
+    -> std::vector<ServiceState>;
   BLOCXXI_NODE_API auto AttachDiscovery(std::string service_name)
     -> core::Status;
   BLOCXXI_NODE_API auto AttachAdapter(std::string adapter_name)

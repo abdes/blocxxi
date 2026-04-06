@@ -33,11 +33,12 @@ target_sources(
   PRIVATE
     api_export.h
     node.h
+    service.h
     node.cpp
   PUBLIC
     FILE_SET HEADERS
     BASE_DIRS ${NOVA_SOURCE_DIR}
-    FILES api_export.h node.h
+    FILES api_export.h node.h service.h
 )
 
 arrange_target_files_for_ide(${META_MODULE_TARGET})

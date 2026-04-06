@@ -7,8 +7,10 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <chrono>
 #include <filesystem>
 #include <memory>
+#include <thread>
 
 #include <Blocxxi/Node/node.h>
 
@@ -23,6 +25,70 @@ public:
   }
 
   std::vector<core::ChainEvent> events {};
+};
+
+class CountingService final : public Service {
+public:
+  explicit CountingService(std::string checkpoint = {})
+    : checkpoint_(std::move(checkpoint))
+  {
+  }
+
+  [[nodiscard]] auto Name() const -> std::string override { return "counting.service"; }
+
+  [[nodiscard]] auto Policy() const -> ServicePolicy override
+  {
+    return ServicePolicy {
+      .interval = std::chrono::milliseconds { 1 },
+      .retry_backoff = std::chrono::milliseconds { 1 },
+      .max_retries = 2,
+    };
+  }
+
+  auto Poll(Node& node) -> core::Status override
+  {
+    auto const next_value = checkpoint_.empty() ? 1 : std::stoi(checkpoint_) + 1;
+    checkpoint_ = std::to_string(next_value);
+    return node.SubmitTransaction(core::Transaction::FromText(
+      "service.tick", checkpoint_, "service=counting.service"));
+  }
+
+  [[nodiscard]] auto Checkpoint() const -> std::string override { return checkpoint_; }
+
+  auto RestoreCheckpoint(std::string_view checkpoint) -> core::Status override
+  {
+    checkpoint_ = std::string(checkpoint);
+    return core::Status::Success();
+  }
+
+private:
+  std::string checkpoint_ {};
+};
+
+class FlakyService final : public Service {
+public:
+  [[nodiscard]] auto Name() const -> std::string override { return "flaky.service"; }
+
+  [[nodiscard]] auto Policy() const -> ServicePolicy override
+  {
+    return ServicePolicy {
+      .interval = std::chrono::milliseconds { 1 },
+      .retry_backoff = std::chrono::milliseconds { 1 },
+      .max_retries = 4,
+    };
+  }
+
+  auto Poll(Node&) -> core::Status override
+  {
+    if (!failed_once_) {
+      failed_once_ = true;
+      return core::Status::Failure(core::StatusCode::IOError, "temporary failure");
+    }
+    return core::Status::Success();
+  }
+
+private:
+  bool failed_once_ { false };
 };
 
 } // namespace
@@ -129,6 +195,62 @@ TEST(NodeTest, FileSystemNodeRestartsFromPersistedSnapshotWithoutDht)
   }
 
   std::filesystem::remove_all(root);
+}
+
+TEST(NodeTest, ServicesRunThroughNodeFacadeAndPersistCheckpoint)
+{
+  auto const root = std::filesystem::temp_directory_path() / "blocxxi-node-service-test";
+  std::filesystem::remove_all(root);
+
+  auto options = NodeOptions {};
+  options.storage_mode = StorageMode::FileSystem;
+  options.storage_root = root;
+  options.chain.chain_id = "demo.services";
+
+  {
+    auto node = Node(options);
+    auto service = std::make_shared<CountingService>();
+    node.RegisterService(service);
+    ASSERT_TRUE(node.Start().ok());
+    ASSERT_TRUE(node.RunServicesOnce().ok());
+    ASSERT_EQ(node.ServiceStates().size(), 1U);
+    EXPECT_EQ(node.ServiceStates().front().run_count, 1U);
+    ASSERT_TRUE(node.CommitPending("service-proof").ok());
+    ASSERT_TRUE(node.Stop().ok());
+  }
+
+  {
+    auto node = Node(options);
+    auto service = std::make_shared<CountingService>();
+    node.RegisterService(service);
+    ASSERT_TRUE(node.Start().ok());
+    ASSERT_TRUE(node.RunServicesOnce().ok());
+    ASSERT_EQ(node.ServiceStates().size(), 1U);
+    EXPECT_EQ(node.ServiceStates().front().checkpoint, "2");
+    ASSERT_TRUE(node.Stop().ok());
+  }
+
+  std::filesystem::remove_all(root);
+}
+
+TEST(NodeTest, ServiceFailuresUseRetryStateInsteadOfAnalyzerLoops)
+{
+  auto node = Node();
+  auto service = std::make_shared<FlakyService>();
+  node.RegisterService(service);
+
+  ASSERT_TRUE(node.Start().ok());
+  auto const first = node.RunServicesOnce();
+  EXPECT_TRUE(first.ok());
+  ASSERT_EQ(node.ServiceStates().size(), 1U);
+  EXPECT_EQ(node.ServiceStates().front().failure_count, 1U);
+  EXPECT_FALSE(node.ServiceStates().front().last_error.empty());
+
+  std::this_thread::sleep_for(std::chrono::milliseconds { 2 });
+  auto const second = node.RunServicesOnce();
+  EXPECT_TRUE(second.ok());
+  EXPECT_EQ(node.ServiceStates().front().run_count, 1U);
+  EXPECT_EQ(node.ServiceStates().front().failure_count, 0U);
 }
 
 } // namespace blocxxi::node
