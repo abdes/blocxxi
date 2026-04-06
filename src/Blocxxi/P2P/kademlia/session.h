@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include <Blocxxi/P2P/kademlia/legacy_session.h>
 #include <Blocxxi/P2P/kademlia/mainline_session.h>
 
 namespace blocxxi::p2p::kademlia {
