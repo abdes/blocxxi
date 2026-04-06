@@ -7,8 +7,10 @@
 #include <chrono>
 #include <cstdint>
 #include <cstdlib>
+#include <deque>
 #include <iostream>
 #include <optional>
+#include <set>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -43,6 +45,7 @@ struct Args {
   std::optional<std::string> token_;
   std::uint16_t announce_port_ { 0 };
   bool implied_port_ { false };
+  bool dedupe_output_ { true };
 };
 
 auto ParseArgs(int argc, char** argv) -> Args
@@ -83,6 +86,8 @@ auto ParseArgs(int argc, char** argv) -> Args
         = static_cast<std::uint16_t>(std::stoul(std::string(require_value(current))));
     } else if (current == "--implied-port") {
       args.implied_port_ = true;
+    } else if (current == "--no-dedupe") {
+      args.dedupe_output_ = false;
     } else {
       throw std::invalid_argument("unknown argument: " + std::string(current));
     }
@@ -108,7 +113,7 @@ auto ParseEndpoint(asio::io_context& io_context, std::string const& endpoint)
   return endpoints.front();
 }
 
-void PrintResponse(KrpcMessage const& response)
+void PrintResponse(KrpcMessage const& response, bool dedupe_output)
 {
   std::cout << "CLIENT_RESPONSE type=";
   switch (GetType(response)) {
@@ -133,20 +138,27 @@ void PrintResponse(KrpcMessage const& response)
     std::cout << "CLIENT_TOKEN " << body.at("token").AsString() << std::endl;
   }
   if (body.contains("values")) {
+    auto seen = std::set<std::string> {};
     for (auto const& value : body.at("values").AsList()) {
       auto peer = DecodeCompactPeer(value.AsString());
-      std::cout << "CLIENT_PEER " << peer.Address().to_string() << ":"
-                << peer.Port() << std::endl;
+      auto const key
+        = peer.Address().to_string() + ":" + std::to_string(peer.Port());
+      if (!dedupe_output || seen.insert(key).second) {
+        std::cout << "CLIENT_PEER " << key << std::endl;
+      }
     }
   }
   if (body.contains("nodes")) {
     auto const& nodes = body.at("nodes").AsString();
     std::cout << "CLIENT_NODES_BYTES " << nodes.size() << std::endl;
+    auto seen = std::set<std::string> {};
     for (std::size_t offset = 0; offset + 26 <= nodes.size(); offset += 26) {
       auto node = DecodeCompactNode(nodes.substr(offset, 26));
-      std::cout << "CLIENT_NODE " << node.Endpoint().Address().to_string() << ":"
-                << node.Endpoint().Port() << " " << node.Id().ToHex()
-                << std::endl;
+      auto const key = node.Endpoint().Address().to_string() + ":"
+        + std::to_string(node.Endpoint().Port()) + " " + node.Id().ToHex();
+      if (!dedupe_output || seen.insert(key).second) {
+        std::cout << "CLIENT_NODE " << key << std::endl;
+      }
     }
   }
   if (body.contains("samples")) {
@@ -200,7 +212,7 @@ auto main(int argc, char** argv) -> int
         if (failure) {
           std::cout << "CLIENT_ERROR " << failure.message() << std::endl;
         } else {
-          PrintResponse(response);
+          PrintResponse(response, args.dedupe_output_);
         }
         asio::post(io_context, [&session, &io_context]() {
           session.Stop();
@@ -222,6 +234,59 @@ auto main(int argc, char** argv) -> int
         }
         session.AsyncAnnouncePeer(target, *args.token_, args.announce_port_,
           args.implied_port_, remote, on_complete);
+      } else if (*args.query_ == "discover") {
+        struct DiscoveryState {
+          std::set<std::string> seen_keys_;
+          std::deque<blocxxi::p2p::kademlia::IpEndpoint> pending_;
+          std::size_t outstanding_ { 0 };
+          std::size_t total_unique_ { 0 };
+        };
+
+        auto state = std::make_shared<DiscoveryState>();
+        state->pending_.push_back(remote);
+
+        auto schedule = std::make_shared<std::function<void()>>();
+        *schedule = [&, state, schedule, target]() {
+          constexpr auto kConcurrency = std::size_t { 8 };
+          while (state->outstanding_ < kConcurrency && !state->pending_.empty()) {
+            auto endpoint = state->pending_.front();
+            state->pending_.pop_front();
+            ++state->outstanding_;
+            session.AsyncFindNode(target, endpoint,
+              [&, state, schedule](std::error_code const& failure,
+                KrpcMessage const& response) {
+                if (!failure
+                  && GetType(response)
+                    == blocxxi::p2p::kademlia::KrpcMessage::Type::Response) {
+                  auto const& values
+                    = std::get<KrpcResponse>(response.payload_).values_;
+                  if (values.contains("nodes")) {
+                    auto const& nodes = values.at("nodes").AsString();
+                    for (std::size_t offset = 0; offset + 26 <= nodes.size();
+                         offset += 26) {
+                      auto node = DecodeCompactNode(nodes.substr(offset, 26));
+                      auto const key = node.Endpoint().Address().to_string()
+                        + ":" + std::to_string(node.Endpoint().Port()) + " "
+                        + node.Id().ToHex();
+                      if (state->seen_keys_.insert(key).second) {
+                        ++state->total_unique_;
+                        std::cout << "DISCOVERED_NODE " << key << std::endl;
+                        std::cout << "DISCOVERY_TOTAL " << state->total_unique_
+                                  << std::endl;
+                        state->pending_.push_back(node.Endpoint());
+                      }
+                    }
+                  }
+                }
+
+                if (state->outstanding_ > 0) {
+                  --state->outstanding_;
+                }
+                (*schedule)();
+              });
+          }
+        };
+        (*schedule)();
       } else {
         throw std::invalid_argument("unknown query mode: " + *args.query_);
       }
