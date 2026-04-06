@@ -52,5 +52,61 @@ TEST(MainlineSessionTest, ForwardsActiveGetPeersRoundTrip)
   ASSERT_FALSE(token.empty());
 }
 
+// NOLINTNEXTLINE
+TEST(MainlineSessionTest, ForwardsSampleInfohashesRoundTrip)
+{
+  asio::io_context io_context;
+  auto server_channel = AsyncUdpChannel::ipv4(io_context, "127.0.0.1", "30127");
+  auto client_channel = AsyncUdpChannel::ipv4(io_context, "127.0.0.1", "30128");
+
+  auto info_hash = Node::IdType::RandomHash();
+  auto server = MainlineSession(MainlineDhtNode(io_context,
+    Node(Node::IdType::RandomHash(), "127.0.0.1", 30127),
+    std::move(server_channel)));
+  auto client = MainlineSession(MainlineDhtNode(io_context,
+    Node(Node::IdType::RandomHash(), "127.0.0.1", 30128),
+    std::move(client_channel)));
+
+  server.Start();
+  client.Start();
+
+  auto token = std::string {};
+  client.AsyncGetPeers(info_hash, IpEndpoint { "127.0.0.1", 30127 },
+    [&token](std::error_code const& failure, KrpcMessage const& response) {
+      ASSERT_FALSE(failure);
+      token = std::get<KrpcResponse>(response.payload_).values_.at("token").AsString();
+    });
+  io_context.run_for(std::chrono::seconds(1));
+  ASSERT_FALSE(token.empty());
+
+  auto announce_ok = false;
+  client.AsyncAnnouncePeer(
+    info_hash, token, 49004, false, IpEndpoint { "127.0.0.1", 30127 },
+    [&announce_ok](std::error_code const& failure, KrpcMessage const& response) {
+      ASSERT_FALSE(failure);
+      ASSERT_EQ(GetType(response), KrpcMessage::Type::Response);
+      announce_ok = true;
+    });
+  io_context.run_for(std::chrono::seconds(1));
+  ASSERT_TRUE(announce_ok);
+
+  auto got_sample = false;
+  client.AsyncSampleInfohashes(info_hash, IpEndpoint { "127.0.0.1", 30127 },
+    [&got_sample, info_hash](std::error_code const& failure,
+      KrpcMessage const& response) {
+      ASSERT_FALSE(failure);
+      auto const& body = std::get<KrpcResponse>(response.payload_);
+      ASSERT_TRUE(body.values_.contains("samples"));
+      auto const samples = body.values_.at("samples").AsString();
+      ASSERT_EQ(samples.size(), Node::IdType::Size());
+      ASSERT_EQ(samples, std::string(
+                           reinterpret_cast<char const*>(info_hash.Data()),
+                           info_hash.Size()));
+      got_sample = true;
+    });
+  io_context.run_for(std::chrono::seconds(1));
+  ASSERT_TRUE(got_sample);
+}
+
 } // namespace blocxxi::p2p::kademlia
 NOVA_DIAGNOSTIC_POP

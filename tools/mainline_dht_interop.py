@@ -134,6 +134,19 @@ def run_local_mode(args):
         confirm_get_peers_bytes, _ = udp.recvfrom(2048)
         decoded_confirm_get_peers = lt.bdecode(confirm_get_peers_bytes)
 
+        sample_infohashes_query = {
+            b"y": b"q",
+            b"q": b"sample_infohashes",
+            b"t": b"af",
+            b"a": {
+                b"id": b"abcdefghij0123456789",
+                b"target": bytes.fromhex(ready.split()[2]),
+            },
+        }
+        udp.sendto(lt.bencode(sample_infohashes_query), (host, port))
+        sample_infohashes_bytes, _ = udp.recvfrom(2048)
+        decoded_sample_infohashes = lt.bdecode(sample_infohashes_bytes)
+
         sample_target = lt.sha1_hash(bytes.fromhex(ready.split()[2]))
         settings = lt.default_settings()
         settings["alert_mask"] = int(
@@ -184,6 +197,7 @@ def run_local_mode(args):
                 "get_peers",
                 "announce_peer",
                 "get_peers-confirm",
+                "sample_infohashes",
             ],
             "success": (
                 decoded_ping.get(b"y") == b"r"
@@ -198,6 +212,10 @@ def run_local_mode(args):
                 and decoded_confirm_get_peers.get(b"y") == b"r"
                 and b"values" in decoded_confirm_get_peers.get(b"r", {})
                 and len(decoded_confirm_get_peers[b"r"][b"values"]) == 1
+                and decoded_sample_infohashes.get(b"y") == b"r"
+                and b"samples" in decoded_sample_infohashes.get(b"r", {})
+                and decoded_sample_infohashes[b"r"].get(b"num", 0) >= 1
+                and len(decoded_sample_infohashes[b"r"][b"samples"]) >= 20
             ),
             "response_from": f"{response_addr[0]}:{response_addr[1]}",
             "decoded_ping": normalize_bdecode(decoded_ping),
@@ -205,6 +223,7 @@ def run_local_mode(args):
             "decoded_get_peers": normalize_bdecode(decoded_get_peers),
             "decoded_announce_peer": normalize_bdecode(decoded_announce_peer),
             "decoded_confirm_get_peers": normalize_bdecode(decoded_confirm_get_peers),
+            "decoded_sample_infohashes": normalize_bdecode(decoded_sample_infohashes),
             "sample_infohashes_direct_query_success": sample_success,
             "sample_infohashes_alerts": sample_alerts,
             "observed_queries": observed_queries,
@@ -212,6 +231,8 @@ def run_local_mode(args):
             if (
                 decoded_confirm_get_peers.get(b"y") == b"r"
                 and b"values" in decoded_confirm_get_peers.get(b"r", {})
+                and decoded_sample_infohashes.get(b"y") == b"r"
+                and b"samples" in decoded_sample_infohashes.get(b"r", {})
             )
             else "inconclusive",
         }
