@@ -12,6 +12,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include <Blocxxi/Core/result.h>
@@ -37,6 +38,32 @@ struct Header {
   std::string hash_hex {};
   std::string previous_hash_hex {};
   std::uint32_t version { 0 };
+};
+
+struct SignetLiveOptions {
+  std::string host { "seed.signet.bitcoin.sprovoost.nl" };
+  std::uint16_t port { 38333 };
+  std::string locator_hash_hex {
+    "00000008819873e925422c1ff0f99f7cc9bbb232af63a077a480a3633bee1ef6"
+  };
+};
+
+struct SignetHeadersResult {
+  std::string peer_address {};
+  std::int32_t protocol_version { 0 };
+  std::vector<std::string> command_trace {};
+  std::vector<std::string> header_hashes {};
+};
+
+class SignetLiveClient {
+public:
+  explicit BLOCXXI_BITCOIN_API SignetLiveClient(SignetLiveOptions options = {});
+
+  BLOCXXI_BITCOIN_API auto FetchHeaders(SignetHeadersResult& result)
+    -> core::Status;
+
+private:
+  SignetLiveOptions options_ {};
 };
 
 class HeaderSyncAdapter {

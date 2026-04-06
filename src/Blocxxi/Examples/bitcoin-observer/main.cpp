@@ -6,11 +6,73 @@
 
 #include <array>
 #include <iostream>
+#include <stdexcept>
+#include <string>
+#include <string_view>
 
 #include <Blocxxi/Bitcoin/adapter.h>
 
-auto main() -> int
+namespace {
+
+struct Args {
+  bool live_signet { false };
+  std::string host { "seed.signet.bitcoin.sprovoost.nl" };
+  std::uint16_t port { 38333 };
+};
+
+auto ParseArgs(int argc, char** argv) -> Args
 {
+  auto args = Args {};
+  for (auto index = 1; index < argc; ++index) {
+    auto const current = std::string_view(argv[index]);
+    auto require_value = [&](std::string_view flag) -> std::string_view {
+      if (index + 1 >= argc) {
+        throw std::invalid_argument("missing value for " + std::string(flag));
+      }
+      ++index;
+      return argv[index];
+    };
+
+    if (current == "--live-signet") {
+      args.live_signet = true;
+    } else if (current == "--signet-host") {
+      args.host = std::string(require_value(current));
+    } else if (current == "--signet-port") {
+      args.port = static_cast<std::uint16_t>(std::stoul(std::string(require_value(current))));
+    } else {
+      throw std::invalid_argument("unknown argument: " + std::string(current));
+    }
+  }
+  return args;
+}
+
+} // namespace
+
+auto main(int argc, char** argv) -> int
+{
+  auto const args = ParseArgs(argc, argv);
+  if (args.live_signet) {
+    auto client = blocxxi::bitcoin::SignetLiveClient({
+      .host = args.host,
+      .port = args.port,
+    });
+    auto result = blocxxi::bitcoin::SignetHeadersResult {};
+    auto const status = client.FetchHeaders(result);
+    if (!status.ok()) {
+      std::cerr << status.message << '\n';
+      return 1;
+    }
+
+    std::cout << "live-peer=" << result.peer_address << '\n';
+    std::cout << "live-protocol-version=" << result.protocol_version << '\n';
+    std::cout << "live-headers=" << result.header_hashes.size() << '\n';
+    if (!result.header_hashes.empty()) {
+      std::cout << "live-first-header=" << result.header_hashes.front() << '\n';
+      std::cout << "live-last-header=" << result.header_hashes.back() << '\n';
+    }
+    return 0;
+  }
+
   auto node = blocxxi::node::Node();
   auto status = node.Start();
   if (!status.ok()) {

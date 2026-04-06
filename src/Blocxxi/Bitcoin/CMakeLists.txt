@@ -11,6 +11,8 @@ nova_module_declare(
 )
 nova_push_module("${META_MODULE_NAME}")
 
+find_package(asio REQUIRED CONFIG PATHS "${CMAKE_BINARY_DIR}/generators")
+
 add_library(${META_MODULE_TARGET})
 add_library(${META_MODULE_TARGET_ALIAS} ALIAS ${META_MODULE_TARGET})
 set_target_properties(
@@ -61,6 +63,7 @@ target_link_libraries(
   PUBLIC
     nova::base
     blocxxi::node
+    asio::asio
 )
 
 if(NOVA_BUILD_TESTS)

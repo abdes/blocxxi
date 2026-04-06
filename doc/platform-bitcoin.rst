@@ -6,6 +6,7 @@ Blocxxi.Bitcoin
 header-sync-oriented surface:
 
 - `HeaderSyncAdapter`
+- `SignetLiveClient`
 - `Network`
 - `Header`
 
@@ -14,4 +15,6 @@ preserves the local kernel contract. When a ``peer_hint`` is provided, the
 adapter also emits a bootstrap/discovery hint through the existing node
 surface instead of inventing a Bitcoin-specific node API. The current bounded
 sync flow supports ordered header batches with adapter-level continuity checks.
-Full Bitcoin script validation remains out of scope.
+For live-network proof work, `SignetLiveClient` can complete a bounded signet
+handshake and `getheaders` exchange without promoting Bitcoin session logic
+into the kernel. Full Bitcoin script validation remains out of scope.
