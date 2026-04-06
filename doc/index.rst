@@ -54,7 +54,8 @@ Parts of the documentation
 :doc:`platform module guide <platform>`
 --------------------------------------
   *start here to understand the new reusable blockchain platform surface: Core,
-  Chain, Storage, Node, Bitcoin, and the platform-level examples.*
+  Chain, Storage, Node, Bitcoin, the signed event/DHT contracts, and the
+  platform-level examples.*
 
 :doc:`p2p <p2p:api>`
 --------------------
@@ -82,8 +83,9 @@ Parts of the documentation
 
 :doc:`bitcoin roadmap <platform-bitcoin>`
 ----------------------------------------
-  *the bounded Bitcoin adapter plan: header/SPV-first interop later, without
-  reshaping the milestone-1 kernel.*
+  *the Bitcoin platform surface: adapter-first ingestion, Bitcoin Core RPC for
+  mempool/network-state access, and a reusable SDK path that keeps the analyzer
+  thin.*
 
 `Developer Guides <https://abdes.github.io/asap/asap_master/html/project-development/index.html>`_
 --------------------------------------------------------------------------------------------------

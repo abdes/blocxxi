@@ -7,6 +7,15 @@ now exposes a reusable blockchain platform surface (`Core`, `Chain`, `Storage`,
 Blocxxi integration work layered on top of the Nova reusable modules under
 `src/Nova/`.
 
+The current platform direction is intentionally split:
+
+- **application logic** stays thin and owns detection rules + event taxonomy
+- **Blocxxi platform logic** owns Bitcoin ingestion, runtime orchestration,
+  node identity/signing, deterministic DHT publish/query, and event transport
+
+That split is reflected in the module tree and in the new Bitcoin intelligence
+examples that now prove the platform contracts end-to-end.
+
 ---
 
 ## Table of Contents
@@ -67,11 +76,31 @@ Blocxxi integration work layered on top of the Nova reusable modules under
 │       ├── Node/
 │       ├── Bitcoin/
 │       ├── P2P/
-│       └── Examples/
+│       └── Examples/       # platform-level SDK proofs and thin consumers
 └── tools/
     ├── generate-builds.ps1 # One-shot Conan + CMake bootstrap script
     └── presets/            # CMake preset fragments
 ```
+
+### Platform contracts at a glance
+
+- **Blocxxi.Core** — developer-facing primitives, events, status types, and
+  signed event envelope modeling
+- **Blocxxi.Chain** — the minimal local blockchain kernel
+- **Blocxxi.Storage** — block/snapshot storage ports and reference adapters
+- **Blocxxi.Node** — public composition facade plus runtime/service orchestration
+- **Blocxxi.Bitcoin** — Bitcoin data-source adapter family, including a
+  Bitcoin Core RPC ingestion path for mempool + network-state access
+- **Blocxxi.P2P** — optional Mainline/Kademlia transport and deterministic DHT
+  publish/query plumbing
+
+### Platform example proofs
+
+- `hello-plugin` — tiny external-developer plugin story
+- `local-custom-chain` — custom local chain proof with no DHT dependency
+- `bitcoin-observer` — Bitcoin-facing adapter sample using header imports
+- `bitcoin-mempool-analyzer` — thin analyzer app that owns only rule/taxonomy
+- `bitcoin-event-reader` — second consumer proof for SDK reuse
 
 ---
 

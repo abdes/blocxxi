@@ -10,7 +10,8 @@ Platform modules
 
 **Blocxxi.Core**
   Developer-facing primitives: chain configuration, blocks, transactions,
-  chain snapshots, status codes, events, and plugin hooks.
+  chain snapshots, status codes, events, plugin hooks, and signed event
+  envelope modeling.
 
 **Blocxxi.Chain**
   The minimal local blockchain kernel: bootstrap, pending transaction
@@ -21,13 +22,20 @@ Platform modules
 
 **Blocxxi.Node**
   Public composition facade for third-party app/plugin developers. A node can
-  run without P2P and exposes lifecycle, event subscription, and submission
-  APIs without leaking storage or Bitcoin adapter types.
+  run without P2P and exposes lifecycle, event subscription, submission, and
+  runtime/service orchestration APIs without leaking storage, Bitcoin adapter,
+  or DHT wire types.
 
 **Blocxxi.Bitcoin**
-  Adapter-first Bitcoin interoperability surface. The current proof is bounded
-  to header-sync style imports through the public node API, including optional
-  peer/bootstrap hints routed through the existing discovery hook.
+  Adapter-first Bitcoin interoperability surface. The current platform now
+  includes Bitcoin Core RPC ingestion for mempool + network-state access, while
+  preserving the existing header-sync proof path and peer/bootstrap hints
+  routed through the public node API.
+
+**Blocxxi.P2P**
+  Optional Mainline/Kademlia transport plus deterministic publish/query
+  plumbing for signed event records. The analyzer app never talks to Kademlia
+  directly.
 
 Examples
 ========
@@ -37,9 +45,13 @@ The platform-level examples live under ``src/Blocxxi/Examples/``:
 - ``hello-plugin`` — tiny external-developer plugin story
 - ``local-custom-chain`` — custom local chain proof with no DHT dependency
 - ``bitcoin-observer`` — Bitcoin-facing adapter sample using header imports
+- ``bitcoin-mempool-analyzer`` — thin analyzer proof with rule/taxonomy only
+- ``bitcoin-event-reader`` — second consumer proof that reuses the same SDK
 
 Deferred work
 =============
 
 The current platform intentionally defers mining, VM/smart contracts, full
-Bitcoin script validation, and RPC/REST surfaces.
+Bitcoin script validation, and RPC/REST server surfaces. Those remain out of
+scope for the reusable SDK contract, even though Bitcoin Core RPC ingestion is
+now part of the platform surface.

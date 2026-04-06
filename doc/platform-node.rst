@@ -13,5 +13,9 @@ It exposes:
 - transaction submission
 - pending-block commitment
 - explicit discovery/adapter attachment hooks
+- service registration and bounded runtime/orchestration hooks
+- checkpoint/poll/retry loops for platform-owned services
 
-A node can run entirely in-process without DHT participation.
+`Blocxxi.Node` stays facade-oriented: it composes the kernel, runtime services,
+and optional adapters without becoming the home for low-level scheduler,
+checkpoint, or DHT transport logic.
