@@ -256,6 +256,19 @@ These cache variables can be passed via `-D` or set in a CMake preset:
 > **Note:** When renaming the project, replace the `NOVA_` prefix with your
 > project's prefix throughout `CMakeLists.txt` and `conanfile.py`.
 
+Public-network validation
+-------------------------
+
+For reproducible public-network evidence, run:
+
+```bash
+python tools/public_network_validation.py
+```
+
+This validates:
+- public Mainline DHT discovery via `mainline-node`
+- public signet seed TCP reachability
+
 ---
 
 ## Sanitizer Support (ASan)
