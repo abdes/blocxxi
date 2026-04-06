@@ -8,6 +8,7 @@ m_gtest_program(
   Unit
   SOURCES
     main.cpp
+    message_test.cpp
     node_test.cpp
     kbucket_test.cpp
     routingtable_test.cpp

@@ -45,7 +45,8 @@ namespace {
     auto data = std::cbegin(buffer);
     for (auto ii = 0U; ii < sizeof(value); ++ii) {
       LOG_F(1, "  read one byte: {}", *data);
-      value |= static_cast<IntegerType>(*data++ * 8 * ii);
+      value |= static_cast<IntegerType>(static_cast<IntegerType>(*data++)
+                                        << static_cast<IntegerType>(8U * ii));
     }
 
     return sizeof(value);
