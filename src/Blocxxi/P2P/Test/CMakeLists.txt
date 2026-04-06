@@ -11,6 +11,7 @@ m_gtest_program(
     engine_test.cpp
     krpc_test.cpp
     mainline_node_test.cpp
+    mainline_session_test.cpp
     message_test.cpp
     node_test.cpp
     kbucket_test.cpp

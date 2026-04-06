@@ -385,5 +385,58 @@ TEST(MainlineDhtNodeTest, ActiveClientGetPeersAndAnnouncePeerRoundTrips)
   ASSERT_TRUE(values_seen);
 }
 
+// NOLINTNEXTLINE
+TEST(MainlineDhtNodeTest, AnnouncePeerWithImpliedPortUsesSenderPort)
+{
+  asio::io_context io_context;
+  auto receiver
+    = AsyncUdpChannel::ipv4(io_context, "127.0.0.1", "30125");
+  auto sender = AsyncUdpChannel::ipv4(io_context, "127.0.0.1", "30126");
+
+  auto self = MakeTestNode("127.0.0.1", 30125);
+  auto target = self.Id();
+  auto node = MainlineDhtNode(io_context, self, std::move(receiver));
+  node.Start();
+
+  auto token = std::string {};
+  sender->AsyncReceive([&token](std::error_code const& failure, IpEndpoint const&,
+                        BufferReader const& buffer) {
+    ASSERT_FALSE(failure);
+    auto message = DecodeKrpc(std::string_view(
+      reinterpret_cast<char const*>(buffer.data()), buffer.size()));
+    token = std::get<KrpcResponse>(message.payload_).values_.at("token").AsString();
+  });
+  sender->AsyncSend(MakeGetPeersQuery("ia", target),
+    IpEndpoint { "127.0.0.1", 30125 },
+    [](std::error_code const& failure) { ASSERT_FALSE(failure); });
+  io_context.run_for(std::chrono::seconds(1));
+  ASSERT_FALSE(token.empty());
+
+  sender->AsyncReceive([](std::error_code const& failure, IpEndpoint const&,
+                        BufferReader const&) { ASSERT_FALSE(failure); });
+  sender->AsyncSend(
+    MakeAnnouncePeerQuery("ib", target, token, 49005, true),
+    IpEndpoint { "127.0.0.1", 30125 },
+    [](std::error_code const& failure) { ASSERT_FALSE(failure); });
+  io_context.run_for(std::chrono::seconds(1));
+
+  auto values_seen = false;
+  sender->AsyncReceive([&values_seen](std::error_code const& failure,
+                        IpEndpoint const&, BufferReader const& buffer) {
+    ASSERT_FALSE(failure);
+    auto message = DecodeKrpc(std::string_view(
+      reinterpret_cast<char const*>(buffer.data()), buffer.size()));
+    auto const& response = std::get<KrpcResponse>(message.payload_);
+    auto peer = DecodeCompactPeer(response.values_.at("values").AsList().front().AsString());
+    ASSERT_EQ(peer.Port(), 30126);
+    values_seen = true;
+  });
+  sender->AsyncSend(MakeGetPeersQuery("ic", target),
+    IpEndpoint { "127.0.0.1", 30125 },
+    [](std::error_code const& failure) { ASSERT_FALSE(failure); });
+  io_context.run_for(std::chrono::seconds(1));
+  ASSERT_TRUE(values_seen);
+}
+
 } // namespace blocxxi::p2p::kademlia
 NOVA_DIAGNOSTIC_POP
