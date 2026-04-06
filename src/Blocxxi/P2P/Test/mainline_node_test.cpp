@@ -333,5 +333,57 @@ TEST(MainlineDhtNodeTest, SampleInfohashesReturnsStoredInfohashes)
   ASSERT_TRUE(got_sample);
 }
 
+// NOLINTNEXTLINE
+TEST(MainlineDhtNodeTest, ActiveClientGetPeersAndAnnouncePeerRoundTrips)
+{
+  asio::io_context io_context;
+  auto server_channel
+    = AsyncUdpChannel::ipv4(io_context, "127.0.0.1", "30121");
+  auto client_channel
+    = AsyncUdpChannel::ipv4(io_context, "127.0.0.1", "30122");
+
+  auto info_hash = Node::IdType::RandomHash();
+  auto server = MainlineDhtNode(
+    io_context, MakeTestNode("127.0.0.1", 30121), std::move(server_channel));
+  auto client = MainlineDhtNode(
+    io_context, MakeTestNode("127.0.0.1", 30122), std::move(client_channel));
+  server.Start();
+  client.Start();
+
+  auto token = std::string {};
+  client.AsyncGetPeers(info_hash, IpEndpoint { "127.0.0.1", 30121 },
+    [&token](std::error_code const& failure, KrpcMessage const& response) {
+      ASSERT_FALSE(failure);
+      auto const& body = std::get<KrpcResponse>(response.payload_);
+      token = body.values_.at("token").AsString();
+    });
+  io_context.run_for(std::chrono::seconds(1));
+  ASSERT_FALSE(token.empty());
+
+  auto announce_ok = false;
+  client.AsyncAnnouncePeer(
+    info_hash, token, 49003, false, IpEndpoint { "127.0.0.1", 30121 },
+    [&announce_ok](std::error_code const& failure, KrpcMessage const& response) {
+      ASSERT_FALSE(failure);
+      ASSERT_EQ(GetType(response), KrpcMessage::Type::Response);
+      announce_ok = true;
+    });
+  io_context.run_for(std::chrono::seconds(1));
+  ASSERT_TRUE(announce_ok);
+
+  auto values_seen = false;
+  client.AsyncGetPeers(info_hash, IpEndpoint { "127.0.0.1", 30121 },
+    [&values_seen](std::error_code const& failure, KrpcMessage const& response) {
+      ASSERT_FALSE(failure);
+      auto const& body = std::get<KrpcResponse>(response.payload_);
+      ASSERT_TRUE(body.values_.contains("values"));
+      auto peer = DecodeCompactPeer(body.values_.at("values").AsList().front().AsString());
+      ASSERT_EQ(peer.Port(), 49003);
+      values_seen = true;
+    });
+  io_context.run_for(std::chrono::seconds(1));
+  ASSERT_TRUE(values_seen);
+}
+
 } // namespace blocxxi::p2p::kademlia
 NOVA_DIAGNOSTIC_POP

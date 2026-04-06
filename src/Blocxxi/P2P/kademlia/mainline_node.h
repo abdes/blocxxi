@@ -29,6 +29,8 @@ public:
   using QueryCallback = std::function<void(
     std::string_view method, IpEndpoint const& sender)>;
   using BootstrapCallback = std::function<void(std::string const& bootstrap)>;
+  using ResponseCallback
+    = std::function<void(std::error_code const&, KrpcMessage const&)>;
 
   MainlineDhtNode(asio::io_context& io_context, Node self,
     ChannelType::PointerType channel);
@@ -44,6 +46,17 @@ public:
   void AddBootstrapNode(std::string bootstrap_endpoint);
   void OnQuery(QueryCallback callback);
   void OnBootstrapSuccess(BootstrapCallback callback);
+
+  void AsyncPing(IpEndpoint const& destination, ResponseCallback callback);
+  void AsyncFindNode(Node::IdType const& target, IpEndpoint const& destination,
+    ResponseCallback callback);
+  void AsyncGetPeers(Node::IdType const& info_hash, IpEndpoint const& destination,
+    ResponseCallback callback);
+  void AsyncAnnouncePeer(Node::IdType const& info_hash, std::string token,
+    std::uint16_t port, bool implied_port, IpEndpoint const& destination,
+    ResponseCallback callback);
+  void AsyncSampleInfohashes(Node::IdType const& target,
+    IpEndpoint const& destination, ResponseCallback callback);
 
   void Start();
   void Stop();
@@ -64,6 +77,9 @@ private:
   [[nodiscard]] auto MakeToken(IpEndpoint const& sender) const -> std::string;
   [[nodiscard]] auto MakeSampleInfohashesPayload() const
     -> blocxxi::codec::bencode::Value::DictionaryType;
+  void SendQuery(KrpcQuery query, IpEndpoint const& destination,
+    ResponseCallback callback);
+  [[nodiscard]] auto NextTransactionId() -> std::string;
   void RecordAnnouncedPeer(
     std::string info_hash, IpEndpoint const& sender, KrpcQuery const& query);
   void SendBootstrapQueries();
@@ -74,10 +90,12 @@ private:
   ChannelType::PointerType channel_;
   std::vector<std::string> bootstrap_nodes_;
   std::unordered_map<std::string, std::string> pending_bootstraps_;
+  std::unordered_map<std::string, ResponseCallback> pending_requests_;
   std::unordered_map<std::string, std::string> issued_tokens_;
   std::map<std::string, std::vector<IpEndpoint>, std::less<>> announced_peers_;
   QueryCallback on_query_;
   BootstrapCallback on_bootstrap_success_;
+  std::size_t next_request_id_ { 0 };
   bool started_ { false };
 };
 

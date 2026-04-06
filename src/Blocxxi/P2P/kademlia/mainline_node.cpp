@@ -54,6 +54,83 @@ void MainlineDhtNode::OnBootstrapSuccess(BootstrapCallback callback)
   on_bootstrap_success_ = std::move(callback);
 }
 
+void MainlineDhtNode::AsyncPing(
+  IpEndpoint const& destination, ResponseCallback callback)
+{
+  SendQuery(
+    KrpcQuery {
+      "ping",
+      {
+        { "id", blocxxi::codec::bencode::Value(HashToBytes(self_.Id())) },
+      },
+    },
+    destination, std::move(callback));
+}
+
+void MainlineDhtNode::AsyncFindNode(Node::IdType const& target,
+  IpEndpoint const& destination, ResponseCallback callback)
+{
+  SendQuery(
+    KrpcQuery {
+      "find_node",
+      {
+        { "id", blocxxi::codec::bencode::Value(HashToBytes(self_.Id())) },
+        { "target",
+          blocxxi::codec::bencode::Value(HashToBytes(target)) },
+      },
+    },
+    destination, std::move(callback));
+}
+
+void MainlineDhtNode::AsyncGetPeers(Node::IdType const& info_hash,
+  IpEndpoint const& destination, ResponseCallback callback)
+{
+  SendQuery(
+    KrpcQuery {
+      "get_peers",
+      {
+        { "id", blocxxi::codec::bencode::Value(HashToBytes(self_.Id())) },
+        { "info_hash",
+          blocxxi::codec::bencode::Value(HashToBytes(info_hash)) },
+      },
+    },
+    destination, std::move(callback));
+}
+
+void MainlineDhtNode::AsyncAnnouncePeer(Node::IdType const& info_hash,
+  std::string token, std::uint16_t port, bool implied_port,
+  IpEndpoint const& destination, ResponseCallback callback)
+{
+  auto arguments = blocxxi::codec::bencode::Value::DictionaryType {
+    { "id", blocxxi::codec::bencode::Value(HashToBytes(self_.Id())) },
+    { "info_hash",
+      blocxxi::codec::bencode::Value(HashToBytes(info_hash)) },
+    { "token", blocxxi::codec::bencode::Value(std::move(token)) },
+    { "port", blocxxi::codec::bencode::Value(static_cast<std::int64_t>(port)) },
+  };
+  if (implied_port) {
+    arguments.emplace("implied_port", blocxxi::codec::bencode::Value(1));
+  }
+
+  SendQuery(KrpcQuery { "announce_peer", std::move(arguments) }, destination,
+    std::move(callback));
+}
+
+void MainlineDhtNode::AsyncSampleInfohashes(Node::IdType const& target,
+  IpEndpoint const& destination, ResponseCallback callback)
+{
+  SendQuery(
+    KrpcQuery {
+      "sample_infohashes",
+      {
+        { "id", blocxxi::codec::bencode::Value(HashToBytes(self_.Id())) },
+        { "target",
+          blocxxi::codec::bencode::Value(HashToBytes(target)) },
+      },
+    },
+    destination, std::move(callback));
+}
+
 void MainlineDhtNode::Start()
 {
   if (started_) {
@@ -157,6 +234,39 @@ auto MainlineDhtNode::MakeBootstrapQuery(std::string transaction_id) const
 auto MainlineDhtNode::MakeToken(IpEndpoint const& sender) const -> std::string
 {
   return sender.ToString();
+}
+
+void MainlineDhtNode::SendQuery(
+  KrpcQuery query, IpEndpoint const& destination, ResponseCallback callback)
+{
+  auto transaction_id = NextTransactionId();
+  auto message = KrpcMessage {};
+  message.transaction_id_ = transaction_id;
+  message.version_ = "BX01";
+  message.payload_ = std::move(query);
+
+  pending_requests_.emplace(transaction_id, std::move(callback));
+  auto encoded = Encode(message);
+  auto payload = Buffer(encoded.begin(), encoded.end());
+  channel_->AsyncSend(payload, destination,
+    [this, transaction_id](std::error_code const& failure) {
+      if (!failure) {
+        return;
+      }
+      auto found = pending_requests_.find(transaction_id);
+      if (found != pending_requests_.end()) {
+        auto response = KrpcMessage {};
+        found->second(failure, response);
+        pending_requests_.erase(found);
+      }
+    });
+}
+
+auto MainlineDhtNode::NextTransactionId() -> std::string
+{
+  auto id = std::string("q");
+  id.append(std::to_string(next_request_id_++));
+  return id;
 }
 
 auto MainlineDhtNode::MakeSampleInfohashesPayload() const
@@ -267,6 +377,12 @@ void MainlineDhtNode::ScheduleReceive()
               on_bootstrap_success_(found->second);
             }
             pending_bootstraps_.erase(found);
+          } else {
+            auto request = pending_requests_.find(message.transaction_id_);
+            if (request != pending_requests_.end()) {
+              request->second(std::error_code {}, message);
+              pending_requests_.erase(request);
+            }
           }
         }
       } catch (...) {

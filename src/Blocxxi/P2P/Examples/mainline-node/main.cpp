@@ -13,13 +13,14 @@
 #include <vector>
 
 #include <Blocxxi/P2P/kademlia/channel.h>
-#include <Blocxxi/P2P/kademlia/mainline_node.h>
+#include <Blocxxi/P2P/kademlia/mainline_session.h>
 #include <Blocxxi/P2P/kademlia/node.h>
 
 namespace {
 
 using blocxxi::p2p::kademlia::AsyncUdpChannel;
 using blocxxi::p2p::kademlia::MainlineDhtNode;
+using blocxxi::p2p::kademlia::MainlineSession;
 using blocxxi::p2p::kademlia::Node;
 
 struct Args {
@@ -82,23 +83,25 @@ auto main(int argc, char** argv) -> int
               << self.Endpoint().Port() << " " << self.Id().ToHex()
               << std::endl;
 
-    auto node = MainlineDhtNode(io_context, std::move(self), std::move(channel));
-    node.OnQuery([](std::string_view method,
+    auto session
+      = MainlineSession(MainlineDhtNode(io_context, std::move(self),
+          std::move(channel)));
+    session.OnQuery([](std::string_view method,
                    blocxxi::p2p::kademlia::IpEndpoint const& sender) {
       std::cout << "QUERY " << method << " " << sender.Address().to_string()
                 << ":" << sender.Port() << std::endl;
     });
-    node.OnBootstrapSuccess([](std::string const& bootstrap) {
+    session.OnBootstrapSuccess([](std::string const& bootstrap) {
       std::cout << "BOOTSTRAP_OK " << bootstrap << std::endl;
     });
     for (auto const& bootstrap : args.bootstrap_nodes_) {
-      node.AddBootstrapNode(bootstrap);
+      session.AddBootstrapNode(bootstrap);
     }
-    node.Start();
+    session.Start();
 
     timer.expires_after(args.duration_);
     timer.async_wait([&](std::error_code const&) {
-      node.Stop();
+      session.Stop();
       io_context.stop();
     });
 
