@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <cstring>
 #include <filesystem>
+#include <fstream>
 #include <sstream>
 #include <span>
 #include <string>
@@ -638,6 +639,55 @@ TEST(BitcoinAdapterTest, SignetLiveClientFetchesBoundedBlockBodiesFromPeer)
   EXPECT_EQ(result.metadata.front().transaction_witness_ids.front(), expected_txid);
   EXPECT_NE(std::find(result.command_trace.begin(), result.command_trace.end(), "block"),
     result.command_trace.end());
+}
+
+TEST(BitcoinAdapterTest, SignetLiveClientReusesCachedBlocksWhenAvailable)
+{
+  auto const state_root
+    = std::filesystem::temp_directory_path() / "blocxxi-bitcoin-block-cache";
+  std::filesystem::remove_all(state_root);
+  std::filesystem::create_directories(state_root / "bitcoin-signet-blocks");
+
+  auto const header = MakeHeaderBytes(4U, 61U, 1598918410U);
+  auto const expected_hash = HeaderHashHex(header);
+  auto block_payload = std::vector<std::uint8_t>(header.begin(), header.end());
+  block_payload.push_back(1U);
+  block_payload.push_back(1U);
+  block_payload.push_back(0U);
+  block_payload.push_back(0U);
+  block_payload.push_back(0U);
+  block_payload.push_back(0U);
+  block_payload.push_back(0U);
+  block_payload.push_back(0U);
+  block_payload.push_back(0U);
+  block_payload.push_back(0U);
+  block_payload.push_back(0U);
+
+  {
+    auto output = std::ofstream(
+      state_root / "bitcoin-signet-blocks" / (expected_hash + ".blk"),
+      std::ios::binary | std::ios::trunc);
+    output.write(reinterpret_cast<char const*>(block_payload.data()),
+      static_cast<std::streamsize>(block_payload.size()));
+  }
+
+  auto client = SignetLiveClient({
+    .host = "127.0.0.1",
+    .port = 1,
+    .state_root = state_root,
+  });
+  auto result = SignetBlocksResult {};
+  auto const status = client.FetchBlocks(
+    std::span<std::string const>(&expected_hash, 1U), result);
+
+  ASSERT_TRUE(status.ok());
+  EXPECT_EQ(result.peer_address, "cache");
+  ASSERT_EQ(result.blocks.size(), 1U);
+  EXPECT_EQ(result.blocks.front().block_hash_hex, expected_hash);
+  EXPECT_EQ(result.command_trace.size(), 1U);
+  EXPECT_EQ(result.command_trace.front(), "cache");
+
+  std::filesystem::remove_all(state_root);
 }
 
 TEST(BitcoinAdapterTest, WitnessTransactionsProduceDistinctTxidAndWtxid)

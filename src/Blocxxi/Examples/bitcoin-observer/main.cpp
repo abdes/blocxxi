@@ -70,6 +70,7 @@ auto main(int argc, char** argv) -> int
     auto client = blocxxi::bitcoin::SignetLiveClient({
       .host = args.host,
       .port = args.port,
+      .state_root = args.state_root,
     });
     auto result = blocxxi::bitcoin::SignetHeadersResult {};
     auto const status = client.FetchHeaders(result);

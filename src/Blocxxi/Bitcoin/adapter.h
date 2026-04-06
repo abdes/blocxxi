@@ -98,6 +98,11 @@ public:
     SignetBlocksResult& result) -> core::Status;
 
 private:
+  [[nodiscard]] BLOCXXI_BITCOIN_API auto ResolveBlockFetchOptions(
+    SignetLiveOptions options) const -> SignetLiveOptions;
+  BLOCXXI_BITCOIN_API auto PersistFetchedBlocks(
+    SignetLiveOptions const& options, SignetBlocksResult const& result) const -> void;
+
   SignetLiveOptions options_ {};
 };
 

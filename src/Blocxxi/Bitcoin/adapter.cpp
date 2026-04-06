@@ -503,6 +503,12 @@ auto ParseHeadersPayload(std::span<std::uint8_t const> payload,
   return root / "bitcoin-signet-import.txt";
 }
 
+[[nodiscard]] auto BlockCacheDirectory(std::filesystem::path const& root)
+  -> std::filesystem::path
+{
+  return root / "bitcoin-signet-blocks";
+}
+
 [[nodiscard]] auto LoadImportState(std::filesystem::path const& root)
   -> std::optional<std::pair<std::uint32_t, std::string>>
 {
@@ -650,6 +656,42 @@ auto SignetLiveClient::FetchBlocks(
       core::StatusCode::InvalidArgument, "at least one block hash is required");
   }
 
+  auto resolved_options = ResolveBlockFetchOptions(options_);
+  result = SignetBlocksResult {};
+  result.peer_address = "cache";
+  if (!resolved_options.state_root.empty()) {
+    auto const cache_dir = BlockCacheDirectory(resolved_options.state_root);
+    auto cached_all = true;
+    for (auto const& hash : block_hashes) {
+      auto const path = cache_dir / (hash + ".blk");
+      if (!std::filesystem::exists(path)) {
+        cached_all = false;
+        break;
+      }
+
+      auto input = std::ifstream(path, std::ios::binary);
+      if (!input) {
+        cached_all = false;
+        break;
+      }
+      auto payload = std::vector<std::uint8_t>(
+        std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>());
+      auto block = ParseBlockPayload(payload);
+      auto metadata = ParseBlockMetadata(payload);
+      if (!block.has_value() || !metadata.has_value()) {
+        cached_all = false;
+        break;
+      }
+      result.blocks.push_back(std::move(*block));
+      result.metadata.push_back(std::move(*metadata));
+    }
+    if (cached_all && result.blocks.size() == block_hashes.size()) {
+      result.command_trace.push_back("cache");
+      return core::Status::Success();
+    }
+    result = SignetBlocksResult {};
+  }
+
   auto const getdata = EncodeGetDataPayload(block_hashes);
   if (!getdata.has_value()) {
     return core::Status::Failure(
@@ -659,8 +701,8 @@ auto SignetLiveClient::FetchBlocks(
   auto io_context = asio::io_context {};
   auto resolver = asio::ip::tcp::resolver(io_context);
   auto error = std::error_code {};
-  auto endpoints = resolver.resolve(options_.host,
-    std::to_string(static_cast<unsigned int>(options_.port)), error);
+  auto endpoints = resolver.resolve(resolved_options.host,
+    std::to_string(static_cast<unsigned int>(resolved_options.port)), error);
   if (error) {
     return core::Status::Failure(
       core::StatusCode::IOError, "failed to resolve signet host");
@@ -674,7 +716,7 @@ auto SignetLiveClient::FetchBlocks(
     }
 
     auto const remote_address = endpoint.endpoint().address().to_string();
-    auto const version = EncodeVersionPayload(remote_address, options_.port);
+    auto const version = EncodeVersionPayload(remote_address, resolved_options.port);
     if (!SendMessage(socket, "version", version)) {
       continue;
     }
@@ -746,12 +788,44 @@ auto SignetLiveClient::FetchBlocks(
 
     if (result.blocks.size() == block_hashes.size()) {
       result.peer_address = remote_address;
+      PersistFetchedBlocks(resolved_options, result);
       return core::Status::Success();
     }
   }
 
   return core::Status::Failure(
     core::StatusCode::IOError, "failed to complete live signet block retrieval");
+}
+
+auto SignetLiveClient::ResolveBlockFetchOptions(SignetLiveOptions options) const
+  -> SignetLiveOptions
+{
+  return options;
+}
+
+auto SignetLiveClient::PersistFetchedBlocks(
+  SignetLiveOptions const& options, SignetBlocksResult const& result) const -> void
+{
+  if (options.state_root.empty() || result.blocks.empty()) {
+    return;
+  }
+
+  auto error = std::error_code {};
+  auto const cache_dir = BlockCacheDirectory(options.state_root);
+  std::filesystem::create_directories(cache_dir, error);
+  if (error) {
+    return;
+  }
+
+  for (auto const& block : result.blocks) {
+    auto output = std::ofstream(cache_dir / (block.block_hash_hex + ".blk"),
+      std::ios::binary | std::ios::trunc);
+    if (!output) {
+      return;
+    }
+    output.write(reinterpret_cast<char const*>(block.payload.data()),
+      static_cast<std::streamsize>(block.payload.size()));
+  }
 }
 
 auto HeaderSyncAdapter::Bind(node::Node& node) -> core::Status
