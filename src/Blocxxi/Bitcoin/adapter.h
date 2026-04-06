@@ -9,6 +9,8 @@
 #include <Blocxxi/Bitcoin/api_export.h>
 
 #include <cstdint>
+#include <optional>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -43,6 +45,8 @@ public:
 
   BLOCXXI_BITCOIN_API auto Bind(node::Node& node) -> core::Status;
   BLOCXXI_BITCOIN_API auto SubmitHeader(Header const& header) -> core::Status;
+  BLOCXXI_BITCOIN_API auto SubmitHeaders(std::span<Header const> headers)
+    -> core::Status;
 
   [[nodiscard]] auto OptionsView() const -> Options const& { return options_; }
   [[nodiscard]] auto ImportedHeights() const -> std::vector<std::uint32_t>
@@ -51,6 +55,10 @@ public:
   }
 
 private:
+  [[nodiscard]] BLOCXXI_BITCOIN_API auto ValidateHeader(Header const& header,
+    std::optional<Header> const& previous) const -> core::Status;
+  [[nodiscard]] BLOCXXI_BITCOIN_API auto HeaderMetadata() const -> std::string;
+
   [[nodiscard]] auto NetworkName() const -> std::string;
   [[nodiscard]] auto HeaderMode() const -> std::string;
   [[nodiscard]] auto AdapterName() const -> std::string;
@@ -59,6 +67,7 @@ private:
   Options options_ {};
   node::Node* node_ { nullptr };
   std::vector<std::uint32_t> imported_heights_ {};
+  std::optional<Header> last_header_ {};
 };
 
 } // namespace blocxxi::bitcoin

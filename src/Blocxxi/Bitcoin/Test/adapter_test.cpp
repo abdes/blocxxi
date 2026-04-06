@@ -6,6 +6,7 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <vector>
 
 #include <Blocxxi/Bitcoin/adapter.h>
@@ -48,6 +49,49 @@ TEST(BitcoinAdapterTest, HeaderSyncAdapterUsesPublicNodeApi)
     "network=signet;mode=headers-only;peer_hint=seed.signet.example");
 }
 
+TEST(BitcoinAdapterTest, HeaderSyncAdapterImportsOrderedHeaderBatch)
+{
+  auto node = node::Node();
+  ASSERT_TRUE(node.Start().ok());
+
+  auto adapter = HeaderSyncAdapter({
+    .network = Network::Signet,
+    .peer_hint = "seed.signet.example",
+    .header_sync_only = true,
+  });
+  ASSERT_TRUE(adapter.Bind(node).ok());
+
+  auto const headers = std::array {
+    Header {
+      .height = 1,
+      .hash_hex = "0001",
+      .previous_hash_hex = "0000",
+      .version = 0x20000000,
+    },
+    Header {
+      .height = 2,
+      .hash_hex = "0002",
+      .previous_hash_hex = "0001",
+      .version = 0x20000000,
+    },
+    Header {
+      .height = 3,
+      .hash_hex = "0003",
+      .previous_hash_hex = "0002",
+      .version = 0x20000000,
+    },
+  };
+  auto const status = adapter.SubmitHeaders(headers);
+
+  ASSERT_TRUE(status.ok());
+  EXPECT_EQ(adapter.ImportedHeights(),
+    (std::vector<std::uint32_t> { 1U, 2U, 3U }));
+  EXPECT_EQ(node.Snapshot().height, 3);
+  ASSERT_EQ(node.Blocks().size(), 4U);
+  EXPECT_EQ(node.Blocks().back().transactions.front().metadata,
+    "network=signet;mode=headers-only;peer_hint=seed.signet.example");
+}
+
 TEST(BitcoinAdapterTest, HeaderSyncAdapterRejectsUnboundOrIncompleteHeaders)
 {
   auto adapter = HeaderSyncAdapter({
@@ -82,6 +126,37 @@ TEST(BitcoinAdapterTest, HeaderSyncAdapterRejectsUnboundOrIncompleteHeaders)
     .version = 1,
   });
   EXPECT_EQ(status.code, blocxxi::core::StatusCode::InvalidArgument);
+}
+
+TEST(BitcoinAdapterTest, HeaderSyncAdapterRejectsBrokenHeaderBatch)
+{
+  auto node = node::Node();
+  ASSERT_TRUE(node.Start().ok());
+
+  auto adapter = HeaderSyncAdapter({
+    .network = Network::Regtest,
+    .header_sync_only = true,
+  });
+  ASSERT_TRUE(adapter.Bind(node).ok());
+
+  auto const headers = std::array {
+    Header {
+      .height = 1,
+      .hash_hex = "0001",
+      .previous_hash_hex = "0000",
+      .version = 1,
+    },
+    Header {
+      .height = 3,
+      .hash_hex = "0003",
+      .previous_hash_hex = "0001",
+      .version = 1,
+    },
+  };
+  auto status = adapter.SubmitHeaders(headers);
+  EXPECT_EQ(status.code, blocxxi::core::StatusCode::Rejected);
+  EXPECT_TRUE(adapter.ImportedHeights().empty());
+  EXPECT_EQ(node.Blocks().size(), 1U);
 }
 
 } // namespace blocxxi::bitcoin

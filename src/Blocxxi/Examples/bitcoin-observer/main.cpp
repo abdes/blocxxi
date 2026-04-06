@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
 
+#include <array>
 #include <iostream>
 
 #include <Blocxxi/Bitcoin/adapter.h>
@@ -28,12 +29,21 @@ auto main() -> int
     return 1;
   }
 
-  status = adapter.SubmitHeader({
-    .height = 1,
-    .hash_hex = "0000000000000000000000000000000000000000000000000000000000000001",
-    .previous_hash_hex = "0000000000000000000000000000000000000000000000000000000000000000",
-    .version = 0x20000000,
-  });
+  auto const headers = std::array {
+    blocxxi::bitcoin::Header {
+      .height = 1,
+      .hash_hex = "0000000000000000000000000000000000000000000000000000000000000001",
+      .previous_hash_hex = "0000000000000000000000000000000000000000000000000000000000000000",
+      .version = 0x20000000,
+    },
+    blocxxi::bitcoin::Header {
+      .height = 2,
+      .hash_hex = "0000000000000000000000000000000000000000000000000000000000000002",
+      .previous_hash_hex = "0000000000000000000000000000000000000000000000000000000000000001",
+      .version = 0x20000000,
+    },
+  };
+  status = adapter.SubmitHeaders(headers);
   if (!status.ok()) {
     std::cerr << status.message << '\n';
     return 1;
