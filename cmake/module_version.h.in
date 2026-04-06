@@ -1,0 +1,30 @@
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause.
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
+
+#pragma once
+
+namespace asap {
+  namespace common {
+    namespace info {
+
+      constexpr auto cProjectName = "@META_PROJECT_NAME@";
+      constexpr auto cProjectDescription = "@META_PROJECT_DESCRIPTION@";
+
+      constexpr auto cAuthorOrganization = "@META_AUTHOR_ORGANIZATION@";
+      constexpr auto cAuthorDomain = "@META_AUTHOR_DOMAIN@";
+      constexpr auto cAuthor = "@META_AUTHOR_MAINTAINER@";
+
+      constexpr auto kVersionMajor = @META_VERSION_MAJOR@;
+      constexpr auto kVersionMinor = @META_VERSION_MINOR@;
+      constexpr auto kVersionPatch = @META_VERSION_PATCH@;
+      constexpr auto cVersionRevision = "@META_VERSION_REVISION@";
+
+      constexpr auto cVersion = "@META_VERSION@";
+      constexpr auto cNameVersion = "@META_NAME_VERSION@";
+
+    } // namespace info
+  } // namespace common
+} // Namespace asap

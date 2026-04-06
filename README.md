@@ -1,135 +1,284 @@
-# An implementation of Kademlia DHT and Blockchain in C++
+# Blocxxi — Nova-based blockchain and Kademlia stack
 
-<div align="center">
+Blocxxi is being re-founded on Nova’s Conan + CMake scaffold while preserving
+its blockchain, Kademlia, and reusable networking/domain code. The repository
+currently carries the Nova reusable modules under `src/Nova/` and project-owned
+Blocxxi integration work on top.
 
--+- Build Status -+-
+---
 
-_develop_
+## Table of Contents
 
-[![Build status - develop][build-status-develop-badge]][build-matrix]
+1. [Prerequisites](#prerequisites)
+2. [Repository Layout](#repository-layout)
+3. [One-Time Environment Setup](#one-time-environment-setup)
+4. [Building](#building)
+   - [Recommended: generate-builds script](#recommended-generate-builds-script)
+   - [Manual Conan + CMake](#manual-conan--cmake)
+5. [CMake Options](#cmake-options)
+6. [Sanitizer Support (ASan)](#sanitizer-support-asan)
+7. [License](#license)
 
-_master_
+---
 
-[![Build status - master][build-status-master-badge]][build-matrix]
+## Prerequisites
 
--+-
+| Tool | Minimum version | Notes |
+| ---- | --------------- | ----- |
+| CMake | 3.29 | Must be on `PATH` |
+| Visual Studio | 2026 (MSVC 19.5) | **Desktop development with C++** workload |
+| Python | 3.10+ | For Conan and pre-commit |
+| Conan | 2.x | Installed via `pip` |
+| Git | any recent | Required for revision stamping |
 
-[![Latest release][release-badge]][latest-release]
-[![Commits][last-commit-badge]][commits]
-[![Linux][linux-badge]][latest-release]
-[![Windows][windows-badge]][latest-release]
-[![Mac OS][macos-badge]][latest-release]
-[![License][license-badge]][license]
-[![CII Best Practices][openssf-badge]][openssf-project]
+---
 
-</div>
+## Repository Layout
 
-<p align="center">
-  <a href="#key-features">Key Features</a> •
-  <a href="#project-documentation">Project Documentation</a> •
-  <a href="#getting-started">Getting Started</a> •
-  <a href="#Contributing">Contributing</a> •
-  <a href="#credits">Credits</a> •
-</p>
+```text
+├── CMakeLists.txt          # Top-level CMake project
+├── CMakePresets.json       # Includes platform presets
+├── conanfile.py            # Conan 2 recipe
+├── conan-settings_user.yml # Extended Conan settings (sanitizer dimension)
+├── VERSION                 # Semver source of truth (read by CMake & Conan)
+├── profiles/
+│   ├── windows-msvc.ini        # MSVC release profile
+│   └── windows-msvc-asan.ini   # MSVC + ASan profile
+├── cmake/                  # CMake helper modules
+├── src/
+│   ├── Nova/
+│   │   ├── Base/           # Upstream Nova reusable modules
+│   │   └── Testing/
+│   └── Blocxxi/
+│       ├── Codec/
+│       ├── Crypto/
+│       ├── Nat/
+│       └── P2P/
+└── tools/
+    ├── generate-builds.ps1 # One-shot Conan + CMake bootstrap script
+    └── presets/            # CMake preset fragments
+```
 
-## Key Features
+---
 
-This is work in progress, but the code is heavily documented. So far, the DHT is
-pretty stable with a full implementation of the Kademlia routing table and the
-Kademlia protocol, with several of the optimizations recommended in the paper.
+## One-Time Environment Setup
 
-## Project Documentation
+### Visual Studio
 
-We have detailed guides for setting up an efficient development environment, the
-development process, project structure, etc. Take a look at the available guides
-[here](https://abdes.github.io/asap/asap_master/html/).
+Install **Visual Studio 2026** with the **Desktop development with C++**
+workload. Verify `vcvarsall.bat` is present:
 
-In addition to that, specific documentation for the command line parser, its
-usage and APIs, are provided in the project GitHub Pages site
-[here](https://abdes.github.io/blocxxi/blocxxi_master/html/).
+```text
+C:\Program Files\Microsoft Visual Studio\2026\Community\VC\Auxiliary\Build\vcvarsall.bat
+```
 
-## Getting Started
+### Python virtual environment
 
-It is strongly recommended that you take some time to browse the project
-documentation to familiarize yourself with its structure and development
-workflows.
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
 
-Make sure you have a C++ compiler with C++-17 capabilities at least. Gnu, Clang
-and MSVC all can do that with a recent version.
+### Pre-commit hooks
+
+With the virtual environment active:
+
+```powershell
+.\init.ps1
+```
+
+### Conan
+
+Install Conan, point it at your local fork of `conan-center-index`, and
+register the custom user settings that add a `sanitizer` dimension to package
+IDs.
+
+Because the starter uses `gtest/master` for tests, the standard `conancenter`
+remote is not sufficient. Keep your own fork of `conan-center-index` checked
+out locally at `./conan-center-index`, then replace the default remote before
+running any `conan install` commands or `tools/generate-builds.ps1`:
+
+```powershell
+pip install conan
+
+conan remote remove conancenter
+conan remote add mycenter ./conan-center-index
+
+# Install the repo-local user settings into Conan home
+$tmp = Join-Path $env:TEMP "settings_user.yml"
+Copy-Item "conan-settings_user.yml" -Destination $tmp -Force
+conan config install $tmp
+```
+
+Conan merges `settings_user.yml` from Conan home with its built-in settings at
+runtime. This makes `sanitizer` a first-class setting that participates in
+package IDs, preventing accidental mixing of ASan and non-ASan binaries in the
+cache.
+
+---
+
+## Building
+
+### Recommended: generate-builds script
+
+[`tools/generate-builds.ps1`](tools/generate-builds.ps1) runs all Conan
+installs and configures both a **Ninja Multi-Config** and a **Visual Studio**
+build tree in one step. It accepts a single positional argument — the Conan
+host profile — resolved relative to the repository root.
+
+```powershell
+# Standard build (Debug / Release / RelWithDebInfo)
+.\tools\generate-builds.ps1 profiles/windows-msvc.ini
+
+# ASan build (Debug only)
+.\tools\generate-builds.ps1 profiles/windows-msvc-asan.ini
+
+# Show all options
+.\tools\generate-builds.ps1 -Help
+```
+
+Generated trees land in `out/`:
+
+| Directory | Generator |
+| --------- | --------- |
+| `out/build-ninja/` | Ninja Multi-Config |
+| `out/build-vs/` | Visual Studio 2026 |
+| `out/build-asan-ninja/` | Ninja Multi-Config + ASan |
+| `out/build-asan-vs/` | Visual Studio 2026 + ASan |
+
+Build with CMake after generation:
+
+```powershell
+cmake --build out/build-ninja --config Debug
+cmake --build out/build-ninja --config Release
+```
+
+### Manual Conan + CMake
+
+If you need finer control, run Conan and CMake directly.
+
+> **Important:** The preset workflow expects **two Conan installs**:
+>
+> 1. one with the **normal** profile
+> 2. one with the matching **`-asan`** profile
+>
+> Do this for the platform you are using:
+> - Linux: `profiles/linux-clang.ini` + `profiles/linux-clang-asan.ini`
+> - Windows: `profiles/windows-msvc.ini` + `profiles/windows-msvc-asan.ini`
+>
+> The normal and ASan trees are separate. Do **not** try to replace one with the
+> other.
+
+```powershell
+# 1. Normal install
+conan install . `
+  --profile:host=profiles/windows-msvc.ini `
+  --profile:build=profiles/windows-msvc.ini `
+  --build=missing `
+  -c tools.cmake.cmaketoolchain:generator="Ninja Multi-Config" `
+  -s build_type=Debug
+
+# 2. ASan install
+conan install . `
+  --profile:host=profiles/windows-msvc-asan.ini `
+  --profile:build=profiles/windows-msvc-asan.ini `
+  --build=missing `
+  -c tools.cmake.cmaketoolchain:generator="Ninja Multi-Config" `
+  -s build_type=Debug
+
+# 3. Configure with CMake
+cmake --preset windows-default
+
+# 4. Build normal Debug / Release
+cmake --build out/build-ninja --config Debug
+cmake --build out/build-ninja --config Release
+
+# 5. Build ASan Debug
+cmake --preset windows-asan
+cmake --build out/build-asan-ninja --config Debug
+```
+
+Linux uses the same two-install pattern:
 
 ```bash
-git clone --recurse-submodules -j4 https://github.com/abdes/blocxxi.git
+# 1. Normal install
+conan install . \
+  --profile:host=profiles/linux-clang.ini \
+  --profile:build=profiles/linux-clang.ini \
+  --build=missing
+
+# 2. ASan install
+conan install . \
+  --profile:host=profiles/linux-clang-asan.ini \
+  --profile:build=profiles/linux-clang-asan.ini \
+  --build=missing
+
+# 3. Configure and build
+cmake --preset linux
+cmake --build out/build-ninja --config Debug
+cmake --build out/build-ninja --config Release
+
+cmake --preset linux-asan
+cmake --build out/build-asan-ninja --config Debug
 ```
 
-```bash
-mkdir _build && cd _build && cmake .. && cmake --build .
-```
+---
 
-or just use one of the predefined `CMake` presets. Detailed instructions are in
-the project documentation, and many useful commands are listed
-[here](https://abdes.github.io/asap/asap_master/html/getting-started/useful-commands.html).
+## CMake Options
 
-## CMake configurable build options
+These cache variables can be passed via `-D` or set in a CMake preset:
 
-```cmake
-# Project options
-option(BUILD_SHARED_LIBS        "Build shared instead of static libraries."              ON)
-option(ASAP_BUILD_TESTS         "Build tests."                                           OFF)
-option(ASAP_BUILD_EXAMPLES      "Build examples."                                        OFF)
-option(ASAP_WITH_GOOGLE_ASAN    "Instrument code with address sanitizer"                 OFF)
-option(ASAP_WITH_GOOGLE_UBSAN   "Instrument code with undefined behavior sanitizer"      OFF)
-option(ASAP_WITH_GOOGLE_TSAN    "Instrument code with thread sanitizer"                  OFF)
-option(ASAP_WITH_VALGRIND       "Builds targets with valgrind profilers added"           OFF)
-```
+| Option | Default | Description |
+| ------ | ------- | ----------- |
+| `BUILD_SHARED_LIBS` | `OFF` | Build shared instead of static libraries |
+| `NOVA_BUILD_TESTS` | `ON` | Build and register test targets |
+| `NOVA_BUILD_EXAMPLES` | `ON` | Build example targets |
+| `NOVA_BUILD_DOCS` | `ON` | Build documentation targets |
+| `NOVA_WITH_ASAN` | `OFF` | Instrument with Address Sanitizer |
+| `NOVA_WITH_COVERAGE` | `OFF` | Instrument for code coverage |
+| `NOVA_WITH_DOXYGEN` | `OFF` | Generate Doxygen API docs |
+| `NOVA_USE_CCACHE` | `OFF` | Cache compiled artifacts with ccache |
 
-## Contributing
+> **Note:** When renaming the project, replace the `NOVA_` prefix with your
+> project's prefix throughout `CMakeLists.txt` and `conanfile.py`.
 
-If you would like to contribute code you can do so through GitHub by forking the
-repository and sending a pull request. When submitting code, please make every
-effort to follow existing conventions and style in order to keep the code as
-readable as possible.
+---
 
-By contributing your code, you agree to license your contribution under the
-terms of the BSD-3-Clause or a more permissive license. All files are released
-with the BSD-3-Clause license.
+## Sanitizer Support (ASan)
 
-Read the [developer guides](https://abdes.github.io/asap/asap_master/html/).
+The starter extends Conan's built-in settings with a `sanitizer` dimension so
+that ASan and non-ASan builds produce distinct package IDs and never collide in
+the cache.
 
-### Submitting a PR
+**How it works:**
 
-- For every PR there should be an accompanying issue which the PR solves
-- The PR itself should only contain code which is the solution for the given
-  issue
-- If you are a first time contributor check if there is a suitable issue for you
+1. [`conan-settings_user.yml`](conan-settings_user.yml) defines
+   `sanitizer: [None, asan]`.
+2. The `*-asan` profiles (for example
+   [`profiles/windows-msvc-asan.ini`](profiles/windows-msvc-asan.ini) or
+   `profiles/linux-clang-asan.ini`) set `sanitizer=asan`; the standard profiles
+   set `sanitizer=None`.
+3. [`conanfile.py`](conanfile.py) reads the setting inside `generate()` and
+   sets `NOVA_WITH_ASAN=ON` and injects `-fsanitize=address` into the CMake
+   toolchain.
 
-## Getting updates from upstream [`asap`](https://github.com/abdes/asap)
+To use the repo presets correctly, run **both** Conan installs:
 
-In order to pull and merge updates from the upstream project, make sure to add
-it to the repo's remotes and disable pulling/merging tags from the upstream. We
-want tags to be limited to those made in this repo, not in the upstream.
+- one with the normal profile
+- one with the matching `-asan` profile
 
-```bash
-git remote add upstream https://github.com/abdes/asap.git
-git config remote.upstream.tagopt --no-tags
-```
+That produces two distinct configure/build trees:
 
-## Credits
+- normal: `out/build-ninja/` or `out/build-vs/`
+- ASan: `out/build-asan-ninja/` or `out/build-asan-vs/`
 
-- The multitude of other open-source projects used to implement this project or
-  to get inspiration - credits in the source code or the documentation as
-  appropriate
+Debug tests must run against the **Debug** configuration, and Release tests
+must run against the **Release** configuration of the normal multi-config tree.
+ASan testing is a separate Debug-only tree.
 
-[build-matrix]: https://github.com/abdes/blocxxi/actions/workflows/cmake-build.yml?branch=develop
-[build-status-develop-badge]: https://github.com/abdes/blocxxi/actions/workflows/cmake-build.yml/badge.svg?branch=develop
-[build-status-master-badge]: https://github.com/abdes/blocxxi/actions/workflows/cmake-build.yml/badge.svg?branch=master
-[commits]: https://github.com/abdes/blocxxi/commits
-[last-commit-badge]: https://img.shields.io/github/last-commit/abdes/blocxxi
-[latest-release]: https://github.com/abdes/blocxxi/releases/latest
-[license-badge]: https://img.shields.io/github/license/abdes/blocxxi
-[license]: https://opensource.org/licenses/BSD-3-Clause
-[linux-badge]: https://img.shields.io/badge/OS-linux-blue
-[macos-badge]: https://img.shields.io/badge/OS-macOS-blue
-[openssf-badge]: https://bestpractices.coreinfrastructure.org/projects/6500/badge
-[openssf-project]: https://bestpractices.coreinfrastructure.org/projects/6500
-[release-badge]: https://img.shields.io/github/v/release/abdes/blocxxi
-[windows-badge]: https://img.shields.io/badge/OS-windows-blue
+---
+
+## License
+
+Distributed under the **3-Clause BSD License**.  
+See [LICENSE](LICENSE) for the full text.

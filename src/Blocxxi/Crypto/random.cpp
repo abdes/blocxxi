@@ -1,0 +1,18 @@
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
+
+#include <Blocxxi/Crypto/random.h>
+
+#include <cryptopp/osrng.h> // for random number generation
+
+namespace blocxxi::crypto::random {
+
+void GenerateBlock(std::uint8_t *output, std::size_t size) {
+  CryptoPP::AutoSeededRandomPool rng;
+  rng.GenerateBlock(output, size);
+}
+
+} // namespace blocxxi::crypto::random

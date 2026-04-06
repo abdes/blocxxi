@@ -1,6 +1,6 @@
 # ===-----------------------------------------------------------------------===#
 # Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
-# copy at https://opensource.org/licenses/BSD-3-Clause).
+# copy at https://opensource.org/licenses/BSD-3-Clause.
 # SPDX-License-Identifier: BSD-3-Clause
 # ===-----------------------------------------------------------------------===#
 
@@ -13,10 +13,10 @@
 #
 # Maintenance of the nesting hierarchy is done with the following macros:
 #
-# * asap_push_project(project_name)
-# * asap_pop_project(project_name)
-# * asap_push_module(module_name)
-# * asap_pop_module(module_name)
+# * nova_push_project(project_name)
+# * nova_pop_project(project_name)
+# * nova_push_module(module_name)
+# * nova_pop_module(module_name)
 #
 # They must be called at the start(push) and end(pop) of a project/module cmake
 # script to keep the hierarchy correct.
@@ -27,7 +27,7 @@ if(NOT DEFINED ASAP_LOG_PROJECT_HIERARCHY)
   set(ASAP_LOG_PROJECT_HIERARCHY "")
 endif()
 
-macro(asap_push_project project_name)
+macro(nova_push_project project_name)
   list(APPEND ASAP_LOG_PROJECT_HIERARCHY_STACK "[${project_name}]")
   list(JOIN ASAP_LOG_PROJECT_HIERARCHY_STACK " > " ASAP_LOG_PROJECT_HIERARCHY)
   list(LENGTH ASAP_LOG_PROJECT_HIERARCHY_STACK depth)
@@ -35,16 +35,18 @@ macro(asap_push_project project_name)
     message("=> [${depth}] in project ${ASAP_LOG_PROJECT_HIERARCHY} (master)")
   else()
     message(
-      "=> [${depth}] in project ${ASAP_LOG_PROJECT_HIERARCHY} (sub-project)")
+      "=> [${depth}] in project ${ASAP_LOG_PROJECT_HIERARCHY} (sub-project)"
+    )
   endif()
 endmacro()
 
-macro(asap_pop_project project_name)
+macro(nova_pop_project project_name)
   list(POP_BACK ASAP_LOG_PROJECT_HIERARCHY_STACK removed)
   if(NOT removed STREQUAL "[${project_name}]")
     message(
       FATAL_ERROR
-        "Project [${removed}] was pushed but not popped, please fix this")
+      "Project [${removed}] was pushed but not popped, please fix this"
+    )
   endif()
   list(JOIN ASAP_LOG_PROJECT_HIERARCHY_STACK " > " ASAP_LOG_PROJECT_HIERARCHY)
   list(LENGTH ASAP_LOG_PROJECT_HIERARCHY_STACK depth)
@@ -53,19 +55,23 @@ macro(asap_pop_project project_name)
   endif()
 endmacro()
 
-macro(asap_push_module module_name)
+macro(nova_push_module module_name)
   list(APPEND ASAP_LOG_PROJECT_HIERARCHY_STACK "(${module_name})")
   list(JOIN ASAP_LOG_PROJECT_HIERARCHY_STACK " > " ASAP_LOG_PROJECT_HIERARCHY)
   list(LENGTH ASAP_LOG_PROJECT_HIERARCHY_STACK depth)
   message("=> [${depth}] in module ${ASAP_LOG_PROJECT_HIERARCHY}")
+  message(
+    "   Target: ${META_MODULE_TARGET} - Alias: ${META_MODULE_TARGET_ALIAS}"
+  )
 endmacro()
 
-macro(asap_pop_module module_name)
+macro(nova_pop_module module_name)
   list(POP_BACK ASAP_LOG_PROJECT_HIERARCHY_STACK removed)
   if(NOT removed STREQUAL "(${module_name})")
     message(
       FATAL_ERROR
-        "Module [${removed}] was pushed but not popped, please fix this")
+      "Module [${removed}] was pushed but not popped, please fix this"
+    )
   endif()
   list(JOIN ASAP_LOG_PROJECT_HIERARCHY_STACK " > " ASAP_LOG_PROJECT_HIERARCHY)
   list(LENGTH ASAP_LOG_PROJECT_HIERARCHY_STACK depth)

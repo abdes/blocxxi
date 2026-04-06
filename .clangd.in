@@ -1,8 +1,10 @@
 # We need to configure the location of the compilation database in this file
-# and not in vscode `.settings` until we have a way to get the cmake build 
+# and not in vscode `.settings` until we have a way to get the cmake build
 # directory or preset name as a subsititution variable.
 #
 # See https://github.com/clangd/vscode-clangd/issues/48
 
 CompileFlags:
   CompilationDatabase: "@CMAKE_BINARY_DIR@"
+  Remove: [-MDd, -m*, -std=*, /std:*, /MP, -c, /Zc:*]
+  Add: [/std:c++latest, -Wno-unknown-warning-option, -Wno-pragma-once-outside-header, -Wno-unknown-argument, -fms-compatibility, -fms-extensions]

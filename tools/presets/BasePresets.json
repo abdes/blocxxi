@@ -1,0 +1,91 @@
+{
+  "version": 6,
+  "include": [
+    "../../ConanPresets-Ninja.json"
+  ],
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 29,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "default",
+      "inherits": "conan-default",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "NOVA_USE_CCACHE": "ON"
+      }
+    },
+    {
+      "name": "default-asan",
+      "inherits": "conan-default-asan",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "NOVA_USE_CCACHE": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "build-debug",
+      "hidden": true,
+      "configuration": "Debug",
+      "jobs": 8,
+      "verbose": false
+    },
+    {
+      "name": "build-asan",
+      "hidden": true,
+      "configuration": "Debug",
+      "jobs": 8,
+      "verbose": false
+    },
+    {
+      "name": "build-release",
+      "hidden": true,
+      "configuration": "Release",
+      "jobs": 8,
+      "verbose": false
+    },
+    {
+      "name": "build-relwithd",
+      "hidden": true,
+      "configuration": "RelWithDebInfo",
+      "jobs": 8,
+      "verbose": false
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "test-debug",
+      "inherits": "conan-debug",
+      "description": "Verbose",
+      "output": {
+        "outputOnFailure": true,
+        "verbosity": "verbose"
+      }
+    },
+    {
+      "name": "test-asan",
+      "inherits": "conan-debug-asan",
+      "description": "Verbose",
+      "output": {
+        "outputOnFailure": true,
+        "verbosity": "verbose"
+      }
+    },
+    {
+      "name": "test-release",
+      "configurePreset": "conan-default",
+      "configuration": "Release",
+      "description": "Verbose",
+      "output": {
+        "outputOnFailure": true,
+        "verbosity": "default"
+      }
+    }
+  ]
+}

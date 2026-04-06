@@ -1,19 +1,31 @@
+---
 UseColor: true
 
 Checks: >
     bugprone-*,
-    clang-analyzer-*,
     cppcoreguidelines-*,
     google-*,
-    hicpp-*,
     modernize-*,
     performance-*,
     portability-*,
     readability-*,
-    -cppcoreguidelines-macro-usage,
-    -google-runtime-references
-    -hicpp-exception-baseclass,
-    -hicpp-signed-bitwise,
+    -readability-identifier-length,
+    -readability-convert-member-functions-to-static,
     -readability-function-cognitive-complexity,
-    -used-but-marked-unused,
-HeaderFilterRegex: ".*/[common|logging]/.*"
+    -readability-container-size-empty,
+    -cppcoreguidelines-pro-type-union-access,
+    -portability-avoid-pragma-once,
+    -clang-diagnostic-pragma-once-outside-header
+    -cppcoreguidelines-macro-usage
+
+CheckOptions:
+  - key: cppcoreguidelines-avoid-do-while.IgnoreMacros
+    value: true
+
+HeaderFilterRegex: '^<Nova/.*>$'
+ExcludeHeaderFilterRegex: '^<Nova/Logging\.h>$'
+
+ExtraArgs:
+  - -Wno-inconsistent-dllimport
+  - -Wno-format-extra-args
+...

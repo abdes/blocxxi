@@ -1,0 +1,39 @@
+{
+  "version": 6,
+  "include": [
+    "./BasePresets.json"
+  ],
+  "configurePresets": [
+    {
+      "name": "windows-default",
+      "displayName": "Windows Default (Ninja)",
+      "inherits": "default",
+      "cacheVariables": {
+      }
+    },
+    {
+      "name": "windows-asan",
+      "displayName": "Windows ASAN (Ninja)",
+      "inherits": "default-asan",
+      "cacheVariables": {
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "windows-debug",
+      "inherits": "build-debug",
+      "configurePreset": "windows-default"
+    },
+    {
+      "name": "windows-asan",
+      "inherits": "build-asan",
+      "configurePreset": "windows-asan"
+    },
+    {
+      "name": "windows-release",
+      "inherits": "build-release",
+      "configurePreset": "windows-default"
+    }
+  ]
+}

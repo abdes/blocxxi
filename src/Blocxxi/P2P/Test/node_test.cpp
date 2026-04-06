@@ -1,0 +1,125 @@
+//===----------------------------------------------------------------------===//
+// Distributed under the 3-Clause BSD License. See accompanying file LICENSE or
+// copy at https://opensource.org/licenses/BSD-3-Clause).
+// SPDX-License-Identifier: BSD-3-Clause
+//===----------------------------------------------------------------------===//
+
+#include <forward_list>
+
+#include <Nova/Base/Compilers.h>
+#include <gtest/gtest.h>
+
+#include <Blocxxi/P2P/kademlia/node.h>
+
+// Disable compiler and linter warnings originating from the unit test framework
+// and for which we cannot do anything. Additionally, every TEST or TEST_X macro
+// usage must be preceded by a '// NOLINTNEXTLINE'.
+NOVA_DIAGNOSTIC_PUSH
+#if NOVA_CLANG_VERSION
+#  pragma clang diagnostic ignored "-Wused-but-marked-unused"
+#  pragma clang diagnostic ignored "-Wglobal-constructors"
+#  pragma clang diagnostic ignored "-Wexit-time-destructors"
+#  pragma clang diagnostic ignored "-Wweak-vtables"
+#endif
+
+namespace blocxxi::p2p::kademlia {
+
+namespace {
+
+  auto ExpectedLogDistance(Node::IdType const& distance) -> int
+  {
+    for (auto byte_index = std::size_t { 0 }; byte_index < distance.Size();
+      ++byte_index) {
+      const auto byte = distance.At(byte_index);
+      if (byte == 0U) {
+        continue;
+      }
+
+      for (auto bit_index = 0; bit_index < 8; ++bit_index) {
+        const auto mask = static_cast<std::uint8_t>(0x80U >> bit_index);
+        if ((byte & mask) != 0U) {
+          return static_cast<int>(
+            Node::IdType::BitSize() - 1 - (byte_index * 8 + bit_index));
+        }
+      }
+    }
+
+    return -1;
+  }
+
+} // namespace
+
+// NOLINTNEXTLINE
+TEST(NodeTest, Construction)
+{
+  auto node_1 = Node(Node::IdType::RandomHash(), "1.1.1.1", 3030);
+  auto node_2 = Node(node_1);
+  ASSERT_EQ(node_1.Id(), node_2.Id());
+  ASSERT_EQ(node_1.Endpoint(), node_2.Endpoint());
+  ASSERT_EQ(node_1.ToString(), node_2.ToString());
+
+  auto node_3 = std::move(node_1);
+  ASSERT_EQ(node_2.Id(), node_3.Id());
+  ASSERT_EQ(node_2.Endpoint(), node_3.Endpoint());
+  ASSERT_EQ(node_2.ToString(), node_3.ToString());
+
+  auto node_4(std::move(node_3));
+  ASSERT_EQ(node_2.Id(), node_4.Id());
+  ASSERT_EQ(node_2.Endpoint(), node_4.Endpoint());
+  ASSERT_EQ(node_2.ToString(), node_4.ToString());
+
+  auto node_5 = node_4;
+  ASSERT_EQ(node_4.Id(), node_5.Id());
+  ASSERT_EQ(node_4.Endpoint(), node_5.Endpoint());
+  ASSERT_EQ(node_4.ToString(), node_5.ToString());
+}
+
+// NOLINTNEXTLINE
+TEST(NodeTest, LogDistance)
+{
+  // LogDistance same id is -1
+  auto a_node_hash = Node::IdType::RandomHash();
+  auto a_node = Node(a_node_hash, "::1", 1);
+  auto dist = LogDistance(a_node, a_node);
+  ASSERT_EQ(-1, dist);
+
+  // LogDistance first bits are different = 159
+  auto b_node_hash = a_node_hash;
+  b_node_hash[0] = a_node_hash[0] ^ 0x80;
+  auto b_node = Node(b_node_hash, "::1", 2);
+  dist = LogDistance(a_node, b_node);
+  ASSERT_EQ(159, dist);
+
+  for (int i = 0; i < 10; ++i) {
+    a_node = Node(Node::IdType::RandomHash(), "::1", 0);
+    b_node = Node(Node::IdType::RandomHash(), "::1", 0);
+
+    const auto distance = Distance(a_node, b_node);
+    ASSERT_EQ(LogDistance(a_node, b_node), ExpectedLogDistance(distance));
+  }
+}
+
+// NOLINTNEXTLINE
+TEST(NodeTest, FromUrlString)
+{
+  const auto node_id = Node::IdType::RandomHash().ToHex();
+  const auto* address = "192.168.1.35";
+  const auto* port = "4242";
+  const auto str = std::string("knode://")
+                     .append(node_id)
+                     .append("@")
+                     .append(address)
+                     .append(":")
+                     .append(port);
+
+  Node node;
+  // NOLINTNEXTLINE
+  ASSERT_NO_THROW(node = Node::FromUrlString(str));
+  ASSERT_EQ(node_id, node.Id().ToHex());
+  ASSERT_EQ(address, node.Endpoint().Address().to_string());
+  ASSERT_EQ(
+    port, std::to_string(static_cast<unsigned int>(node.Endpoint().Port())));
+}
+
+} // namespace blocxxi::p2p::kademlia
+NOVA_DIAGNOSTIC_POP
