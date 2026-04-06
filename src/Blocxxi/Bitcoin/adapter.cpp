@@ -21,7 +21,13 @@ HeaderSyncAdapter::HeaderSyncAdapter(Options options)
 auto HeaderSyncAdapter::Bind(node::Node& node) -> core::Status
 {
   node_ = &node;
-  return node_->AttachAdapter("bitcoin.header-sync:" + NetworkName());
+  if (!options_.peer_hint.empty()) {
+    if (auto status = node_->AttachDiscovery(BootstrapHint()); !status.ok()) {
+      return status;
+    }
+  }
+
+  return node_->AttachAdapter(AdapterName());
 }
 
 auto HeaderSyncAdapter::SubmitHeader(Header const& header) -> core::Status
@@ -30,15 +36,28 @@ auto HeaderSyncAdapter::SubmitHeader(Header const& header) -> core::Status
     return core::Status::Failure(
       core::StatusCode::Rejected, "adapter must be bound to a node first");
   }
+  if (header.hash_hex.empty()) {
+    return core::Status::Failure(
+      core::StatusCode::InvalidArgument, "header hash is required");
+  }
+  if (header.height > 0 && header.previous_hash_hex.empty()) {
+    return core::Status::Failure(
+      core::StatusCode::InvalidArgument, "non-genesis headers require a previous hash");
+  }
 
   auto payload = std::ostringstream {};
   payload << "height=" << header.height << ";hash=" << header.hash_hex
           << ";previous=" << header.previous_hash_hex
-          << ";version=" << header.version
-          << ";mode=" << (options_.header_sync_only ? "headers-only" : "full");
+          << ";version=" << header.version;
+
+  auto metadata = std::ostringstream {};
+  metadata << "network=" << NetworkName() << ";mode=" << HeaderMode();
+  if (!options_.peer_hint.empty()) {
+    metadata << ";peer_hint=" << options_.peer_hint;
+  }
 
   auto status = node_->SubmitTransaction(core::Transaction::FromText(
-    "bitcoin.header", payload.str(), NetworkName()));
+    "bitcoin.header", payload.str(), metadata.str()));
   if (!status.ok()) {
     return status;
   }
@@ -64,6 +83,21 @@ auto HeaderSyncAdapter::NetworkName() const -> std::string
   }
 
   return "unknown";
+}
+
+auto HeaderSyncAdapter::HeaderMode() const -> std::string
+{
+  return options_.header_sync_only ? "headers-only" : "full";
+}
+
+auto HeaderSyncAdapter::AdapterName() const -> std::string
+{
+  return "bitcoin.header-sync:" + NetworkName() + ":" + HeaderMode();
+}
+
+auto HeaderSyncAdapter::BootstrapHint() const -> std::string
+{
+  return "bitcoin.peer:" + options_.peer_hint;
 }
 
 } // namespace blocxxi::bitcoin

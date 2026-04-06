@@ -26,7 +26,8 @@ Platform modules
 
 **Blocxxi.Bitcoin**
   Adapter-first Bitcoin interoperability surface. The current proof is bounded
-  to header-sync style imports through the public node API.
+  to header-sync style imports through the public node API, including optional
+  peer/bootstrap hints routed through the existing discovery hook.
 
 Examples
 ========

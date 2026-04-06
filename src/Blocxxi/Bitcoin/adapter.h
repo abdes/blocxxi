@@ -52,6 +52,9 @@ public:
 
 private:
   [[nodiscard]] auto NetworkName() const -> std::string;
+  [[nodiscard]] auto HeaderMode() const -> std::string;
+  [[nodiscard]] auto AdapterName() const -> std::string;
+  [[nodiscard]] auto BootstrapHint() const -> std::string;
 
   Options options_ {};
   node::Node* node_ { nullptr };

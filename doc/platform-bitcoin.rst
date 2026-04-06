@@ -10,5 +10,7 @@ header-sync-oriented surface:
 - `Header`
 
 The adapter imports Bitcoin header observations through the public node API and
-preserves the local kernel contract. Full Bitcoin script validation remains
-out of scope.
+preserves the local kernel contract. When a ``peer_hint`` is provided, the
+adapter also emits a bootstrap/discovery hint through the existing node
+surface instead of inventing a Bitcoin-specific node API. Full Bitcoin script
+validation remains out of scope.
