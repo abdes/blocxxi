@@ -7,6 +7,8 @@
 add_subdirectory("hello-plugin")
 add_subdirectory("local-custom-chain")
 add_subdirectory("bitcoin-observer")
+add_subdirectory("bitcoin-mempool-analyzer")
+add_subdirectory("bitcoin-event-reader")
 
 if(NOVA_BUILD_TESTS)
   add_test(NAME Blocxxi.Examples.HelloPlugin COMMAND blocxxi-hello-plugin)
@@ -20,5 +22,15 @@ if(NOVA_BUILD_TESTS)
     COMMAND
       "${CMAKE_COMMAND}" -DEXE=$<TARGET_FILE:blocxxi-local-custom-chain> -P
       "${CMAKE_SOURCE_DIR}/cmake/RunBlocxxiLocalCustomChainSmoke.cmake"
+  )
+  add_test(
+    NAME Blocxxi.Examples.BitcoinMempoolAnalyzer
+    COMMAND
+      blocxxi-bitcoin-mempool-analyzer
+  )
+  add_test(
+    NAME Blocxxi.Examples.BitcoinEventReader
+    COMMAND
+      blocxxi-bitcoin-event-reader
   )
 endif()
