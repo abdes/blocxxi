@@ -11,6 +11,7 @@ add_subdirectory("Core")
 add_subdirectory("Chain")
 add_subdirectory("Storage")
 add_subdirectory("Node")
+add_subdirectory("Bitcoin")
 add_subdirectory("P2P")
 
 if(NOVA_BUILD_EXAMPLES)

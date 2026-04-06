@@ -25,6 +25,7 @@ Last Updated on |date|
    platform-chain
    platform-storage
    platform-node
+   platform-bitcoin
    license
    changelog.md
    version
@@ -53,7 +54,7 @@ Parts of the documentation
 :doc:`platform module guide <platform>`
 --------------------------------------
   *start here to understand the new reusable blockchain platform surface: Core,
-  Chain, Storage, Node, and the platform-level examples.*
+  Chain, Storage, Node, Bitcoin, and the platform-level examples.*
 
 :doc:`p2p <p2p:api>`
 --------------------
@@ -78,6 +79,11 @@ Parts of the documentation
 --------------------------
   *the simple local node facade that lets external apps bootstrap a chain
   without importing DHT- or storage-specific internals.*
+
+:doc:`bitcoin roadmap <platform-bitcoin>`
+----------------------------------------
+  *the bounded Bitcoin adapter plan: header/SPV-first interop later, without
+  reshaping the milestone-1 kernel.*
 
 `Developer Guides <https://abdes.github.io/asap/asap_master/html/project-development/index.html>`_
 --------------------------------------------------------------------------------------------------

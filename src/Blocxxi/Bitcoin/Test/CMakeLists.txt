@@ -4,6 +4,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ===-----------------------------------------------------------------------===#
 
-add_subdirectory("hello-plugin")
-add_subdirectory("local-custom-chain")
-add_subdirectory("bitcoin-observer")
+m_gtest_program(
+  Unit
+  SOURCES
+    main.cpp
+    adapter_test.cpp
+)
