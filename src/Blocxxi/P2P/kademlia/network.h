@@ -123,13 +123,12 @@ public:
   void Start()
   {
     CHECK_F(receive_handler_ != nullptr, "receive handler must not be null");
-    static auto started = false;
-    if (!started) {
+    if (!started_) {
       ScheduleReceive(*chan_ipv4_);
       if (chan_ipv6_) {
         ScheduleReceive(*chan_ipv6_);
       }
-      started = true;
+      started_ = true;
     }
   }
 
@@ -320,6 +319,8 @@ private:
   ResponseDispatcher response_dispatcher_;
   /// Handler callback to be invoked every time a message is received.
   MessageHandlerCallbackType receive_handler_ { nullptr };
+  /// Tracks whether this network instance has already scheduled receives.
+  bool started_ { false };
 };
 
 } // namespace blocxxi::p2p::kademlia

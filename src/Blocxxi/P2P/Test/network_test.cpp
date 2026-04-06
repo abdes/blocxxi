@@ -110,5 +110,41 @@ TEST(NetworkTest, StartSchedulesRceiveOnAllchannels)
   network.Start();
 }
 
+// NOLINTNEXTLINE
+TEST(NetworkTest, EachInstanceStartsItsOwnChannels)
+{
+  asio::io_context context;
+
+  auto make_channel = []() {
+    auto chan = std::make_unique<NiceMock<MockChannel>>();
+    ON_CALL(*chan, LocalEndpoint())
+      .WillByDefault(Return(IpEndpoint { "127.0.0.1", 4242 }));
+    return chan;
+  };
+
+  auto first_v4 = make_channel();
+  auto second_v4 = make_channel();
+
+  EXPECT_CALL(*first_v4, AsyncReceive(_)).Times(AtLeast(1));
+  EXPECT_CALL(*second_v4, AsyncReceive(_)).Times(AtLeast(1));
+
+  auto first_serializer
+    = std::make_unique<MessageSerializer>(Node::IdType::RandomHash());
+  auto second_serializer
+    = std::make_unique<MessageSerializer>(Node::IdType::RandomHash());
+
+  auto first = Network<MockChannel, MessageSerializer>(
+    context, std::move(first_serializer), std::move(first_v4));
+  auto second = Network<MockChannel, MessageSerializer>(
+    context, std::move(second_serializer), std::move(second_v4));
+
+  auto handler = [](IpEndpoint const&, BufferReader const&) { };
+  first.OnMessageReceived(handler);
+  second.OnMessageReceived(handler);
+
+  first.Start();
+  second.Start();
+}
+
 } // namespace blocxxi::p2p::kademlia
 NOVA_DIAGNOSTIC_POP
