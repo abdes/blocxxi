@@ -9,7 +9,7 @@
 #include <Blocxxi/Nat/nat.h>
 #include <Blocxxi/P2P/kademlia/channel.h>
 #include <Blocxxi/P2P/kademlia/krpc.h>
-#include <Blocxxi/P2P/kademlia/mainline_session.h>
+#include <Blocxxi/P2P/kademlia/session.h>
 #include <Nova/Base/Logging.h>
 
 #include "../utils/console_runner.h"
@@ -27,9 +27,9 @@ namespace kad = blocxxi::p2p::kademlia;
 
 using blocxxi::nat::PortMapper;
 using kad::AsyncUdpChannel;
-using kad::Node;
 using kad::MainlineDhtNode;
-using kad::MainlineSession;
+using kad::Node;
+using kad::Session;
 
 namespace {
 
@@ -224,7 +224,7 @@ auto main(int argc, char** argv) -> int
 
     auto ipv4 = AsyncUdpChannel::ipv4(io_context, mapper->InternalIP(),
       std::to_string(static_cast<unsigned int>(options.port)));
-    auto session = MainlineSession(
+    auto session = Session(
       MainlineDhtNode(io_context, my_node, std::move(ipv4)));
     session.OnQuery([](std::string_view method, kad::IpEndpoint const& sender) {
       LOG_F(INFO, "mainline query '{}' from {}", method, sender.ToString());

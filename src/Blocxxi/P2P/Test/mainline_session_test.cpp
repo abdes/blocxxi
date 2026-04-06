@@ -9,7 +9,7 @@
 #include <Nova/Base/Compilers.h>
 #include <gtest/gtest.h>
 
-#include <Blocxxi/P2P/kademlia/mainline_session.h>
+#include <Blocxxi/P2P/kademlia/session.h>
 
 // Disable compiler and linter warnings originating from the unit test framework
 // and for which we cannot do anything. Additionally, every TEST or TEST_X macro
@@ -23,6 +23,8 @@ NOVA_DIAGNOSTIC_PUSH
 #endif
 
 namespace blocxxi::p2p::kademlia {
+
+static_assert(std::is_same_v<Session, MainlineSession>);
 
 // NOLINTNEXTLINE
 TEST(MainlineSessionTest, ForwardsActiveGetPeersRoundTrip)

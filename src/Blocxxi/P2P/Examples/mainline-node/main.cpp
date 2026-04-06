@@ -15,7 +15,7 @@
 
 #include <Blocxxi/P2P/kademlia/channel.h>
 #include <Blocxxi/P2P/kademlia/krpc.h>
-#include <Blocxxi/P2P/kademlia/mainline_session.h>
+#include <Blocxxi/P2P/kademlia/session.h>
 #include <Blocxxi/P2P/kademlia/node.h>
 
 namespace {
@@ -27,8 +27,8 @@ using blocxxi::p2p::kademlia::GetType;
 using blocxxi::p2p::kademlia::KrpcMessage;
 using blocxxi::p2p::kademlia::KrpcResponse;
 using blocxxi::p2p::kademlia::MainlineDhtNode;
-using blocxxi::p2p::kademlia::MainlineSession;
 using blocxxi::p2p::kademlia::Node;
+using blocxxi::p2p::kademlia::Session;
 
 struct Args {
   std::string bind_address_ { "127.0.0.1" };
@@ -161,7 +161,7 @@ auto main(int argc, char** argv) -> int
               << std::endl;
 
     auto session
-      = MainlineSession(MainlineDhtNode(io_context, std::move(self),
+      = Session(MainlineDhtNode(io_context, std::move(self),
           std::move(channel)));
     session.OnQuery([](std::string_view method,
                    blocxxi::p2p::kademlia::IpEndpoint const& sender) {
