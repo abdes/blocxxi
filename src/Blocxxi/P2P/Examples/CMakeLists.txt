@@ -5,3 +5,4 @@
 # ===-----------------------------------------------------------------------===#
 
 add_subdirectory("simple-node")
+add_subdirectory("mainline-node")
