@@ -4,10 +4,15 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import ipaddress
+import random
 import re
 import socket
+import struct
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 
@@ -16,6 +21,8 @@ MAINLINE_DEFAULTS = [
     "212.129.33.59:6881",
     "82.221.103.244:6881",
 ]
+SIGNET_MAGIC = bytes.fromhex("0a03cf40")
+BITCOIN_PROTOCOL_VERSION = 70015
 
 
 def run_mainline_validation(example: Path, duration_ms: int) -> tuple[int, str]:
@@ -46,13 +53,96 @@ def run_mainline_validation(example: Path, duration_ms: int) -> tuple[int, str]:
     return completed.returncode, completed.stdout
 
 
-def signet_tcp_validation(host: str, port: int, timeout: float) -> tuple[str, list[str]]:
+def resolve_addresses(host: str, port: int) -> list[str]:
     infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
     addresses: list[str] = []
     for info in infos:
         address = info[4][0]
         if address not in addresses:
             addresses.append(address)
+    return addresses
+
+
+def compact_size(length: int) -> bytes:
+    if length < 253:
+        return bytes([length])
+    if length <= 0xFFFF:
+        return b"\xfd" + struct.pack("<H", length)
+    if length <= 0xFFFFFFFF:
+        return b"\xfe" + struct.pack("<I", length)
+    return b"\xff" + struct.pack("<Q", length)
+
+
+def double_sha256(payload: bytes) -> bytes:
+    return hashlib.sha256(hashlib.sha256(payload).digest()).digest()
+
+
+def encode_network_address(address: str, port: int) -> bytes:
+    ip = ipaddress.ip_address(address)
+    if ip.version == 4:
+        ip_bytes = b"\x00" * 10 + b"\xff\xff" + ip.packed
+    else:
+        ip_bytes = ip.packed
+    return struct.pack("<Q", 0) + ip_bytes + struct.pack(">H", port)
+
+
+def encode_message(command: str, payload: bytes) -> bytes:
+    checksum = double_sha256(payload)[:4]
+    return (
+        SIGNET_MAGIC
+        + command.encode("ascii").ljust(12, b"\x00")
+        + struct.pack("<I", len(payload))
+        + checksum
+        + payload
+    )
+
+
+def encode_version_payload(remote_address: str, remote_port: int) -> bytes:
+    user_agent = b"/blocxxi:0.1.0/"
+    return b"".join(
+        [
+            struct.pack("<i", BITCOIN_PROTOCOL_VERSION),
+            struct.pack("<Q", 0),
+            struct.pack("<q", int(time.time())),
+            encode_network_address(remote_address, remote_port),
+            encode_network_address("0.0.0.0", 0),
+            struct.pack("<Q", random.getrandbits(64)),
+            compact_size(len(user_agent)),
+            user_agent,
+            struct.pack("<i", 0),
+            struct.pack("<?", False),
+        ]
+    )
+
+
+def recv_exact(connection: socket.socket, size: int) -> bytes:
+    chunks = bytearray()
+    while len(chunks) < size:
+        chunk = connection.recv(size - len(chunks))
+        if not chunk:
+            raise RuntimeError("connection closed while reading message")
+        chunks.extend(chunk)
+    return bytes(chunks)
+
+
+def read_message(connection: socket.socket) -> tuple[str, bytes]:
+    header = recv_exact(connection, 24)
+    if header[:4] != SIGNET_MAGIC:
+        raise RuntimeError(f"unexpected network magic: {header[:4].hex()}")
+
+    command = header[4:16].rstrip(b"\x00").decode("ascii")
+    payload_size = struct.unpack("<I", header[16:20])[0]
+    checksum = header[20:24]
+    payload = recv_exact(connection, payload_size)
+    if double_sha256(payload)[:4] != checksum:
+        raise RuntimeError(f"checksum mismatch for {command}")
+    return command, payload
+
+
+def signet_handshake_validation(
+    host: str, port: int, timeout: float
+) -> tuple[str, list[str], int | None, list[str]]:
+    addresses = resolve_addresses(host, port)
 
     for address in addresses:
         family = socket.AF_INET6 if ":" in address else socket.AF_INET
@@ -60,12 +150,29 @@ def signet_tcp_validation(host: str, port: int, timeout: float) -> tuple[str, li
         probe.settimeout(timeout)
         try:
             probe.connect((address, port))
-            return address, addresses
-        except OSError:
+            probe.sendall(
+                encode_message("version", encode_version_payload(address, port))
+            )
+
+            peer_version: int | None = None
+            commands: list[str] = []
+            deadline = time.monotonic() + timeout
+            while time.monotonic() < deadline:
+                command, payload = read_message(probe)
+                commands.append(command)
+                if command == "version":
+                    if len(payload) >= 4:
+                        peer_version = struct.unpack("<i", payload[:4])[0]
+                    probe.sendall(encode_message("verack", b""))
+                elif command == "ping":
+                    probe.sendall(encode_message("pong", payload))
+                elif command == "verack":
+                    return address, addresses, peer_version, commands
+        except (OSError, RuntimeError):
             pass
         finally:
             probe.close()
-    raise RuntimeError(f"unable to connect to {host}:{port}")
+    raise RuntimeError(f"unable to complete signet handshake with {host}:{port}")
 
 
 def parse_args() -> argparse.Namespace:
@@ -126,16 +233,20 @@ def main() -> int:
         )
         return 1
 
-    print("=== SIGNET TCP VALIDATION ===")
-    connected, addresses = signet_tcp_validation(
+    print("=== SIGNET HANDSHAKE VALIDATION ===")
+    connected, addresses, peer_version, commands = signet_handshake_validation(
         args.signet_host, args.signet_port, args.tcp_timeout
     )
     print(f"SIGNET_RESOLVED {args.signet_host} {addresses}")
-    print(f"SIGNET_TCP_OK {connected} {args.signet_port}")
+    print(f"SIGNET_VERSION_OK {connected} {args.signet_port} {peer_version}")
+    print(f"SIGNET_COMMANDS {' '.join(commands)}")
+    if "version" not in commands or "verack" not in commands:
+        print("ERROR signet peer did not complete version/verack handshake", file=sys.stderr)
+        return 1
     print("=== SUMMARY ===")
     print(f"MAINLINE_BOOTSTRAP_OK {bootstrap_ok}")
     print(f"MAINLINE_DISCOVERED_TOTAL {discovered_count}")
-    print(f"SIGNET_REACHABLE {connected}:{args.signet_port}")
+    print(f"SIGNET_HANDSHAKE_OK {connected}:{args.signet_port}")
     return 0
 
 

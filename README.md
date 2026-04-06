@@ -267,7 +267,7 @@ python tools/public_network_validation.py
 
 This validates:
 - public Mainline DHT discovery via `mainline-node`
-- public signet seed TCP reachability
+- public signet peer version/verack handshake
 
 ---
 
