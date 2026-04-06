@@ -8,6 +8,7 @@
 
 #include <Blocxxi/Crypto/api_export.h>
 
+#include <algorithm>
 #include <array> // for std::array
 #include <bitset> // for std::bitset
 #include <cstddef>
@@ -17,7 +18,7 @@
 #include <iterator> // for std::reverse_iterator
 #include <string> // for std::string
 
-#include <gsl/gsl> // for gsl::span
+#include <span>
 
 #include <Nova/Base/Logging.h>
 
@@ -36,7 +37,7 @@ namespace detail {
   /// Count the number of leading zero bits in a buffer of contiguous 32-bit
   /// integers.
   BLOCXXI_CRYPTO_API auto CountLeadingZeroBits(
-    gsl::span<std::uint32_t const> buf) -> size_t;
+    std::span<std::uint32_t const> buf) -> size_t;
 
 } // namespace detail
 
@@ -101,7 +102,7 @@ public:
 
   \param buf source sequence of bytes.
   */
-  explicit Hash(gsl::span<std::uint8_t const> buf) noexcept
+  explicit Hash(std::span<std::uint8_t const> buf) noexcept
     : storage_({})
   {
     const auto src_size = buf.size();
@@ -136,8 +137,8 @@ public:
     -> Hash<BITS>
   {
     Hash<BITS> hash;
-    codec::hex::Decode(gsl::make_span<>(src),
-      gsl::make_span<>(hash.Data(), hash.Size()), reverse);
+    codec::hex::Decode(
+      src, std::span<std::uint8_t>(hash.Data(), hash.Size()), reverse);
     return hash;
   }
 
@@ -325,7 +326,7 @@ public:
   /// Count leading zero bits.
   [[nodiscard]] auto LeadingZeroBits() const -> size_t
   {
-    return detail::CountLeadingZeroBits(gsl::make_span(storage_));
+    return detail::CountLeadingZeroBits(std::span(storage_));
   }
 
   /// @name Comparison operators
@@ -384,7 +385,7 @@ public:
   \param buf source sequence of bytes.
   \param start position at which to assign the sequence in the hash.
   */
-  void Assign(gsl::span<std::uint8_t const> buf, iterator start) noexcept
+  void Assign(std::span<std::uint8_t const> buf, iterator start) noexcept
   {
     const size_type src_size = buf.size();
     const auto dst_size = static_cast<size_type>(end() - start);
@@ -397,7 +398,8 @@ public:
 
   [[nodiscard]] auto ToHex() const -> std::string
   {
-    return codec::hex::Encode(gsl::make_span<>(Data(), Size()), false, true);
+    return codec::hex::Encode(
+      std::span<std::uint8_t const>(Data(), Size()), false, true);
   }
 
   auto ToBitSet() const -> std::bitset<BITS>

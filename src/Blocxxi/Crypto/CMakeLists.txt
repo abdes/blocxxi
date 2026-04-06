@@ -11,18 +11,7 @@ nova_module_declare(
 )
 nova_push_module("${META_MODULE_NAME}")
 
-find_package(
-  Microsoft.GSL
-  REQUIRED
-  CONFIG
-  PATHS "${CMAKE_BINARY_DIR}/generators"
-)
-find_package(
-  cryptopp
-  REQUIRED
-  CONFIG
-  PATHS "${CMAKE_BINARY_DIR}/generators"
-)
+find_package(cryptopp REQUIRED CONFIG PATHS "${CMAKE_BINARY_DIR}/generators")
 include(CheckCXXSourceCompiles)
 
 if(MSVC)
@@ -69,11 +58,7 @@ target_sources(
   PUBLIC
     FILE_SET HEADERS
     BASE_DIRS ${NOVA_SOURCE_DIR}
-    FILES
-      api_export.h
-      hash.h
-      keypair.h
-      random.h
+    FILES api_export.h hash.h keypair.h random.h
 )
 
 arrange_target_files_for_ide(${META_MODULE_TARGET})
@@ -88,8 +73,18 @@ target_include_directories(
 
 target_compile_features(${META_MODULE_TARGET} PUBLIC cxx_std_20)
 target_compile_options(${META_MODULE_TARGET} PUBLIC ${NOVA_COMMON_CXX_FLAGS})
-target_compile_definitions(${META_MODULE_TARGET} PUBLIC $<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:BLOCXXI_CRYPTO_STATIC>)
-target_link_libraries(${META_MODULE_TARGET} PUBLIC nova::base blocxxi::codec cryptopp::cryptopp Microsoft.GSL::GSL)
+target_compile_definitions(
+  ${META_MODULE_TARGET}
+  PUBLIC
+    $<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:BLOCXXI_CRYPTO_STATIC>
+)
+target_link_libraries(
+  ${META_MODULE_TARGET}
+  PUBLIC
+    nova::base
+    blocxxi::codec
+    cryptopp::cryptopp
+)
 
 if(NOVA_BUILD_TESTS)
   add_subdirectory("Test")
@@ -97,7 +92,8 @@ endif()
 
 nova_module_install(
   EXPORT ${META_MODULE_NAMESPACE}
-  TARGETS ${META_MODULE_TARGET}
+  TARGETS
+    ${META_MODULE_TARGET}
 )
 
 nova_pop_module("${META_MODULE_NAME}")

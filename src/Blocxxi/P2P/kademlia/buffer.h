@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <gsl/gsl> // for gsl::span<std::uint8_t>
+#include <span>
 
 #include <cstdint> // for std::uint8_t
 #include <vector>  // for std::vector<std::uint8_t>
@@ -19,6 +19,6 @@ using Buffer = std::vector<std::uint8_t>;
 
 /// Represents a read-only view over the input buffer used to deserialize
 /// headers and message bodies.
-using BufferReader = gsl::span<std::uint8_t>;
+using BufferReader = std::span<std::uint8_t const>;
 
 } // namespace blocxxi::p2p::kademlia

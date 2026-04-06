@@ -96,20 +96,20 @@ TEST(HashTest, AssignContentFromSpan) {
   ASSERT_EQ(4, h.Size());
   std::uint8_t source[] = {1, 2, 3, 4, 5, 6};
   // Assign with source span works and has no effect
-  h.Assign(gsl::make_span<uint8_t>(&source[0], &source[0]), h.begin());
+  h.Assign(std::span<std::uint8_t const>(&source[0], &source[0]), h.begin());
   ASSERT_TRUE(h.IsAllZero());
 
   // Assign with smaller size than available works and only changes the assigned
   // elements
   h.Clear();
-  h.Assign(gsl::make_span<uint8_t>(&source[0], &source[2]), h.begin());
+  h.Assign(std::span<std::uint8_t const>(&source[0], &source[2]), h.begin());
   ASSERT_TRUE(std::equal(&source[0], &source[2], h.begin(), h.begin() + 2));
   std::for_each(
       h.begin() + 2, h.end(), [](auto unchanged) { ASSERT_EQ(0, unchanged); });
 
   // Assign full hash works and only changes all elements
   h.Clear();
-  h.Assign(gsl::make_span<uint8_t>(&source[0], &source[4]), h.begin());
+  h.Assign(std::span<std::uint8_t const>(&source[0], &source[4]), h.begin());
   ASSERT_TRUE(std::equal(&source[0], &source[4], h.begin(), h.end()));
 
   // Assign with buffer size bigger than hash size will assert fail
@@ -117,11 +117,11 @@ TEST(HashTest, AssignContentFromSpan) {
   // TODO(Abdessattar): add this back when assertions are implemented
 #if !defined(NDEBUG)
   ASSERT_DEATH(
-      h.Assign(gsl::make_span<uint8_t>(source), h.begin()),
+      h.Assign(std::span(source), h.begin()),
       "CHECK FAILED:.*source span exceeds destination range");
 #else
   // NOLINTNEXTLINE
-  ASSERT_NO_FATAL_FAILURE(h.Assign(gsl::make_span<uint8_t>(source), h.begin()));
+  ASSERT_NO_FATAL_FAILURE(h.Assign(std::span(source), h.begin()));
 #endif
 }
 
@@ -137,11 +137,11 @@ TEST(HashTest, ConstructFromSpan) {
   std::uint8_t source[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
 
   // Prefect case source size = hash size
-  Hash<64> h1(gsl::make_span(std::begin(source), std::begin(source) + 8));
+  Hash<64> h1(std::span(source).first(8));
   ASSERT_TRUE(std::equal(&source[0], &source[8], h1.begin(), h1.end()));
 
   // source size < hash size : padding with zeros
-  Hash<64> h2(gsl::make_span(std::begin(source), std::begin(source) + 4));
+  Hash<64> h2(std::span(source).first(4));
   auto pos = h2.begin();
   for (auto i = 0U; i < 4; ++i) {
     ASSERT_EQ(0, *pos);
@@ -153,10 +153,10 @@ TEST(HashTest, ConstructFromSpan) {
   // source size > hash size : fatal assertion
 #if !defined(NDEBUG)
   ASSERT_DEATH(
-      Hash<64> h3(gsl::make_span(source)),
+      Hash<64> h3{std::span{source}},
       "CHECK FAILED:.*source span exceeds hash size");
 #else
-  ASSERT_NO_FATAL_FAILURE(Hash<64> h3(gsl::make_span(source)));
+  ASSERT_NO_FATAL_FAILURE(Hash<64> h3{std::span{source}});
   // result is undefined
 #endif
 }
@@ -164,7 +164,7 @@ TEST(HashTest, ConstructFromSpan) {
 // NOLINTNEXTLINE
 TEST(HashTest, AccessorsAndIterators) {
   std::uint8_t source[]{1, 2, 3, 4};
-  Hash<32> h(gsl::make_span(source));
+  Hash<32> h{std::span{source}};
 
   ASSERT_EQ(1, h.Front());
   ASSERT_EQ(4, h.Back());
@@ -201,7 +201,7 @@ TEST(HashTest, Swap) {
 TEST(HashTest, LessThenComparison) {
   std::array<uint8_t, 4> small{{1, 2, 3, 4}};
   constexpr std::size_t c_hash_size = 32;
-  const Hash<c_hash_size> hsmall(gsl::make_span(small));
+  const Hash<c_hash_size> hsmall{std::span{small}};
   ASSERT_GE(hsmall, hsmall);
   ASSERT_LE(hsmall, hsmall);
   ASSERT_EQ(hsmall, hsmall);
@@ -209,7 +209,7 @@ TEST(HashTest, LessThenComparison) {
   constexpr std::array<std::array<uint8_t, 4>, 4> greater{
       {{{2, 2, 3, 4}}, {{1, 3, 3, 4}}, {{1, 2, 4, 4}}, {{1, 2, 3, 5}}}};
   for (const auto &val : greater) {
-    Hash<c_hash_size> hval(gsl::make_span(val));
+    Hash<c_hash_size> hval{std::span{val}};
     ASSERT_GT(hval, hsmall);
     ASSERT_LT(hsmall, hval);
     ASSERT_GE(hval, hsmall);
@@ -233,7 +233,7 @@ TEST(HashTest, BitWiseXor) {
 // NOLINTNEXTLINE
 TEST(HashTest, ToHex) {
   std::uint8_t hash_bytes[]{1, 2, 3, 4, 5, 6, 7, 8};
-  const Hash<64> hash(gsl::make_span(hash_bytes));
+  const Hash<64> hash{std::span{hash_bytes}};
   ASSERT_EQ("0102030405060708", hash.ToHex());
 }
 
@@ -242,14 +242,14 @@ TEST(HashTest, FromHex) {
   const std::string hex("0102030405060708");
   const auto hash = Hash<64>::FromHex(hex);
   std::uint8_t hash_bytes[]{1, 2, 3, 4, 5, 6, 7, 8};
-  const Hash<64> hash_ref(gsl::make_span(hash_bytes));
+  const Hash<64> hash_ref{std::span{hash_bytes}};
   ASSERT_EQ(hash_ref, hash);
 }
 
 // NOLINTNEXTLINE
 TEST(HashTest, ToBitSet) {
   std::uint8_t hash_bytes[]{1, 2, 3, 4, 5, 6, 7, 8};
-  const Hash<64> hash(gsl::make_span(hash_bytes));
+  const Hash<64> hash{std::span{hash_bytes}};
   ASSERT_EQ("0000000100000010000000110000010000000101000001100000011100001000",
       hash.ToBitSet().to_string());
 }

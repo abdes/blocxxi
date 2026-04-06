@@ -9,27 +9,33 @@ Blocxxi integration work on top.
 
 ## Table of Contents
 
-1. [Prerequisites](#prerequisites)
-2. [Repository Layout](#repository-layout)
-3. [One-Time Environment Setup](#one-time-environment-setup)
-4. [Building](#building)
-   - [Recommended: generate-builds script](#recommended-generate-builds-script)
-   - [Manual Conan + CMake](#manual-conan--cmake)
-5. [CMake Options](#cmake-options)
-6. [Sanitizer Support (ASan)](#sanitizer-support-asan)
-7. [License](#license)
+- [Blocxxi — Nova-based blockchain and Kademlia stack](#blocxxi--nova-based-blockchain-and-kademlia-stack)
+  - [Table of Contents](#table-of-contents)
+  - [Prerequisites](#prerequisites)
+  - [Repository Layout](#repository-layout)
+  - [One-Time Environment Setup](#one-time-environment-setup)
+    - [Visual Studio](#visual-studio)
+    - [Python virtual environment](#python-virtual-environment)
+    - [Pre-commit hooks](#pre-commit-hooks)
+    - [Conan](#conan)
+  - [Building](#building)
+    - [Recommended: generate-builds script](#recommended-generate-builds-script)
+    - [Manual Conan + CMake](#manual-conan--cmake)
+  - [CMake Options](#cmake-options)
+  - [Sanitizer Support (ASan)](#sanitizer-support-asan)
+  - [License](#license)
 
 ---
 
 ## Prerequisites
 
-| Tool | Minimum version | Notes |
-| ---- | --------------- | ----- |
-| CMake | 3.29 | Must be on `PATH` |
+| Tool          | Minimum version  | Notes                                     |
+| ------------- | ---------------- | ----------------------------------------- |
+| CMake         | 3.29             | Must be on `PATH`                         |
 | Visual Studio | 2026 (MSVC 19.5) | **Desktop development with C++** workload |
-| Python | 3.10+ | For Conan and pre-commit |
-| Conan | 2.x | Installed via `pip` |
-| Git | any recent | Required for revision stamping |
+| Python        | 3.10+            | For Conan and pre-commit                  |
+| Conan         | 2.x              | Installed via `pip`                       |
+| Git           | any recent       | Required for revision stamping            |
 
 ---
 
@@ -139,12 +145,12 @@ host profile — resolved relative to the repository root.
 
 Generated trees land in `out/`:
 
-| Directory | Generator |
-| --------- | --------- |
-| `out/build-ninja/` | Ninja Multi-Config |
-| `out/build-vs/` | Visual Studio 2026 |
+| Directory               | Generator                 |
+| ----------------------- | ------------------------- |
+| `out/build-ninja/`      | Ninja Multi-Config        |
+| `out/build-vs/`         | Visual Studio 2026        |
 | `out/build-asan-ninja/` | Ninja Multi-Config + ASan |
-| `out/build-asan-vs/` | Visual Studio 2026 + ASan |
+| `out/build-asan-vs/`    | Visual Studio 2026 + ASan |
 
 Build with CMake after generation:
 
@@ -228,16 +234,16 @@ cmake --build out/build-asan-ninja --config Debug
 
 These cache variables can be passed via `-D` or set in a CMake preset:
 
-| Option | Default | Description |
-| ------ | ------- | ----------- |
-| `BUILD_SHARED_LIBS` | `OFF` | Build shared instead of static libraries |
-| `NOVA_BUILD_TESTS` | `ON` | Build and register test targets |
-| `NOVA_BUILD_EXAMPLES` | `ON` | Build example targets |
-| `NOVA_BUILD_DOCS` | `ON` | Build documentation targets |
-| `NOVA_WITH_ASAN` | `OFF` | Instrument with Address Sanitizer |
-| `NOVA_WITH_COVERAGE` | `OFF` | Instrument for code coverage |
-| `NOVA_WITH_DOXYGEN` | `OFF` | Generate Doxygen API docs |
-| `NOVA_USE_CCACHE` | `OFF` | Cache compiled artifacts with ccache |
+| Option                | Default | Description                              |
+| --------------------- | ------- | ---------------------------------------- |
+| `BUILD_SHARED_LIBS`   | `OFF`   | Build shared instead of static libraries |
+| `NOVA_BUILD_TESTS`    | `ON`    | Build and register test targets          |
+| `NOVA_BUILD_EXAMPLES` | `ON`    | Build example targets                    |
+| `NOVA_BUILD_DOCS`     | `ON`    | Build documentation targets              |
+| `NOVA_WITH_ASAN`      | `OFF`   | Instrument with Address Sanitizer        |
+| `NOVA_WITH_COVERAGE`  | `OFF`   | Instrument for code coverage             |
+| `NOVA_WITH_DOXYGEN`   | `OFF`   | Generate Doxygen API docs                |
+| `NOVA_USE_CCACHE`     | `OFF`   | Cache compiled artifacts with ccache     |
 
 > **Note:** When renaming the project, replace the `NOVA_` prefix with your
 > project's prefix throughout `CMakeLists.txt` and `conanfile.py`.
@@ -280,5 +286,5 @@ ASan testing is a separate Debug-only tree.
 
 ## License
 
-Distributed under the **3-Clause BSD License**.  
+Distributed under the **3-Clause BSD License**.
 See [LICENSE](LICENSE) for the full text.

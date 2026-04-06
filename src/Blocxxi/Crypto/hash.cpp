@@ -45,7 +45,7 @@ auto NetworkToHost(std::uint32_t number) -> std::uint32_t
 ///
 /// These functions expect the range to be in big-endian byte order.
 
-inline auto CountLeadingZeroBits_SW(gsl::span<std::uint32_t const> buf)
+inline auto CountLeadingZeroBits_SW(std::span<std::uint32_t const> buf)
   -> size_t
 {
   auto const num = buf.size();
@@ -76,7 +76,7 @@ inline auto CountLeadingZeroBits_SW(gsl::span<std::uint32_t const> buf)
   return num * 32;
 }
 
-inline auto CountLeadingZeroBits_HW(gsl::span<std::uint32_t const> buf)
+inline auto CountLeadingZeroBits_HW(std::span<std::uint32_t const> buf)
   -> size_t
 {
   auto const num = buf.size();
@@ -100,7 +100,7 @@ inline auto CountLeadingZeroBits_HW(gsl::span<std::uint32_t const> buf)
   return num * 32;
 }
 
-auto CountLeadingZeroBits(gsl::span<std::uint32_t const> buf) -> size_t
+auto CountLeadingZeroBits(std::span<std::uint32_t const> buf) -> size_t
 {
 #if BLOCXXI_HAS_BUILTIN_CLZ || BLOCXXI_HAS_BITSCAN_REVERSE
   return CountLeadingZeroBits_HW(buf);

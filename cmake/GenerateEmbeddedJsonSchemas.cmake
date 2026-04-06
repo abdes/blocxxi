@@ -45,7 +45,14 @@ if(NOT DEFINED INPUT_MANIFEST OR INPUT_MANIFEST STREQUAL "")
 endif()
 # Be defensive against callers that accidentally pass quoted values.
 string(REGEX REPLACE "^\"(.*)\"$" "\\1" INPUT_MANIFEST "${INPUT_MANIFEST}")
-string(REGEX REPLACE "^\\\\\"(.*)\\\\\"$" "\\1" INPUT_MANIFEST "${INPUT_MANIFEST}")
+string(
+  REGEX
+  REPLACE
+  "^\\\\\"(.*)\\\\\"$"
+  "\\1"
+  INPUT_MANIFEST
+  "${INPUT_MANIFEST}"
+)
 if(NOT EXISTS "${INPUT_MANIFEST}")
   message(FATAL_ERROR "Manifest file not found: ${INPUT_MANIFEST}")
 endif()
@@ -110,7 +117,13 @@ if(NOT _schema_name_count EQUAL _schema_file_count)
   )
 endif()
 
-function(_nova_append_schema_literal_chunks output_file symbol_name schema_text chunk_size)
+function(
+  _nova_append_schema_literal_chunks
+  output_file
+  symbol_name
+  schema_text
+  chunk_size
+)
   if(NOT symbol_name MATCHES "^[A-Za-z_][A-Za-z0-9_]*$")
     message(FATAL_ERROR "Invalid schema symbol name: ${symbol_name}")
   endif()
@@ -188,7 +201,9 @@ function(_nova_append_schema_literal_chunks output_file symbol_name schema_text 
 endfunction()
 
 get_filename_component(
-  _output_dir "${NOVA_JSON_SCHEMA_OUTPUT_HEADER}" DIRECTORY
+  _output_dir
+  "${NOVA_JSON_SCHEMA_OUTPUT_HEADER}"
+  DIRECTORY
 )
 file(MAKE_DIRECTORY "${_output_dir}")
 
@@ -198,11 +213,7 @@ file(
   "// GENERATED FILE - DO NOT EDIT.\n"
 )
 file(APPEND "${NOVA_JSON_SCHEMA_OUTPUT_HEADER}" "#pragma once\n\n")
-file(
-  APPEND
-  "${NOVA_JSON_SCHEMA_OUTPUT_HEADER}"
-  "#include <string_view>\n\n"
-)
+file(APPEND "${NOVA_JSON_SCHEMA_OUTPUT_HEADER}" "#include <string_view>\n\n")
 file(
   APPEND
   "${NOVA_JSON_SCHEMA_OUTPUT_HEADER}"
@@ -221,7 +232,8 @@ foreach(_index RANGE 0 ${_schema_last_index})
     get_filename_component(_schema_file_name "${_schema_file}" NAME)
     if(_schema_file_name STREQUAL "import-manifest.schema.json")
       get_filename_component(_schema_file_dir "${_schema_file}" DIRECTORY)
-      set(_schema_file_candidate
+      set(
+        _schema_file_candidate
         "${_schema_file_dir}/oxygen.import-manifest.schema.json"
       )
       if(EXISTS "${_schema_file_candidate}")

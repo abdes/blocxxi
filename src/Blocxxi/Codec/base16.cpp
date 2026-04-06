@@ -127,7 +127,7 @@ const DecLookupTable<c_lookup_table_size> DEC_LOOKUP_TABLE =
 
 } // namespace
 
-auto blocxxi::codec::hex::Encode(gsl::span<const uint8_t> src, bool reverse,
+auto blocxxi::codec::hex::Encode(std::span<const uint8_t> src, bool reverse,
     bool lower_case) -> std::string {
   const HexLookupTable<c_lookup_table_size> &table =
       (lower_case) ? HEX_LOOKUP_TABLE_LC : HEX_LOOKUP_TABLE_UC;
@@ -149,7 +149,7 @@ auto blocxxi::codec::hex::Encode(gsl::span<const uint8_t> src, bool reverse,
 }
 
 void blocxxi::codec::hex::Decode(
-    gsl::span<const char> src, gsl::span<uint8_t> dest, bool reverse) {
+    std::string_view src, std::span<uint8_t> dest, bool reverse) {
   CHECK_F(
       (src.size() % 2 == 0),
       "the encoded data must contain an even number of hex digits");

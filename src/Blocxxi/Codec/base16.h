@@ -14,8 +14,9 @@
 
 #include <cstdint>
 #include <string>
+#include <string_view>
 
-#include <gsl/gsl>
+#include <span>
 
 #include <Blocxxi/Codec/api_export.h>
 
@@ -34,7 +35,7 @@ namespace blocxxi::codec::hex {
  * letters for the hex digits. Default is `false`.
  * \return A string containing the hex-encoded data.
  */
-BLOCXXI_CODEC_API auto Encode(gsl::span<const uint8_t> src,
+BLOCXXI_CODEC_API auto Encode(std::span<const uint8_t> src,
     bool reverse = false, bool lower_case = false) -> std::string;
 
 /*!
@@ -56,6 +57,6 @@ BLOCXXI_CODEC_API auto Encode(gsl::span<const uint8_t> src,
  * provided range is enough for the input data.
  */
 BLOCXXI_CODEC_API void Decode(
-    gsl::span<const char> src, gsl::span<uint8_t> dest, bool reverse = false);
+    std::string_view src, std::span<uint8_t> dest, bool reverse = false);
 
 } // namespace blocxxi::codec::hex

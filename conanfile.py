@@ -76,7 +76,6 @@ class BlocxxiConan(ConanFile):
 
     def requirements(self):
         self.requires("fmt/12.1.0")
-        self.requires("ms-gsl/4.2.0")
         self.requires("asio/1.36.0")
         self.requires("cryptopp/8.9.0")
         self.requires("magic_enum/0.9.7")

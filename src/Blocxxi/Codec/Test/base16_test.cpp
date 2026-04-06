@@ -44,13 +44,13 @@ struct EncodeTestParams {
 class CoDecTest : public ::testing::TestWithParam<EncodeTestParams> {
 public:
   void SetUp() override {
-    binary_ = gsl::make_span(GetParam().binary_);
+    binary_ = std::span(GetParam().binary_);
     reverse_ = GetParam().reverse_;
     lower_case_ = GetParam().lower_case_;
     hex_ = GetParam().hex_;
   }
 
-  gsl::span<const uint8_t> binary_;
+  std::span<const uint8_t> binary_;
   bool reverse_{false};
   bool lower_case_{false};
   std::string hex_;
@@ -125,7 +125,7 @@ INSTANTIATE_TEST_SUITE_P(NormalCases, Base16DecodeTest,
 TEST_P(Base16DecodeTest, ProperlyDecodesHexString) {
   constexpr auto c_max_encoded_data_size = 256;
   std::array<uint8_t, c_max_encoded_data_size> buf{};
-  Decode(gsl::make_span(hex_), gsl::make_span(buf), reverse_);
+  Decode(hex_, std::span(buf), reverse_);
   for (auto ii = 0U; ii < binary_.size(); ii++) {
     ASSERT_EQ(binary_[ii], buf.at(ii))
         << "Decoded buffer and expected buffer differ at index " << ii;
@@ -137,21 +137,20 @@ TEST_P(Base16DecodeTest, ProperlyDecodesHexString) {
 TEST(Base16DecodeContractCheckTest, AbortsOnOddSizedInput) {
   constexpr auto c_output_buffer_size = 16;
   std::array<uint8_t, c_output_buffer_size> buf{};
+  NOLINT_EXPECT_DEATH(Decode(std::string_view("F"), std::span(buf), false), ".*");
   NOLINT_EXPECT_DEATH(
-      Decode(std::string_view("F"), gsl::make_span(buf), false), ".*");
-  NOLINT_EXPECT_DEATH(
-      Decode(std::string_view("FAB2244"), gsl::make_span(buf), false), ".*");
+      Decode(std::string_view("FAB2244"), std::span(buf), false), ".*");
 }
 
 // NOLINTNEXTLINE
 TEST(Base16DecodeContractCheckTest, AbortsOnSmallerThenNeededOutputBuffer) {
   std::array<uint8_t, 0> zero_buf{};
   NOLINT_EXPECT_DEATH(
-      Decode(std::string_view("FF"), gsl::make_span(zero_buf), false), ".*");
+      Decode(std::string_view("FF"), std::span(zero_buf), false), ".*");
 
   std::array<uint8_t, 2> small_buf{};
   NOLINT_EXPECT_DEATH(
-      Decode(std::string_view("FF23AED2"), gsl::make_span(small_buf), false),
+      Decode(std::string_view("FF23AED2"), std::span(small_buf), false),
       ".*");
 }
 #endif
@@ -161,10 +160,10 @@ TEST(Base16DecodeInvalidInputTest, ThrowsDomainError) {
   constexpr auto c_max_encoded_data_size = 256;
   std::array<uint8_t, c_max_encoded_data_size> buf{};
   // NOLINTNEXTLINE
-  ASSERT_THROW(Decode(std::string_view("FE%@33"), gsl::make_span(buf), false),
+  ASSERT_THROW(Decode(std::string_view("FE%@33"), std::span(buf), false),
       std::domain_error);
   // NOLINTNEXTLINE
-  ASSERT_THROW(Decode(std::string_view("FEA-33"), gsl::make_span(buf), true),
+  ASSERT_THROW(Decode(std::string_view("FEA-33"), std::span(buf), true),
       std::domain_error);
 }
 

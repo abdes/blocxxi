@@ -27,7 +27,10 @@ if(CCACHE_TOOL_PATH)
     # Ccache with MSVC does not support /Zi option, which is added by default,
     # unless we set the CMAKE_MSVC_DEBUG_INFORMATION_FORMAT to Embedded.
     # https://cmake.org/cmake/help/latest/variable/CMAKE_MSVC_DEBUG_INFORMATION_FORMAT.html
-    set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
+    set(
+      CMAKE_MSVC_DEBUG_INFORMATION_FORMAT
+      "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>"
+    )
   endif()
 else()
   message(STATUS "No ccache tool installed.")

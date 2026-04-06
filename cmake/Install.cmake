@@ -168,7 +168,8 @@ function(nova_module_install)
     EXPORT ${META_MODULE_NAME}
     NAMESPACE ${x_EXPORT}::
     DESTINATION ${NOVA_INSTALL_CMAKE}
-    FILE ${META_MODULE_NAME}-targets.cmake COMPONENT ${mod_dev}
+    FILE ${META_MODULE_NAME}-targets.cmake
+    COMPONENT ${mod_dev}
   )
 
   install(
@@ -195,6 +196,7 @@ function(nova_module_install)
     EXPORT ${META_MODULE_NAME}
     NAMESPACE ${x_EXPORT}::
     DESTINATION ${NOVA_INSTALL_CMAKE}
-    FILE ${META_MODULE_NAME}-targets.cmake COMPONENT ${dev}
+    FILE ${META_MODULE_NAME}-targets.cmake
+    COMPONENT ${dev}
   )
 endfunction()

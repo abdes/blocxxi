@@ -7,9 +7,6 @@
 cmake_minimum_required(VERSION 3.29)
 
 list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-if(EXISTS "${CMAKE_BINARY_DIR}/generators")
-  list(PREPEND CMAKE_PREFIX_PATH "${CMAKE_BINARY_DIR}/generators")
-endif()
 # If this project is not the master project, prioritize the master project
 # cmake include dir if it exists.
 if(
@@ -128,13 +125,7 @@ get_property(IS_MULTICONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if(NOT IS_MULTICONFIG)
   if(NOT CMAKE_BUILD_TYPE)
     message(STATUS "Setting build type to 'Debug' as none was specified.")
-    set(
-      CMAKE_BUILD_TYPE
-      Debug
-      CACHE STRING
-      "Choose the type of build."
-      FORCE
-    )
+    set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build." FORCE)
   endif()
   set_property(
     CACHE
