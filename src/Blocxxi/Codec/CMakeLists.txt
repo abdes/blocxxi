@@ -32,12 +32,14 @@ target_sources(
   ${META_MODULE_TARGET}
   PRIVATE
     api_export.h
+    bencode.h
+    bencode.cpp
     base16.h
     base16.cpp
   PUBLIC
     FILE_SET HEADERS
     BASE_DIRS ${NOVA_SOURCE_DIR}
-    FILES api_export.h base16.h
+    FILES api_export.h base16.h bencode.h
 )
 
 arrange_target_files_for_ide(${META_MODULE_TARGET})

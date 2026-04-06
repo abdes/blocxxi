@@ -8,5 +8,6 @@ m_gtest_program(
   Unit
   SOURCES
     main.cpp
+    bencode_test.cpp
     base16_test.cpp
 )
