@@ -161,6 +161,7 @@ auto main(int argc, char** argv) -> int
     std::cout << "live-block-peer=" << blocks.peer_address << '\n';
     std::cout << "live-block-count=" << blocks.blocks.size() << '\n';
     if (!blocks.blocks.empty()) {
+      std::cout << "live-block-summary=peer,block,tx-count,output-total,first-tx\n";
       std::cout << "live-block-hash=" << blocks.blocks.front().block_hash_hex << '\n';
       std::cout << "live-block-bytes=" << blocks.blocks.front().payload.size() << '\n';
       std::cout << "live-block-tx-count=" << blocks.metadata.front().transaction_count
@@ -182,6 +183,11 @@ auto main(int argc, char** argv) -> int
                   << blocks.metadata.front().transaction_output_values.front() << '\n';
         std::cout << "live-block-first-txid="
                   << blocks.metadata.front().transaction_ids.front() << '\n';
+        std::cout << "live-block-first-tx-wtxid="
+                  << blocks.metadata.front().transaction_witness_ids.front() << '\n';
+        std::cout << "live-block-first-tx-has-witness="
+                  << (blocks.metadata.front().transaction_has_witness.front() ? 1 : 0)
+                  << '\n';
       }
     }
     return 0;
