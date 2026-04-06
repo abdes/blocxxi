@@ -12,6 +12,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <unordered_map>
 #include <vector>
 
@@ -20,6 +21,7 @@
 #include <Blocxxi/P2P/kademlia/channel.h>
 #include <Blocxxi/P2P/kademlia/krpc.h>
 #include <Blocxxi/P2P/kademlia/node.h>
+#include <Blocxxi/P2P/kademlia/parameters.h>
 
 namespace blocxxi::p2p::kademlia {
 
@@ -91,6 +93,8 @@ private:
   std::vector<std::string> bootstrap_nodes_;
   std::unordered_map<std::string, std::string> pending_bootstraps_;
   std::unordered_map<std::string, ResponseCallback> pending_requests_;
+  std::unordered_map<std::string, std::unique_ptr<asio::steady_timer>>
+    pending_request_timers_;
   std::unordered_map<std::string, std::string> issued_tokens_;
   std::map<std::string, std::vector<IpEndpoint>, std::less<>> announced_peers_;
   QueryCallback on_query_;

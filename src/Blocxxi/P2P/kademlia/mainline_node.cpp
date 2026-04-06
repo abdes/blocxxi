@@ -144,6 +144,12 @@ void MainlineDhtNode::Start()
 void MainlineDhtNode::Stop()
 {
   started_ = false;
+  for (auto& [transaction_id, timer] : pending_request_timers_) {
+    (void)transaction_id;
+    timer->cancel();
+  }
+  pending_request_timers_.clear();
+  pending_requests_.clear();
 }
 
 auto MainlineDhtNode::HashToBytes(Node::IdType const& id) const -> std::string
@@ -246,6 +252,22 @@ void MainlineDhtNode::SendQuery(
   message.payload_ = std::move(query);
 
   pending_requests_.emplace(transaction_id, std::move(callback));
+  auto timer = std::make_unique<asio::steady_timer>(io_context_);
+  timer->expires_after(REQUEST_TIMEOUT);
+  timer->async_wait([this, transaction_id](std::error_code const& failure) {
+    if (failure == asio::error::operation_aborted) {
+      return;
+    }
+    auto request = pending_requests_.find(transaction_id);
+    if (request != pending_requests_.end()) {
+      auto response = KrpcMessage {};
+      request->second(std::make_error_code(std::errc::timed_out), response);
+      pending_requests_.erase(request);
+    }
+    pending_request_timers_.erase(transaction_id);
+  });
+  pending_request_timers_.emplace(transaction_id, std::move(timer));
+
   auto encoded = Encode(message);
   auto payload = Buffer(encoded.begin(), encoded.end());
   channel_->AsyncSend(payload, destination,
@@ -258,6 +280,11 @@ void MainlineDhtNode::SendQuery(
         auto response = KrpcMessage {};
         found->second(failure, response);
         pending_requests_.erase(found);
+      }
+      if (auto timer = pending_request_timers_.find(transaction_id);
+          timer != pending_request_timers_.end()) {
+        timer->second->cancel();
+        pending_request_timers_.erase(timer);
       }
     });
 }
@@ -380,6 +407,11 @@ void MainlineDhtNode::ScheduleReceive()
           } else {
             auto request = pending_requests_.find(message.transaction_id_);
             if (request != pending_requests_.end()) {
+              if (auto timer = pending_request_timers_.find(message.transaction_id_);
+                  timer != pending_request_timers_.end()) {
+                timer->second->cancel();
+                pending_request_timers_.erase(timer);
+              }
               request->second(std::error_code {}, message);
               pending_requests_.erase(request);
             }

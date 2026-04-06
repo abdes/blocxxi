@@ -108,5 +108,29 @@ TEST(MainlineSessionTest, ForwardsSampleInfohashesRoundTrip)
   ASSERT_TRUE(got_sample);
 }
 
+// NOLINTNEXTLINE
+TEST(MainlineSessionTest, ActiveRequestTimesOutCleanly)
+{
+  asio::io_context io_context;
+  auto client_channel
+    = AsyncUdpChannel::ipv4(io_context, "127.0.0.1", "30129");
+
+  auto client = MainlineSession(MainlineDhtNode(io_context,
+    Node(Node::IdType::RandomHash(), "127.0.0.1", 30129),
+    std::move(client_channel)));
+  client.Start();
+
+  auto timed_out = false;
+  client.AsyncGetPeers(Node::IdType::RandomHash(),
+    IpEndpoint { "127.0.0.1", 30130 },
+    [&timed_out](std::error_code const& failure, KrpcMessage const&) {
+      ASSERT_EQ(failure, std::make_error_code(std::errc::timed_out));
+      timed_out = true;
+    });
+
+  io_context.run_for(REQUEST_TIMEOUT + std::chrono::seconds(1));
+  ASSERT_TRUE(timed_out);
+}
+
 } // namespace blocxxi::p2p::kademlia
 NOVA_DIAGNOSTIC_POP
