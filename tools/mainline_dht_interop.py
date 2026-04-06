@@ -92,6 +92,48 @@ def run_local_mode(args):
         find_node_bytes, _ = udp.recvfrom(2048)
         decoded_find_node = lt.bdecode(find_node_bytes)
 
+        get_peers_query = {
+            b"y": b"q",
+            b"q": b"get_peers",
+            b"t": b"ac",
+            b"a": {
+                b"id": b"abcdefghij0123456789",
+                b"info_hash": bytes.fromhex(ready.split()[2]),
+            },
+        }
+        udp.sendto(lt.bencode(get_peers_query), (host, port))
+        get_peers_bytes, _ = udp.recvfrom(2048)
+        decoded_get_peers = lt.bdecode(get_peers_bytes)
+        token = decoded_get_peers[b"r"][b"token"]
+
+        announce_peer_query = {
+            b"y": b"q",
+            b"q": b"announce_peer",
+            b"t": b"ad",
+            b"a": {
+                b"id": b"abcdefghij0123456789",
+                b"info_hash": bytes.fromhex(ready.split()[2]),
+                b"token": token,
+                b"port": 49000,
+            },
+        }
+        udp.sendto(lt.bencode(announce_peer_query), (host, port))
+        announce_peer_bytes, _ = udp.recvfrom(2048)
+        decoded_announce_peer = lt.bdecode(announce_peer_bytes)
+
+        confirm_get_peers_query = {
+            b"y": b"q",
+            b"q": b"get_peers",
+            b"t": b"ae",
+            b"a": {
+                b"id": b"abcdefghij0123456789",
+                b"info_hash": bytes.fromhex(ready.split()[2]),
+            },
+        }
+        udp.sendto(lt.bencode(confirm_get_peers_query), (host, port))
+        confirm_get_peers_bytes, _ = udp.recvfrom(2048)
+        decoded_confirm_get_peers = lt.bdecode(confirm_get_peers_bytes)
+
         observed_queries = []
         end = time.time() + args.duration
         while time.time() < end:
@@ -111,7 +153,13 @@ def run_local_mode(args):
         result = {
             "mode": "local",
             "fixture": endpoint,
-            "interaction_attempted": ["ping", "find_node"],
+            "interaction_attempted": [
+                "ping",
+                "find_node",
+                "get_peers",
+                "announce_peer",
+                "get_peers-confirm",
+            ],
             "success": (
                 decoded_ping.get(b"y") == b"r"
                 and decoded_ping.get(b"t") == b"aa"
@@ -119,14 +167,25 @@ def run_local_mode(args):
                 and decoded_find_node.get(b"t") == b"ab"
                 and b"nodes" in decoded_find_node.get(b"r", {})
                 and len(decoded_find_node[b"r"][b"nodes"]) == 26
-                and len(observed_queries) >= 2
+                and decoded_get_peers.get(b"y") == b"r"
+                and b"token" in decoded_get_peers.get(b"r", {})
+                and decoded_announce_peer.get(b"y") == b"r"
+                and decoded_confirm_get_peers.get(b"y") == b"r"
+                and b"values" in decoded_confirm_get_peers.get(b"r", {})
+                and len(decoded_confirm_get_peers[b"r"][b"values"]) == 1
             ),
             "response_from": f"{response_addr[0]}:{response_addr[1]}",
             "decoded_ping": normalize_bdecode(decoded_ping),
             "decoded_find_node": normalize_bdecode(decoded_find_node),
+            "decoded_get_peers": normalize_bdecode(decoded_get_peers),
+            "decoded_announce_peer": normalize_bdecode(decoded_announce_peer),
+            "decoded_confirm_get_peers": normalize_bdecode(decoded_confirm_get_peers),
             "observed_queries": observed_queries,
             "verdict": "product-behavior-confirmed"
-            if len(observed_queries) >= 2
+            if (
+                decoded_confirm_get_peers.get(b"y") == b"r"
+                and b"values" in decoded_confirm_get_peers.get(b"r", {})
+            )
             else "inconclusive",
         }
         return 0 if result["success"] else 1, result

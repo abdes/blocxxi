@@ -8,6 +8,29 @@
 
 namespace blocxxi::p2p::kademlia {
 
+namespace {
+
+auto RequireString(KrpcQuery const& query, std::string_view key) -> std::string
+{
+  auto found = query.arguments_.find(key);
+  if (found == query.arguments_.end()) {
+    throw std::invalid_argument("missing query string argument");
+  }
+  return found->second.AsString();
+}
+
+auto FindInteger(KrpcQuery const& query, std::string_view key)
+  -> std::optional<std::int64_t>
+{
+  auto found = query.arguments_.find(key);
+  if (found == query.arguments_.end()) {
+    return std::nullopt;
+  }
+  return found->second.AsInteger();
+}
+
+} // namespace
+
 MainlineDhtNode::MainlineDhtNode(asio::io_context& io_context, Node self,
   ChannelType::PointerType channel)
   : io_context_(io_context)
@@ -52,7 +75,8 @@ auto MainlineDhtNode::HashToBytes(Node::IdType const& id) const -> std::string
 }
 
 auto MainlineDhtNode::MakeResponse(
-  std::string_view method, std::string transaction_id) const
+  std::string_view method, KrpcQuery const& query, IpEndpoint const& sender,
+  std::string transaction_id)
   -> std::optional<KrpcMessage>
 {
   auto values = blocxxi::codec::bencode::Value::DictionaryType {
@@ -63,10 +87,32 @@ auto MainlineDhtNode::MakeResponse(
     values.emplace(
       "nodes", blocxxi::codec::bencode::Value(EncodeCompactNode(self_)));
   } else if (method == "get_peers") {
-    values.emplace(
-      "nodes", blocxxi::codec::bencode::Value(EncodeCompactNode(self_)));
-    values.emplace("token", blocxxi::codec::bencode::Value("blocxxi-token"));
-  } else if (method == "announce_peer" || method == "ping") {
+    auto const info_hash = RequireString(query, "info_hash");
+    auto token = MakeToken(sender);
+    issued_tokens_[sender.ToString()] = token;
+    values.emplace("token", blocxxi::codec::bencode::Value(token));
+
+    auto announced = announced_peers_.find(info_hash);
+    if (announced != announced_peers_.end() && !announced->second.empty()) {
+      auto compact_peers = blocxxi::codec::bencode::Value::ListType {};
+      for (auto const& peer : announced->second) {
+        compact_peers.emplace_back(
+          blocxxi::codec::bencode::Value(EncodeCompactPeer(peer)));
+      }
+      values.emplace("values", blocxxi::codec::bencode::Value(compact_peers));
+    } else {
+      values.emplace(
+        "nodes", blocxxi::codec::bencode::Value(EncodeCompactNode(self_)));
+    }
+  } else if (method == "announce_peer") {
+    auto const token = RequireString(query, "token");
+    auto found = issued_tokens_.find(sender.ToString());
+    if (found == issued_tokens_.end() || found->second != token) {
+      return MakeErrorResponse(
+        203, "invalid announce_peer token", std::move(transaction_id));
+    }
+    RecordAnnouncedPeer(RequireString(query, "info_hash"), sender, query);
+  } else if (method == "ping") {
     // id only
   } else {
     return std::nullopt;
@@ -76,6 +122,17 @@ auto MainlineDhtNode::MakeResponse(
   response.transaction_id_ = std::move(transaction_id);
   response.version_ = "BX01";
   response.payload_ = KrpcResponse { std::move(values) };
+  return response;
+}
+
+auto MainlineDhtNode::MakeErrorResponse(
+  std::int64_t code, std::string message, std::string transaction_id) const
+  -> KrpcMessage
+{
+  auto response = KrpcMessage {};
+  response.transaction_id_ = std::move(transaction_id);
+  response.version_ = "BX01";
+  response.payload_ = KrpcError { code, std::move(message) };
   return response;
 }
 
@@ -93,6 +150,31 @@ auto MainlineDhtNode::MakeBootstrapQuery(std::string transaction_id) const
     },
   };
   return query;
+}
+
+auto MainlineDhtNode::MakeToken(IpEndpoint const& sender) const -> std::string
+{
+  return sender.ToString();
+}
+
+void MainlineDhtNode::RecordAnnouncedPeer(
+  std::string info_hash, IpEndpoint const& sender, KrpcQuery const& query)
+{
+  auto endpoint = sender;
+  auto implied_port = FindInteger(query, "implied_port").value_or(0);
+  if (implied_port == 0) {
+    auto port = FindInteger(query, "port");
+    if (!port.has_value()) {
+      throw std::invalid_argument("announce_peer requires a port");
+    }
+    endpoint.Port(static_cast<std::uint16_t>(*port));
+  }
+
+  auto& peers = announced_peers_[info_hash];
+  auto duplicate = std::find(peers.begin(), peers.end(), endpoint);
+  if (duplicate == peers.end()) {
+    peers.push_back(endpoint);
+  }
 }
 
 void MainlineDhtNode::SendBootstrapQueries()
@@ -148,7 +230,7 @@ void MainlineDhtNode::ScheduleReceive()
             on_query_(query.method_, sender);
           }
           if (auto response
-              = MakeResponse(query.method_, message.transaction_id_)) {
+              = MakeResponse(query.method_, query, sender, message.transaction_id_)) {
             auto encoded = Encode(*response);
             auto payload = Buffer(encoded.begin(), encoded.end());
             channel_->AsyncSend(

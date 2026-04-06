@@ -7,6 +7,7 @@
 #pragma once
 
 #include <functional>
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
@@ -51,11 +52,18 @@ public:
 
 private:
   [[nodiscard]] auto HashToBytes(Node::IdType const& id) const -> std::string;
-  [[nodiscard]] auto MakeResponse(
-    std::string_view method, std::string transaction_id) const
+  [[nodiscard]] auto MakeResponse(std::string_view method,
+    KrpcQuery const& query, IpEndpoint const& sender,
+    std::string transaction_id)
     -> std::optional<KrpcMessage>;
+  [[nodiscard]] auto MakeErrorResponse(
+    std::int64_t code, std::string message, std::string transaction_id) const
+    -> KrpcMessage;
   [[nodiscard]] auto MakeBootstrapQuery(std::string transaction_id) const
     -> KrpcMessage;
+  [[nodiscard]] auto MakeToken(IpEndpoint const& sender) const -> std::string;
+  void RecordAnnouncedPeer(
+    std::string info_hash, IpEndpoint const& sender, KrpcQuery const& query);
   void SendBootstrapQueries();
   void ScheduleReceive();
 
@@ -64,6 +72,8 @@ private:
   ChannelType::PointerType channel_;
   std::vector<std::string> bootstrap_nodes_;
   std::unordered_map<std::string, std::string> pending_bootstraps_;
+  std::unordered_map<std::string, std::string> issued_tokens_;
+  std::map<std::string, std::vector<IpEndpoint>, std::less<>> announced_peers_;
   QueryCallback on_query_;
   BootstrapCallback on_bootstrap_success_;
   bool started_ { false };
