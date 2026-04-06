@@ -17,6 +17,7 @@ namespace {
 struct Args {
   bool live_signet { false };
   bool live_import { false };
+  bool live_block { false };
   std::string host { "seed.signet.bitcoin.sprovoost.nl" };
   std::uint16_t port { 38333 };
   std::string state_root {};
@@ -39,6 +40,8 @@ auto ParseArgs(int argc, char** argv) -> Args
       args.live_signet = true;
     } else if (current == "--live-import") {
       args.live_import = true;
+    } else if (current == "--live-block") {
+      args.live_block = true;
     } else if (current == "--signet-host") {
       args.host = std::string(require_value(current));
     } else if (current == "--signet-port") {
@@ -123,6 +126,36 @@ auto main(int argc, char** argv) -> int
                 << '\n';
       std::cout << "live-import-last-header=" << result.headers.back().hash_hex
                 << '\n';
+    }
+    return 0;
+  }
+
+  if (args.live_block) {
+    auto client = blocxxi::bitcoin::SignetLiveClient({
+      .host = args.host,
+      .port = args.port,
+    });
+    auto headers = blocxxi::bitcoin::SignetHeadersResult {};
+    auto status = client.FetchHeaders(headers);
+    if (!status.ok() || headers.header_hashes.empty()) {
+      std::cerr << (status.ok() ? "no headers available" : status.message) << '\n';
+      return 1;
+    }
+
+    auto blocks = blocxxi::bitcoin::SignetBlocksResult {};
+    auto const first_hash = headers.header_hashes.front();
+    status = client.FetchBlocks(
+      std::span<std::string const>(&first_hash, 1U), blocks);
+    if (!status.ok()) {
+      std::cerr << status.message << '\n';
+      return 1;
+    }
+
+    std::cout << "live-block-peer=" << blocks.peer_address << '\n';
+    std::cout << "live-block-count=" << blocks.blocks.size() << '\n';
+    if (!blocks.blocks.empty()) {
+      std::cout << "live-block-hash=" << blocks.blocks.front().block_hash_hex << '\n';
+      std::cout << "live-block-bytes=" << blocks.blocks.front().payload.size() << '\n';
     }
     return 0;
   }

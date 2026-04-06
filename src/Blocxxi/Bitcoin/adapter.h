@@ -59,12 +59,26 @@ struct SignetHeadersResult {
   std::vector<Header> headers {};
 };
 
+struct BlockBody {
+  std::string block_hash_hex {};
+  std::vector<std::uint8_t> payload {};
+};
+
+struct SignetBlocksResult {
+  std::string peer_address {};
+  std::int32_t protocol_version { 0 };
+  std::vector<std::string> command_trace {};
+  std::vector<BlockBody> blocks {};
+};
+
 class SignetLiveClient {
 public:
   explicit BLOCXXI_BITCOIN_API SignetLiveClient(SignetLiveOptions options = {});
 
   BLOCXXI_BITCOIN_API auto FetchHeaders(SignetHeadersResult& result)
     -> core::Status;
+  BLOCXXI_BITCOIN_API auto FetchBlocks(std::span<std::string const> block_hashes,
+    SignetBlocksResult& result) -> core::Status;
 
 private:
   SignetLiveOptions options_ {};

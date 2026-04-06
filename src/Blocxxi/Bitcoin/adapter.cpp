@@ -217,6 +217,22 @@ auto AppendCompactSize(std::vector<std::uint8_t>& out, std::uint64_t value)
   return payload;
 }
 
+[[nodiscard]] auto EncodeGetDataPayload(std::span<std::string const> block_hashes)
+  -> std::optional<std::vector<std::uint8_t>>
+{
+  auto payload = std::vector<std::uint8_t> {};
+  AppendCompactSize(payload, block_hashes.size());
+  for (auto const& hash_hex : block_hashes) {
+    auto hash = WireHashFromHex(hash_hex);
+    if (!hash.has_value()) {
+      return std::nullopt;
+    }
+    AppendLittleEndian(payload, 2U, 4U); // MSG_BLOCK
+    payload.insert(payload.end(), hash->begin(), hash->end());
+  }
+  return payload;
+}
+
 auto ReadExact(TcpSocket& socket, std::size_t size) -> std::optional<std::vector<std::uint8_t>>
 {
   auto buffer = std::vector<std::uint8_t>(size);
@@ -321,6 +337,22 @@ auto ParseHeadersPayload(std::span<std::uint8_t const> payload,
   }
 
   return core::Status::Success();
+}
+
+[[nodiscard]] auto ParseBlockPayload(std::span<std::uint8_t const> payload)
+  -> std::optional<BlockBody>
+{
+  if (payload.size() < 80U) {
+    return std::nullopt;
+  }
+  auto const header = std::span<std::uint8_t const>(payload.data(), 80U);
+  auto const hash = DoubleSha256(header);
+  auto reversed = std::array<std::uint8_t, 32> {};
+  std::reverse_copy(hash.begin(), hash.end(), reversed.begin());
+  return BlockBody {
+    .block_hash_hex = ToHex(reversed),
+    .payload = std::vector<std::uint8_t>(payload.begin(), payload.end()),
+  };
 }
 
 [[nodiscard]] auto ImportStatePath(std::filesystem::path const& root)
@@ -466,6 +498,112 @@ auto SignetLiveClient::FetchHeaders(SignetHeadersResult& result) -> core::Status
 
   return core::Status::Failure(
     core::StatusCode::IOError, "failed to complete live signet headers fetch");
+}
+
+auto SignetLiveClient::FetchBlocks(
+  std::span<std::string const> block_hashes, SignetBlocksResult& result) -> core::Status
+{
+  if (block_hashes.empty()) {
+    return core::Status::Failure(
+      core::StatusCode::InvalidArgument, "at least one block hash is required");
+  }
+
+  auto const getdata = EncodeGetDataPayload(block_hashes);
+  if (!getdata.has_value()) {
+    return core::Status::Failure(
+      core::StatusCode::InvalidArgument, "invalid block hash for getdata");
+  }
+
+  auto io_context = asio::io_context {};
+  auto resolver = asio::ip::tcp::resolver(io_context);
+  auto error = std::error_code {};
+  auto endpoints = resolver.resolve(options_.host,
+    std::to_string(static_cast<unsigned int>(options_.port)), error);
+  if (error) {
+    return core::Status::Failure(
+      core::StatusCode::IOError, "failed to resolve signet host");
+  }
+
+  for (auto const& endpoint : endpoints) {
+    auto socket = TcpSocket(io_context);
+    socket.connect(endpoint.endpoint(), error);
+    if (error) {
+      continue;
+    }
+
+    auto const remote_address = endpoint.endpoint().address().to_string();
+    auto const version = EncodeVersionPayload(remote_address, options_.port);
+    if (!SendMessage(socket, "version", version)) {
+      continue;
+    }
+
+    auto saw_version = false;
+    auto saw_verack = false;
+    result = SignetBlocksResult {};
+    while (!(saw_version && saw_verack)) {
+      auto message = ReadMessage(socket);
+      if (!message.has_value()) {
+        break;
+      }
+
+      result.command_trace.push_back(message->command);
+      if (message->command == "version") {
+        if (message->payload.size() >= 4U) {
+          std::memcpy(
+            &result.protocol_version, message->payload.data(), sizeof(std::int32_t));
+        }
+        saw_version = true;
+        if (!SendMessage(socket, "verack", std::span<std::uint8_t const> {})) {
+          break;
+        }
+      } else if (message->command == "ping") {
+        if (!SendMessage(socket, "pong", message->payload)) {
+          break;
+        }
+      } else if (message->command == "verack") {
+        saw_verack = true;
+      }
+    }
+
+    if (!(saw_version && saw_verack)) {
+      continue;
+    }
+
+    if (!SendMessage(socket, "getdata", *getdata)) {
+      continue;
+    }
+
+    while (result.blocks.size() < block_hashes.size()) {
+      auto message = ReadMessage(socket);
+      if (!message.has_value()) {
+        break;
+      }
+
+      result.command_trace.push_back(message->command);
+      if (message->command == "ping") {
+        if (!SendMessage(socket, "pong", message->payload)) {
+          break;
+        }
+        continue;
+      }
+      if (message->command == "block") {
+        auto block = ParseBlockPayload(message->payload);
+        if (!block.has_value()) {
+          return core::Status::Failure(
+            core::StatusCode::Rejected, "received malformed block payload");
+        }
+        result.blocks.push_back(std::move(*block));
+      }
+    }
+
+    if (result.blocks.size() == block_hashes.size()) {
+      result.peer_address = remote_address;
+      return core::Status::Success();
+    }
+  }
+
+  return core::Status::Failure(
+    core::StatusCode::IOError, "failed to complete live signet block retrieval");
 }
 
 auto HeaderSyncAdapter::Bind(node::Node& node) -> core::Status

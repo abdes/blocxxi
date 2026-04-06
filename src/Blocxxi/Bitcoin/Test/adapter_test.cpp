@@ -554,4 +554,56 @@ TEST(BitcoinAdapterTest, HeaderSyncAdapterResumesLiveImportFromPersistedLocator)
   std::filesystem::remove_all(state_root);
 }
 
+TEST(BitcoinAdapterTest, SignetLiveClientFetchesBoundedBlockBodiesFromPeer)
+{
+  auto io_context = asio::io_context {};
+  auto acceptor
+    = asio::ip::tcp::acceptor(io_context, { asio::ip::make_address("127.0.0.1"), 0 });
+  auto const port = acceptor.local_endpoint().port();
+
+  auto const header = MakeHeaderBytes(4U, 41U, 1598918408U);
+  auto const expected_hash = HeaderHashHex(header);
+  auto block_payload = std::vector<std::uint8_t>(header.begin(), header.end());
+  block_payload.push_back(1U); // tx count
+  block_payload.push_back(0U); // dummy tx version prefix byte
+
+  auto server = std::thread([&]() {
+    auto socket = asio::ip::tcp::socket(io_context);
+    acceptor.accept(socket);
+    (void)ReadMessage(socket); // version
+
+    auto version_reply = std::vector<std::uint8_t> {};
+    AppendLittleEndian(version_reply, 70016U, 4U);
+    asio::write(socket, asio::buffer(EncodeMessage("version", version_reply)));
+    asio::write(socket,
+      asio::buffer(EncodeMessage("verack", std::span<std::uint8_t const> {})));
+
+    (void)ReadMessage(socket); // verack
+    auto const [getdata_command, getdata_payload] = ReadMessage(socket);
+    EXPECT_EQ(getdata_command, "getdata");
+    EXPECT_FALSE(getdata_payload.empty());
+
+    asio::write(socket, asio::buffer(EncodeMessage("block", block_payload)));
+  });
+
+  auto client = SignetLiveClient({
+    .host = "127.0.0.1",
+    .port = port,
+  });
+  auto result = SignetBlocksResult {};
+  auto const status = client.FetchBlocks(
+    std::span<std::string const>(&expected_hash, 1U), result);
+
+  server.join();
+
+  ASSERT_TRUE(status.ok());
+  EXPECT_EQ(result.peer_address, "127.0.0.1");
+  EXPECT_EQ(result.protocol_version, 70016);
+  ASSERT_EQ(result.blocks.size(), 1U);
+  EXPECT_EQ(result.blocks.front().block_hash_hex, expected_hash);
+  EXPECT_GT(result.blocks.front().payload.size(), 80U);
+  EXPECT_NE(std::find(result.command_trace.begin(), result.command_trace.end(), "block"),
+    result.command_trace.end());
+}
+
 } // namespace blocxxi::bitcoin
