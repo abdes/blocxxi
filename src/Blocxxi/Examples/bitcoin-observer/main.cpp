@@ -19,6 +19,7 @@ struct Args {
   bool live_import { false };
   std::string host { "seed.signet.bitcoin.sprovoost.nl" };
   std::uint16_t port { 38333 };
+  std::string state_root {};
 };
 
 auto ParseArgs(int argc, char** argv) -> Args
@@ -42,6 +43,8 @@ auto ParseArgs(int argc, char** argv) -> Args
       args.host = std::string(require_value(current));
     } else if (current == "--signet-port") {
       args.port = static_cast<std::uint16_t>(std::stoul(std::string(require_value(current))));
+    } else if (current == "--state-root") {
+      args.state_root = std::string(require_value(current));
     } else {
       throw std::invalid_argument("unknown argument: " + std::string(current));
     }
@@ -77,7 +80,12 @@ auto main(int argc, char** argv) -> int
   }
 
   if (args.live_import) {
-    auto node = blocxxi::node::Node();
+    auto options = blocxxi::node::NodeOptions {};
+    if (!args.state_root.empty()) {
+      options.storage_mode = blocxxi::node::StorageMode::FileSystem;
+      options.storage_root = args.state_root;
+    }
+    auto node = blocxxi::node::Node(options);
     auto status = node.Start();
     if (!status.ok()) {
       std::cerr << status.message << '\n';
@@ -99,6 +107,7 @@ auto main(int argc, char** argv) -> int
     status = adapter.ImportLiveSignetHeaders({
         .host = args.host,
         .port = args.port,
+        .state_root = args.state_root,
       },
       &result);
     if (!status.ok()) {

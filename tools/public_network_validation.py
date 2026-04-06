@@ -140,6 +140,10 @@ def encode_getheaders_payload(locator_hashes: list[bytes]) -> bytes:
     )
 
 
+def wire_hash_from_hex(block_hash_hex: str) -> bytes:
+    return bytes.fromhex(block_hash_hex)[::-1]
+
+
 def recv_exact(connection: socket.socket, size: int) -> bytes:
     chunks = bytearray()
     while len(chunks) < size:
@@ -220,7 +224,7 @@ def signet_handshake_validation(
 
 
 def signet_getheaders_validation(
-    host: str, port: int, timeout: float
+    host: str, port: int, timeout: float, locator_hash_hex: str
 ) -> tuple[str, int, list[str]]:
     addresses = resolve_addresses(host, port)
 
@@ -254,7 +258,7 @@ def signet_getheaders_validation(
                 encode_message(
                     "getheaders",
                     encode_getheaders_payload(
-                        [header_hash_to_wire(SIGNET_GENESIS_HASH)]
+                        [wire_hash_from_hex(locator_hash_hex)]
                     ),
                 )
             )
@@ -308,6 +312,11 @@ def parse_args() -> argparse.Namespace:
         default=3.0,
         help="TCP connection timeout in seconds",
     )
+    parser.add_argument(
+        "--signet-locator-hash",
+        default=SIGNET_GENESIS_HASH,
+        help="Locator hash for the signet getheaders request",
+    )
     return parser.parse_args()
 
 
@@ -351,11 +360,12 @@ def main() -> int:
     print(f"MAINLINE_DISCOVERED_TOTAL {discovered_count}")
     print(f"SIGNET_HANDSHAKE_OK {connected}:{args.signet_port}")
     headers_peer, headers_count, headers = signet_getheaders_validation(
-        args.signet_host, args.signet_port, args.tcp_timeout
+        args.signet_host, args.signet_port, args.tcp_timeout, args.signet_locator_hash
     )
     print("=== SIGNET GETHEADERS VALIDATION ===")
     print(f"SIGNET_HEADERS_PEER {headers_peer}:{args.signet_port}")
     print(f"SIGNET_HEADERS_COUNT {headers_count}")
+    print(f"SIGNET_LOCATOR_HASH {args.signet_locator_hash}")
     print(f"SIGNET_FIRST_HEADER {headers[0]}")
     print(f"SIGNET_LAST_HEADER {headers[-1]}")
     return 0

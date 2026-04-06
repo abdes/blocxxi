@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <cstring>
 #include <ctime>
+#include <fstream>
 #include <optional>
 #include <sstream>
 #include <span>
@@ -322,6 +323,43 @@ auto ParseHeadersPayload(std::span<std::uint8_t const> payload,
   return core::Status::Success();
 }
 
+[[nodiscard]] auto ImportStatePath(std::filesystem::path const& root)
+  -> std::filesystem::path
+{
+  return root / "bitcoin-signet-import.txt";
+}
+
+[[nodiscard]] auto LoadImportState(std::filesystem::path const& root)
+  -> std::optional<std::pair<std::uint32_t, std::string>>
+{
+  auto const path = ImportStatePath(root);
+  if (!std::filesystem::exists(path)) {
+    return std::nullopt;
+  }
+
+  auto input = std::ifstream(path);
+  if (!input) {
+    return std::nullopt;
+  }
+
+  auto height_line = std::string {};
+  auto hash_line = std::string {};
+  if (!std::getline(input, height_line) || !std::getline(input, hash_line)) {
+    return std::nullopt;
+  }
+
+  auto const height_prefix = std::string_view { "height=" };
+  auto const hash_prefix = std::string_view { "hash=" };
+  if (!height_line.starts_with(height_prefix) || !hash_line.starts_with(hash_prefix)) {
+    return std::nullopt;
+  }
+
+  return std::pair<std::uint32_t, std::string> {
+    static_cast<std::uint32_t>(std::stoul(height_line.substr(height_prefix.size()))),
+    hash_line.substr(hash_prefix.size()),
+  };
+}
+
 } // namespace
 
 HeaderSyncAdapter::HeaderSyncAdapter(Options options)
@@ -503,7 +541,8 @@ auto HeaderSyncAdapter::ImportLiveSignetHeaders(
       core::StatusCode::Rejected, "adapter must be bound to a node first");
   }
 
-  auto client = SignetLiveClient(std::move(options));
+  auto resolved_options = ResolveImportOptions(std::move(options));
+  auto client = SignetLiveClient(resolved_options);
   auto result = SignetHeadersResult {};
   if (auto status = client.FetchHeaders(result); !status.ok()) {
     return status;
@@ -514,10 +553,60 @@ auto HeaderSyncAdapter::ImportLiveSignetHeaders(
   }
 
   auto status = SubmitHeaders(result.headers);
-  if (status.ok() && live_result != nullptr) {
-    *live_result = std::move(result);
+  if (status.ok()) {
+    PersistImportProgress(resolved_options, result);
+    if (live_result != nullptr) {
+      *live_result = std::move(result);
+    }
   }
   return status;
+}
+
+auto HeaderSyncAdapter::ResolveImportOptions(SignetLiveOptions options) const
+  -> SignetLiveOptions
+{
+  if (options.state_root.empty()) {
+    if (node_ != nullptr
+      && node_->Options().storage_mode == node::StorageMode::FileSystem) {
+      options.state_root = node_->Options().storage_root;
+      if (options.state_root.empty()) {
+        options.state_root = node_->Options().chain.data_directory;
+      }
+    }
+  }
+
+  if (options.state_root.empty()) {
+    return options;
+  }
+
+  if (auto persisted = LoadImportState(options.state_root)) {
+    options.locator_height = persisted->first;
+    options.locator_hash_hex = persisted->second;
+  }
+  return options;
+}
+
+auto HeaderSyncAdapter::PersistImportProgress(
+  SignetLiveOptions const& options, SignetHeadersResult const& result) const -> void
+{
+  if (options.state_root.empty() || result.headers.empty()) {
+    return;
+  }
+
+  auto error = std::error_code {};
+  std::filesystem::create_directories(options.state_root, error);
+  if (error) {
+    return;
+  }
+
+  auto output = std::ofstream(ImportStatePath(options.state_root), std::ios::trunc);
+  if (!output) {
+    return;
+  }
+
+  auto const& last = result.headers.back();
+  output << "height=" << last.height << '\n';
+  output << "hash=" << last.hash_hex << '\n';
 }
 
 auto HeaderSyncAdapter::ValidateHeader(

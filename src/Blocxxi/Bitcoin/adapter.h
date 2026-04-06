@@ -9,6 +9,7 @@
 #include <Blocxxi/Bitcoin/api_export.h>
 
 #include <cstdint>
+#include <filesystem>
 #include <optional>
 #include <span>
 #include <string>
@@ -47,6 +48,7 @@ struct SignetLiveOptions {
     "00000008819873e925422c1ff0f99f7cc9bbb232af63a077a480a3633bee1ef6"
   };
   std::uint32_t locator_height { 0 };
+  std::filesystem::path state_root {};
 };
 
 struct SignetHeadersResult {
@@ -86,6 +88,11 @@ public:
   }
 
 private:
+  [[nodiscard]] BLOCXXI_BITCOIN_API auto ResolveImportOptions(
+    SignetLiveOptions options) const -> SignetLiveOptions;
+  BLOCXXI_BITCOIN_API auto PersistImportProgress(
+    SignetLiveOptions const& options, SignetHeadersResult const& result) const -> void;
+
   [[nodiscard]] BLOCXXI_BITCOIN_API auto ValidateHeader(Header const& header,
     std::optional<Header> const& previous) const -> core::Status;
   [[nodiscard]] BLOCXXI_BITCOIN_API auto HeaderMetadata() const -> std::string;

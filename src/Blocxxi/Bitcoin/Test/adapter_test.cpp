@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <filesystem>
 #include <sstream>
 #include <span>
 #include <string>
@@ -50,6 +51,12 @@ constexpr auto kSignetMagic = std::array<std::uint8_t, 4> { 0x0a, 0x03, 0xcf, 0x
     encoded.push_back(kHexDigits[byte & 0x0FU]);
   }
   return encoded;
+}
+
+[[nodiscard]] auto WireHashToHex(std::span<std::uint8_t const> bytes) -> std::string
+{
+  auto reversed = std::vector<std::uint8_t>(bytes.rbegin(), bytes.rend());
+  return ToHex(reversed);
 }
 
 auto AppendLittleEndian(
@@ -426,6 +433,125 @@ TEST(BitcoinAdapterTest, HeaderSyncAdapterImportsLiveHeadersIntoKernel)
   EXPECT_EQ(live_result.headers.size(), 2U);
   EXPECT_EQ(live_result.headers.front().hash_hex, expected1);
   EXPECT_EQ(live_result.headers.back().hash_hex, expected2);
+}
+
+TEST(BitcoinAdapterTest, HeaderSyncAdapterResumesLiveImportFromPersistedLocator)
+{
+  auto const state_root
+    = std::filesystem::temp_directory_path() / "blocxxi-bitcoin-import-resume";
+  std::filesystem::remove_all(state_root);
+
+  auto first_io = asio::io_context {};
+  auto first_acceptor = asio::ip::tcp::acceptor(
+    first_io, { asio::ip::make_address("127.0.0.1"), 0 });
+  auto const first_port = first_acceptor.local_endpoint().port();
+
+  auto const header1 = MakeHeaderBytes(4U, 31U, 1598918405U);
+  auto header2 = MakeHeaderBytes(4U, 32U, 1598918406U);
+  auto const expected1 = HeaderHashHex(header1);
+  WritePreviousHash(header2, expected1);
+  auto const expected2 = HeaderHashHex(header2);
+
+  auto first_server = std::thread([&]() {
+    auto socket = asio::ip::tcp::socket(first_io);
+    first_acceptor.accept(socket);
+    (void)ReadMessage(socket); // version
+    auto version_reply = std::vector<std::uint8_t> {};
+    AppendLittleEndian(version_reply, 70016U, 4U);
+    asio::write(socket, asio::buffer(EncodeMessage("version", version_reply)));
+    asio::write(socket,
+      asio::buffer(EncodeMessage("verack", std::span<std::uint8_t const> {})));
+    (void)ReadMessage(socket); // verack
+    (void)ReadMessage(socket); // getheaders
+
+    auto headers_payload = std::vector<std::uint8_t> {};
+    AppendCompactSize(headers_payload, 2U);
+    headers_payload.insert(headers_payload.end(), header1.begin(), header1.end());
+    headers_payload.push_back(0U);
+    headers_payload.insert(headers_payload.end(), header2.begin(), header2.end());
+    headers_payload.push_back(0U);
+    asio::write(socket, asio::buffer(EncodeMessage("headers", headers_payload)));
+  });
+
+  auto options = node::NodeOptions {};
+  options.storage_mode = node::StorageMode::FileSystem;
+  options.storage_root = state_root;
+  auto node = node::Node(options);
+  ASSERT_TRUE(node.Start().ok());
+  auto adapter = HeaderSyncAdapter({
+    .network = Network::Signet,
+    .peer_hint = "127.0.0.1",
+    .header_sync_only = true,
+  });
+  ASSERT_TRUE(adapter.Bind(node).ok());
+
+  auto first_result = SignetHeadersResult {};
+  auto status = adapter.ImportLiveSignetHeaders({
+      .host = "127.0.0.1",
+      .port = first_port,
+      .state_root = state_root,
+    },
+    &first_result);
+  first_server.join();
+
+  ASSERT_TRUE(status.ok());
+  EXPECT_EQ(node.Snapshot().height, 2U);
+  ASSERT_EQ(node.Blocks().size(), 3U);
+
+  auto second_io = asio::io_context {};
+  auto second_acceptor = asio::ip::tcp::acceptor(
+    second_io, { asio::ip::make_address("127.0.0.1"), 0 });
+  auto const second_port = second_acceptor.local_endpoint().port();
+
+  auto header3 = MakeHeaderBytes(4U, 33U, 1598918407U);
+  WritePreviousHash(header3, expected2);
+  auto const expected3 = HeaderHashHex(header3);
+  auto observed_locator = std::string {};
+
+  auto second_server = std::thread([&]() {
+    auto socket = asio::ip::tcp::socket(second_io);
+    second_acceptor.accept(socket);
+    (void)ReadMessage(socket); // version
+    auto version_reply = std::vector<std::uint8_t> {};
+    AppendLittleEndian(version_reply, 70016U, 4U);
+    asio::write(socket, asio::buffer(EncodeMessage("version", version_reply)));
+    asio::write(socket,
+      asio::buffer(EncodeMessage("verack", std::span<std::uint8_t const> {})));
+    (void)ReadMessage(socket); // verack
+    auto const [_command, getheaders_payload] = ReadMessage(socket);
+
+    auto offset = std::size_t { 4U };
+    auto const count = getheaders_payload[offset++];
+    EXPECT_EQ(count, 1U);
+    observed_locator = WireHashToHex(std::span<std::uint8_t const>(
+      getheaders_payload.data() + offset, 32U));
+    offset += 32U;
+
+    auto headers_payload = std::vector<std::uint8_t> {};
+    AppendCompactSize(headers_payload, 1U);
+    headers_payload.insert(headers_payload.end(), header3.begin(), header3.end());
+    headers_payload.push_back(0U);
+    asio::write(socket, asio::buffer(EncodeMessage("headers", headers_payload)));
+  });
+
+  auto second_result = SignetHeadersResult {};
+  status = adapter.ImportLiveSignetHeaders({
+      .host = "127.0.0.1",
+      .port = second_port,
+      .state_root = state_root,
+    },
+    &second_result);
+  second_server.join();
+
+  ASSERT_TRUE(status.ok());
+  EXPECT_EQ(observed_locator, expected2);
+  EXPECT_EQ(second_result.headers.size(), 1U);
+  EXPECT_EQ(second_result.headers.front().height, 3U);
+  EXPECT_EQ(second_result.headers.front().hash_hex, expected3);
+  EXPECT_EQ(node.Snapshot().height, 3U);
+  ASSERT_EQ(node.Blocks().size(), 4U);
+
+  std::filesystem::remove_all(state_root);
 }
 
 } // namespace blocxxi::bitcoin
