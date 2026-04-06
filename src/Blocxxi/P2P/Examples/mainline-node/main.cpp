@@ -238,12 +238,22 @@ auto main(int argc, char** argv) -> int
         struct DiscoveryState {
           std::set<std::string> seen_keys_;
           std::deque<blocxxi::p2p::kademlia::IpEndpoint> pending_;
+          std::set<std::string> queued_endpoints_;
           std::size_t outstanding_ { 0 };
           std::size_t total_unique_ { 0 };
         };
 
         auto state = std::make_shared<DiscoveryState>();
-        state->pending_.push_back(remote);
+        auto enqueue_endpoint = [&](blocxxi::p2p::kademlia::IpEndpoint endpoint) {
+          auto const key = endpoint.ToString();
+          if (state->queued_endpoints_.insert(key).second) {
+            state->pending_.push_back(std::move(endpoint));
+          }
+        };
+        enqueue_endpoint(remote);
+        for (auto const& bootstrap : args.bootstrap_nodes_) {
+          enqueue_endpoint(ParseEndpoint(io_context, bootstrap));
+        }
 
         auto schedule = std::make_shared<std::function<void()>>();
         *schedule = [&, state, schedule, target]() {
@@ -273,7 +283,10 @@ auto main(int argc, char** argv) -> int
                         std::cout << "DISCOVERED_NODE " << key << std::endl;
                         std::cout << "DISCOVERY_TOTAL " << state->total_unique_
                                   << std::endl;
-                        state->pending_.push_back(node.Endpoint());
+                        auto endpoint_key = node.Endpoint().ToString();
+                        if (state->queued_endpoints_.insert(endpoint_key).second) {
+                          state->pending_.push_back(node.Endpoint());
+                        }
                       }
                     }
                   }
