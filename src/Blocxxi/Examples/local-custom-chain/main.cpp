@@ -4,15 +4,58 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
 
+#include <filesystem>
 #include <iostream>
+#include <optional>
+#include <stdexcept>
+#include <string>
+#include <string_view>
 
 #include <Blocxxi/Node/node.h>
 
-auto main() -> int
+namespace {
+
+struct Args {
+  std::optional<std::filesystem::path> storage_root {};
+  std::string payload { "mint:1" };
+};
+
+auto ParseArgs(int argc, char** argv) -> Args
 {
+  auto args = Args {};
+  for (auto index = 1; index < argc; ++index) {
+    auto const current = std::string_view(argv[index]);
+    auto require_value = [&](std::string_view flag) -> std::string_view {
+      if (index + 1 >= argc) {
+        throw std::invalid_argument("missing value for " + std::string(flag));
+      }
+      ++index;
+      return argv[index];
+    };
+
+    if (current == "--storage-root") {
+      args.storage_root = std::filesystem::path(require_value(current));
+    } else if (current == "--payload") {
+      args.payload = std::string(require_value(current));
+    } else {
+      throw std::invalid_argument("unknown argument: " + std::string(current));
+    }
+  }
+  return args;
+}
+
+} // namespace
+
+auto main(int argc, char** argv) -> int
+{
+  auto args = ParseArgs(argc, argv);
   auto options = blocxxi::node::NodeOptions {};
   options.chain.chain_id = "demo.custom";
   options.chain.display_name = "Demo Custom Chain";
+  if (args.storage_root.has_value()) {
+    options.storage_mode = blocxxi::node::StorageMode::FileSystem;
+    options.storage_root = *args.storage_root;
+  }
   auto node = blocxxi::node::Node(options);
 
   auto status = node.Start();
@@ -27,7 +70,7 @@ auto main() -> int
   });
 
   status = node.SubmitTransaction(
-    blocxxi::core::Transaction::FromText("custom.asset", "mint:1", "issuer=demo"));
+    blocxxi::core::Transaction::FromText("custom.asset", args.payload, "issuer=demo"));
   if (!status.ok()) {
     std::cerr << status.message << '\n';
     return 1;
@@ -43,5 +86,7 @@ auto main() -> int
   std::cout << "chain=" << node.Options().chain.chain_id << '\n';
   std::cout << "height=" << snapshot.height << '\n';
   std::cout << "blocks=" << node.Blocks().size() << '\n';
+  std::cout << "payload=" << node.Blocks().back().transactions.front().PayloadText()
+            << '\n';
   return 0;
 }

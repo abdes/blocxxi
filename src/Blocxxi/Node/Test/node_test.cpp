@@ -6,6 +6,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <filesystem>
 #include <memory>
 
@@ -18,10 +19,10 @@ class RecordingPlugin final : public core::Plugin {
 public:
   void OnEvent(core::ChainEvent const& event) override
   {
-    events.push_back(event.type);
+    events.push_back(event);
   }
 
-  std::vector<core::EventType> events {};
+  std::vector<core::ChainEvent> events {};
 };
 
 } // namespace
@@ -41,6 +42,9 @@ TEST(NodeTest, NoDhtNodeCanStartAcceptTransactionsAndCommit)
   EXPECT_EQ(node.Snapshot().height, 1);
   EXPECT_EQ(node.Blocks().size(), 2U);
   EXPECT_GE(plugin->events.size(), 3U);
+  EXPECT_EQ(plugin->events.front().type, core::EventType::NodeStarting);
+  EXPECT_EQ(plugin->events[1].type, core::EventType::NodeStarted);
+  EXPECT_EQ(plugin->events[2].type, core::EventType::TransactionAccepted);
 }
 
 TEST(NodeTest, DiscoveryAttachmentIsOptionalAndExplicit)
@@ -53,6 +57,38 @@ TEST(NodeTest, DiscoveryAttachmentIsOptionalAndExplicit)
   ASSERT_TRUE(node.Start().ok());
   EXPECT_TRUE(node.IsRunning());
   EXPECT_EQ(node.Snapshot().height, 0);
+}
+
+TEST(NodeTest, PublicApiSubscribersReceiveCommittedPayloadDetails)
+{
+  auto node = Node();
+  auto plugin = std::make_shared<RecordingPlugin>();
+  auto observed = std::vector<core::ChainEvent> {};
+  node.RegisterPlugin(plugin);
+  node.Subscribe([&](core::ChainEvent const& event) { observed.push_back(event); });
+
+  ASSERT_TRUE(node.Start().ok());
+  ASSERT_TRUE(node.SubmitTransaction(
+    core::Transaction::FromText("demo.asset", "mint:42", "issuer=test")).ok());
+  ASSERT_TRUE(node.CommitPending("plugin-proof").ok());
+
+  auto const committed = std::find_if(observed.begin(), observed.end(),
+    [](core::ChainEvent const& event) {
+      return event.type == core::EventType::BlockCommitted && event.block.has_value();
+    });
+  ASSERT_NE(committed, observed.end());
+  ASSERT_TRUE(committed->block.has_value());
+  ASSERT_EQ(committed->block->transactions.size(), 1U);
+  EXPECT_EQ(committed->block->transactions.front().PayloadText(), "mint:42");
+  EXPECT_EQ(committed->block->transactions.front().metadata, "issuer=test");
+  EXPECT_EQ(committed->message, "pending transactions committed");
+
+  auto const plugin_block = std::find_if(plugin->events.begin(), plugin->events.end(),
+    [](core::ChainEvent const& event) {
+      return event.type == core::EventType::BlockCommitted && event.block.has_value();
+    });
+  ASSERT_NE(plugin_block, plugin->events.end());
+  EXPECT_EQ(plugin_block->block->transactions.front().type, "demo.asset");
 }
 
 TEST(NodeTest, FileSystemNodeRestartsFromPersistedSnapshotWithoutDht)
