@@ -576,6 +576,11 @@ TEST(BitcoinAdapterTest, SignetLiveClientFetchesBoundedBlockBodiesFromPeer)
   block_payload.push_back(0U);
   block_payload.push_back(0U);
   block_payload.push_back(0U);
+  auto const tx_payload = std::span<std::uint8_t const>(block_payload.data() + 81U, 10U);
+  auto const tx_hash = DoubleSha256(tx_payload);
+  auto tx_hash_reversed = std::array<std::uint8_t, 32> {};
+  std::reverse_copy(tx_hash.begin(), tx_hash.end(), tx_hash_reversed.begin());
+  auto const expected_txid = ToHex(tx_hash_reversed);
 
   auto server = std::thread([&]() {
     auto socket = asio::ip::tcp::socket(io_context);
@@ -625,6 +630,12 @@ TEST(BitcoinAdapterTest, SignetLiveClientFetchesBoundedBlockBodiesFromPeer)
   ASSERT_EQ(result.metadata.front().transaction_output_counts.size(), 1U);
   EXPECT_EQ(result.metadata.front().transaction_input_counts.front(), 0U);
   EXPECT_EQ(result.metadata.front().transaction_output_counts.front(), 0U);
+  ASSERT_EQ(result.metadata.front().transaction_has_witness.size(), 1U);
+  EXPECT_FALSE(result.metadata.front().transaction_has_witness.front());
+  ASSERT_EQ(result.metadata.front().transaction_ids.size(), 1U);
+  ASSERT_EQ(result.metadata.front().transaction_witness_ids.size(), 1U);
+  EXPECT_EQ(result.metadata.front().transaction_ids.front(), expected_txid);
+  EXPECT_EQ(result.metadata.front().transaction_witness_ids.front(), expected_txid);
   EXPECT_NE(std::find(result.command_trace.begin(), result.command_trace.end(), "block"),
     result.command_trace.end());
 }

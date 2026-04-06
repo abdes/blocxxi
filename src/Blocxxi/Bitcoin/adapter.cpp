@@ -391,6 +391,11 @@ auto ParseHeadersPayload(std::span<std::uint8_t const> payload,
   auto read_compact = [&]() -> std::optional<std::uint64_t> {
     return ReadCompactSize(payload, offset);
   };
+  auto append_range = [&](std::vector<std::uint8_t>& out,
+                        std::size_t begin,
+                        std::size_t end) -> void {
+    out.insert(out.end(), payload.begin() + begin, payload.begin() + end);
+  };
 
   for (auto index = std::uint64_t { 0 }; index < metadata.transaction_count; ++index) {
     auto const start = offset;
@@ -400,6 +405,7 @@ auto ParseHeadersPayload(std::span<std::uint8_t const> payload,
     }
     std::memcpy(&version, payload.data() + offset, sizeof(version));
     offset += 4U;
+    auto const version_end = offset;
 
     auto has_witness = false;
     if (offset + 2U <= payload.size() && payload[offset] == 0U && payload[offset + 1U] != 0U) {
@@ -407,10 +413,12 @@ auto ParseHeadersPayload(std::span<std::uint8_t const> payload,
       offset += 2U;
     }
 
+    auto const vin_count_offset = offset;
     auto const input_count = read_compact();
     if (!input_count.has_value()) {
       return std::nullopt;
     }
+    auto const vin_start = vin_count_offset;
     for (auto vin = std::uint64_t { 0 }; vin < *input_count; ++vin) {
       if (!read_bytes(36U)) {
         return std::nullopt;
@@ -423,11 +431,14 @@ auto ParseHeadersPayload(std::span<std::uint8_t const> payload,
         return std::nullopt;
       }
     }
+    auto const vin_end = offset;
 
+    auto const vout_count_offset = offset;
     auto const output_count = read_compact();
     if (!output_count.has_value()) {
       return std::nullopt;
     }
+    auto const vout_start = vout_count_offset;
     for (auto vout = std::uint64_t { 0 }; vout < *output_count; ++vout) {
       if (!read_bytes(8U)) {
         return std::nullopt;
@@ -437,6 +448,7 @@ auto ParseHeadersPayload(std::span<std::uint8_t const> payload,
         return std::nullopt;
       }
     }
+    auto const vout_end = offset;
 
     if (has_witness) {
       for (auto vin = std::uint64_t { 0 }; vin < *input_count; ++vin) {
@@ -456,10 +468,30 @@ auto ParseHeadersPayload(std::span<std::uint8_t const> payload,
     if (!read_bytes(4U)) {
       return std::nullopt;
     }
-    metadata.transaction_sizes.push_back(offset - start);
+    auto const transaction_end = offset;
+    auto const transaction_size = transaction_end - start;
+    metadata.transaction_sizes.push_back(transaction_size);
     metadata.transaction_versions.push_back(version);
     metadata.transaction_input_counts.push_back(*input_count);
     metadata.transaction_output_counts.push_back(*output_count);
+    metadata.transaction_has_witness.push_back(has_witness);
+
+    auto full_tx = std::vector<std::uint8_t> {};
+    append_range(full_tx, start, transaction_end);
+    auto const wtxid = DoubleSha256(full_tx);
+    auto wtxid_bytes = std::array<std::uint8_t, 32> {};
+    std::reverse_copy(wtxid.begin(), wtxid.end(), wtxid_bytes.begin());
+    metadata.transaction_witness_ids.push_back(ToHex(wtxid_bytes));
+
+    auto txid_payload = std::vector<std::uint8_t> {};
+    append_range(txid_payload, start, version_end);
+    append_range(txid_payload, vin_start, vin_end);
+    append_range(txid_payload, vout_start, vout_end);
+    append_range(txid_payload, transaction_end - 4U, transaction_end);
+    auto const txid = DoubleSha256(txid_payload);
+    auto txid_bytes = std::array<std::uint8_t, 32> {};
+    std::reverse_copy(txid.begin(), txid.end(), txid_bytes.begin());
+    metadata.transaction_ids.push_back(ToHex(txid_bytes));
   }
 
   return metadata;

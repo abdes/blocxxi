@@ -169,6 +169,8 @@ auto main(int argc, char** argv) -> int
                   << blocks.metadata.front().transaction_input_counts.front() << '\n';
         std::cout << "live-block-first-tx-vout="
                   << blocks.metadata.front().transaction_output_counts.front() << '\n';
+        std::cout << "live-block-first-txid="
+                  << blocks.metadata.front().transaction_ids.front() << '\n';
       }
     }
     return 0;

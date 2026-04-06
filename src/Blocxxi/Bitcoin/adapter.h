@@ -75,6 +75,9 @@ struct BlockMetadata {
   std::vector<std::uint32_t> transaction_versions {};
   std::vector<std::uint64_t> transaction_input_counts {};
   std::vector<std::uint64_t> transaction_output_counts {};
+  std::vector<bool> transaction_has_witness {};
+  std::vector<std::string> transaction_ids {};
+  std::vector<std::string> transaction_witness_ids {};
 };
 
 struct SignetBlocksResult {
