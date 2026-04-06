@@ -7,7 +7,7 @@
      " for paragraphs
 
 ############################################################
-Blocxxi implementation of Kademlia DHT and Blockchain in C++
+Blocxxi reusable blockchain platform and Kademlia stack in C++
 ############################################################
 
 .. |date| date::
@@ -20,6 +20,11 @@ Last Updated on |date|
    :hidden:
 
    tools/index
+   platform
+   platform-core
+   platform-chain
+   platform-storage
+   platform-node
    license
    changelog.md
    version
@@ -45,10 +50,34 @@ Parts of the documentation
 --------------------
   *start here to understand the NAT and port mapping utility module APIs.*
 
+:doc:`platform module guide <platform>`
+--------------------------------------
+  *start here to understand the new reusable blockchain platform surface: Core,
+  Chain, Storage, Node, and the platform-level examples.*
+
 :doc:`p2p <p2p:api>`
 --------------------
-  *start here to understand the core of the blocxxi project: its implementation
-  of a Kademlia based DHT.*
+  *start here to understand Blocxxi's optional Kademlia based discovery and
+  transport subsystem.*
+
+:doc:`core <platform-core>`
+--------------------------
+  *developer-facing primitives, events, and plugin hooks for third-party
+  blockchain applications.*
+
+:doc:`chain <platform-chain>`
+----------------------------
+  *kernel contracts and local block-acceptance orchestration that sit above
+  the core module and below runtime composition.*
+
+:doc:`storage <platform-storage>`
+--------------------------------
+  *storage ports and in-memory reference adapters for the local-chain proof.*
+
+:doc:`node <platform-node>`
+--------------------------
+  *the simple local node facade that lets external apps bootstrap a chain
+  without importing DHT- or storage-specific internals.*
 
 `Developer Guides <https://abdes.github.io/asap/asap_master/html/project-development/index.html>`_
 --------------------------------------------------------------------------------------------------

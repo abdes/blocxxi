@@ -2,8 +2,9 @@
 
 Blocxxi is being re-founded on Nova’s Conan + CMake scaffold while preserving
 its blockchain, Kademlia, and reusable networking/domain code. The repository
-currently carries the Nova reusable modules under `src/Nova/` and project-owned
-Blocxxi integration work on top.
+now exposes a reusable blockchain platform surface (`Core`, `Chain`, `Storage`,
+`Node`) alongside the existing `P2P` subsystem, with project-owned Blocxxi
+integration work layered on top of the Nova reusable modules under `src/Nova/`.
 
 ---
 
@@ -59,7 +60,12 @@ Blocxxi integration work on top.
 │       ├── Codec/
 │       ├── Crypto/
 │       ├── Nat/
-│       └── P2P/
+│       ├── Core/
+│       ├── Chain/
+│       ├── Storage/
+│       ├── Node/
+│       ├── P2P/
+│       └── Examples/
 └── tools/
     ├── generate-builds.ps1 # One-shot Conan + CMake bootstrap script
     └── presets/            # CMake preset fragments

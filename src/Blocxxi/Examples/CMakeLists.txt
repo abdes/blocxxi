@@ -4,15 +4,5 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ===-----------------------------------------------------------------------===#
 
-add_subdirectory("Codec")
-add_subdirectory("Crypto")
-add_subdirectory("Nat")
-add_subdirectory("Core")
-add_subdirectory("Chain")
-add_subdirectory("Storage")
-add_subdirectory("Node")
-add_subdirectory("P2P")
-
-if(NOVA_BUILD_EXAMPLES)
-  add_subdirectory("Examples")
-endif()
+add_subdirectory("hello-plugin")
+add_subdirectory("local-custom-chain")

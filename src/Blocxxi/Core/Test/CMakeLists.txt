@@ -4,15 +4,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # ===-----------------------------------------------------------------------===#
 
-add_subdirectory("Codec")
-add_subdirectory("Crypto")
-add_subdirectory("Nat")
-add_subdirectory("Core")
-add_subdirectory("Chain")
-add_subdirectory("Storage")
-add_subdirectory("Node")
-add_subdirectory("P2P")
-
-if(NOVA_BUILD_EXAMPLES)
-  add_subdirectory("Examples")
-endif()
+m_gtest_program(
+  Unit
+  SOURCES
+    main.cpp
+    primitives_test.cpp
+)
