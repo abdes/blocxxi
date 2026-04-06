@@ -602,6 +602,11 @@ TEST(BitcoinAdapterTest, SignetLiveClientFetchesBoundedBlockBodiesFromPeer)
   ASSERT_EQ(result.blocks.size(), 1U);
   EXPECT_EQ(result.blocks.front().block_hash_hex, expected_hash);
   EXPECT_GT(result.blocks.front().payload.size(), 80U);
+  ASSERT_EQ(result.metadata.size(), 1U);
+  EXPECT_EQ(result.metadata.front().block_hash_hex, expected_hash);
+  EXPECT_EQ(result.metadata.front().version, 4U);
+  EXPECT_EQ(result.metadata.front().nonce, 41U);
+  EXPECT_EQ(result.metadata.front().transaction_count, 1U);
   EXPECT_NE(std::find(result.command_trace.begin(), result.command_trace.end(), "block"),
     result.command_trace.end());
 }

@@ -64,11 +64,21 @@ struct BlockBody {
   std::vector<std::uint8_t> payload {};
 };
 
+struct BlockMetadata {
+  std::string block_hash_hex {};
+  std::string previous_hash_hex {};
+  std::uint32_t version { 0 };
+  std::uint32_t timestamp { 0 };
+  std::uint32_t nonce { 0 };
+  std::uint64_t transaction_count { 0 };
+};
+
 struct SignetBlocksResult {
   std::string peer_address {};
   std::int32_t protocol_version { 0 };
   std::vector<std::string> command_trace {};
   std::vector<BlockBody> blocks {};
+  std::vector<BlockMetadata> metadata {};
 };
 
 class SignetLiveClient {

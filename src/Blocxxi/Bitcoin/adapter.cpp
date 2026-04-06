@@ -355,6 +355,34 @@ auto ParseHeadersPayload(std::span<std::uint8_t const> payload,
   };
 }
 
+[[nodiscard]] auto ParseBlockMetadata(
+  std::span<std::uint8_t const> payload) -> std::optional<BlockMetadata>
+{
+  if (payload.size() < 81U) {
+    return std::nullopt;
+  }
+
+  auto metadata = BlockMetadata {};
+  std::memcpy(&metadata.version, payload.data(), sizeof(metadata.version));
+  std::memcpy(&metadata.timestamp, payload.data() + 68U, sizeof(metadata.timestamp));
+  std::memcpy(&metadata.nonce, payload.data() + 76U, sizeof(metadata.nonce));
+  metadata.previous_hash_hex = WireHashToHex(
+    std::span<std::uint8_t const>(payload.data() + 4U, 32U));
+
+  auto const hash = DoubleSha256(std::span<std::uint8_t const>(payload.data(), 80U));
+  auto reversed = std::array<std::uint8_t, 32> {};
+  std::reverse_copy(hash.begin(), hash.end(), reversed.begin());
+  metadata.block_hash_hex = ToHex(reversed);
+
+  auto offset = std::size_t { 80U };
+  auto const tx_count = ReadCompactSize(payload, offset);
+  if (!tx_count.has_value()) {
+    return std::nullopt;
+  }
+  metadata.transaction_count = *tx_count;
+  return metadata;
+}
+
 [[nodiscard]] auto ImportStatePath(std::filesystem::path const& root)
   -> std::filesystem::path
 {
@@ -592,7 +620,13 @@ auto SignetLiveClient::FetchBlocks(
           return core::Status::Failure(
             core::StatusCode::Rejected, "received malformed block payload");
         }
+        auto metadata = ParseBlockMetadata(message->payload);
+        if (!metadata.has_value()) {
+          return core::Status::Failure(
+            core::StatusCode::Rejected, "received block with unreadable metadata");
+        }
         result.blocks.push_back(std::move(*block));
+        result.metadata.push_back(std::move(*metadata));
       }
     }
 

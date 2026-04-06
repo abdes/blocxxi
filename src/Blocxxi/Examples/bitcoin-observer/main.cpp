@@ -156,6 +156,10 @@ auto main(int argc, char** argv) -> int
     if (!blocks.blocks.empty()) {
       std::cout << "live-block-hash=" << blocks.blocks.front().block_hash_hex << '\n';
       std::cout << "live-block-bytes=" << blocks.blocks.front().payload.size() << '\n';
+      std::cout << "live-block-tx-count=" << blocks.metadata.front().transaction_count
+                << '\n';
+      std::cout << "live-block-prev=" << blocks.metadata.front().previous_hash_hex
+                << '\n';
     }
     return 0;
   }
