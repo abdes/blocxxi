@@ -165,6 +165,8 @@ auto main(int argc, char** argv) -> int
       std::cout << "live-block-bytes=" << blocks.blocks.front().payload.size() << '\n';
       std::cout << "live-block-tx-count=" << blocks.metadata.front().transaction_count
                 << '\n';
+      std::cout << "live-block-output-total="
+                << blocks.metadata.front().total_output_value << '\n';
       std::cout << "live-block-prev=" << blocks.metadata.front().previous_hash_hex
                 << '\n';
       if (!blocks.metadata.front().transaction_sizes.empty()) {
@@ -176,6 +178,8 @@ auto main(int argc, char** argv) -> int
                   << blocks.metadata.front().transaction_input_counts.front() << '\n';
         std::cout << "live-block-first-tx-vout="
                   << blocks.metadata.front().transaction_output_counts.front() << '\n';
+        std::cout << "live-block-first-tx-output-total="
+                  << blocks.metadata.front().transaction_output_values.front() << '\n';
         std::cout << "live-block-first-txid="
                   << blocks.metadata.front().transaction_ids.front() << '\n';
       }

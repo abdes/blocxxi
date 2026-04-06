@@ -439,10 +439,15 @@ auto ParseHeadersPayload(std::span<std::uint8_t const> payload,
       return std::nullopt;
     }
     auto const vout_start = vout_count_offset;
+    auto tx_output_total = std::uint64_t { 0 };
     for (auto vout = std::uint64_t { 0 }; vout < *output_count; ++vout) {
-      if (!read_bytes(8U)) {
+      if (offset + 8U > payload.size()) {
         return std::nullopt;
       }
+      auto value = std::uint64_t { 0 };
+      std::memcpy(&value, payload.data() + offset, sizeof(value));
+      tx_output_total += value;
+      offset += 8U;
       auto const script_size = read_compact();
       if (!script_size.has_value() || !read_bytes(*script_size)) {
         return std::nullopt;
@@ -474,6 +479,8 @@ auto ParseHeadersPayload(std::span<std::uint8_t const> payload,
     metadata.transaction_versions.push_back(version);
     metadata.transaction_input_counts.push_back(*input_count);
     metadata.transaction_output_counts.push_back(*output_count);
+    metadata.transaction_output_values.push_back(tx_output_total);
+    metadata.total_output_value += tx_output_total;
     metadata.transaction_has_witness.push_back(has_witness);
 
     auto full_tx = std::vector<std::uint8_t> {};

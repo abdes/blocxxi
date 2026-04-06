@@ -623,14 +623,17 @@ TEST(BitcoinAdapterTest, SignetLiveClientFetchesBoundedBlockBodiesFromPeer)
   EXPECT_EQ(result.metadata.front().version, 4U);
   EXPECT_EQ(result.metadata.front().nonce, 41U);
   EXPECT_EQ(result.metadata.front().transaction_count, 1U);
+  EXPECT_EQ(result.metadata.front().total_output_value, 0U);
   ASSERT_EQ(result.metadata.front().transaction_sizes.size(), 1U);
   EXPECT_EQ(result.metadata.front().transaction_sizes.front(), 10U);
   ASSERT_EQ(result.metadata.front().transaction_versions.size(), 1U);
   EXPECT_EQ(result.metadata.front().transaction_versions.front(), 1U);
   ASSERT_EQ(result.metadata.front().transaction_input_counts.size(), 1U);
   ASSERT_EQ(result.metadata.front().transaction_output_counts.size(), 1U);
+  ASSERT_EQ(result.metadata.front().transaction_output_values.size(), 1U);
   EXPECT_EQ(result.metadata.front().transaction_input_counts.front(), 0U);
   EXPECT_EQ(result.metadata.front().transaction_output_counts.front(), 0U);
+  EXPECT_EQ(result.metadata.front().transaction_output_values.front(), 0U);
   ASSERT_EQ(result.metadata.front().transaction_has_witness.size(), 1U);
   EXPECT_FALSE(result.metadata.front().transaction_has_witness.front());
   ASSERT_EQ(result.metadata.front().transaction_ids.size(), 1U);
