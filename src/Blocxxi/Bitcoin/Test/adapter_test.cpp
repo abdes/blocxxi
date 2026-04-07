@@ -153,6 +153,21 @@ auto WritePreviousHash(
   std::copy(bytes.begin(), bytes.end(), header.begin() + 4U);
 }
 
+auto WriteMerkleRoot(
+  std::array<std::uint8_t, 80>& header, std::string const& merkle_root_hex) -> void
+{
+  auto bytes = std::array<std::uint8_t, 32> {};
+  for (auto index = std::size_t { 0 }; index < 32U; ++index) {
+    auto const chunk = merkle_root_hex.substr(index * 2U, 2U);
+    auto parsed = std::uint32_t { 0 };
+    auto stream = std::stringstream {};
+    stream << std::hex << chunk;
+    stream >> parsed;
+    bytes[31U - index] = static_cast<std::uint8_t>(parsed);
+  }
+  std::copy(bytes.begin(), bytes.end(), header.begin() + 36U);
+}
+
 } // namespace
 
 TEST(BitcoinAdapterTest, HeaderSyncAdapterUsesPublicNodeApi)
@@ -591,7 +606,7 @@ TEST(BitcoinAdapterTest, SignetLiveClientFetchesBoundedBlockBodiesFromPeer)
   auto const port = acceptor.local_endpoint().port();
 
   auto const header = MakeHeaderBytes(4U, 41U, 1598918408U);
-  auto const expected_hash = HeaderHashHex(header);
+  auto expected_hash = HeaderHashHex(header);
   auto block_payload = std::vector<std::uint8_t>(header.begin(), header.end());
   block_payload.push_back(1U); // tx count
   block_payload.push_back(1U); // tx version
@@ -610,6 +625,22 @@ TEST(BitcoinAdapterTest, SignetLiveClientFetchesBoundedBlockBodiesFromPeer)
   auto tx_hash_reversed = std::array<std::uint8_t, 32> {};
   std::reverse_copy(tx_hash.begin(), tx_hash.end(), tx_hash_reversed.begin());
   auto const expected_txid = ToHex(tx_hash_reversed);
+  auto header_with_merkle = header;
+  WriteMerkleRoot(header_with_merkle, expected_txid);
+  expected_hash = HeaderHashHex(header_with_merkle);
+  block_payload.assign(header_with_merkle.begin(), header_with_merkle.end());
+  block_payload.push_back(1U); // tx count
+  block_payload.push_back(1U); // tx version
+  block_payload.push_back(0U);
+  block_payload.push_back(0U);
+  block_payload.push_back(0U);
+  block_payload.push_back(0U);
+  block_payload.push_back(0U); // vin count
+  block_payload.push_back(0U); // vout count
+  block_payload.push_back(0U); // locktime
+  block_payload.push_back(0U);
+  block_payload.push_back(0U);
+  block_payload.push_back(0U);
 
   auto server = std::thread([&]() {
     auto socket = asio::ip::tcp::socket(io_context);
@@ -652,6 +683,8 @@ TEST(BitcoinAdapterTest, SignetLiveClientFetchesBoundedBlockBodiesFromPeer)
   EXPECT_EQ(result.metadata.front().nonce, 41U);
   EXPECT_EQ(result.metadata.front().transaction_count, 1U);
   EXPECT_EQ(result.metadata.front().total_output_value, 0U);
+  EXPECT_EQ(result.metadata.front().merkle_root_hex, expected_txid);
+  EXPECT_TRUE(result.metadata.front().merkle_root_matches);
   ASSERT_EQ(result.metadata.front().transaction_sizes.size(), 1U);
   EXPECT_EQ(result.metadata.front().transaction_sizes.front(), 10U);
   ASSERT_EQ(result.metadata.front().transaction_versions.size(), 1U);
@@ -752,12 +785,28 @@ TEST(BitcoinAdapterTest, WitnessTransactionsProduceDistinctTxidAndWtxid)
   tx.push_back(0x42); // witness item data
   tx.insert(tx.end(), { 0x00, 0x00, 0x00, 0x00 }); // locktime
 
-  block_payload.insert(block_payload.end(), tx.begin(), tx.end());
+  auto txid_payload = std::vector<std::uint8_t> {};
+  txid_payload.insert(txid_payload.end(), tx.begin(), tx.begin() + 4U);
+  txid_payload.push_back(1U); // vin count
+  txid_payload.insert(txid_payload.end(), tx.begin() + 6U, tx.begin() + 47U);
+  txid_payload.push_back(1U); // vout count
+  txid_payload.insert(txid_payload.end(), tx.begin() + 47U, tx.begin() + 56U);
+  txid_payload.insert(txid_payload.end(), tx.end() - 4U, tx.end());
+  auto const txid_hash = DoubleSha256(txid_payload);
+  auto txid_reversed = std::array<std::uint8_t, 32> {};
+  std::reverse_copy(txid_hash.begin(), txid_hash.end(), txid_reversed.begin());
+  auto const expected_txid = ToHex(txid_reversed);
 
   auto const wtxid_hash = DoubleSha256(tx);
   auto wtxid_reversed = std::array<std::uint8_t, 32> {};
   std::reverse_copy(wtxid_hash.begin(), wtxid_hash.end(), wtxid_reversed.begin());
   auto const expected_wtxid = ToHex(wtxid_reversed);
+  auto header_with_merkle = header;
+  WriteMerkleRoot(header_with_merkle, expected_txid);
+  auto const expected_block_hash = HeaderHashHex(header_with_merkle);
+  block_payload.assign(header_with_merkle.begin(), header_with_merkle.end());
+  block_payload.push_back(1U); // tx count
+  block_payload.insert(block_payload.end(), tx.begin(), tx.end());
 
   auto server = std::thread([&]() {
     auto socket = asio::ip::tcp::socket(io_context);
@@ -780,7 +829,6 @@ TEST(BitcoinAdapterTest, WitnessTransactionsProduceDistinctTxidAndWtxid)
     .port = port,
   });
   auto result = SignetBlocksResult {};
-  auto const expected_block_hash = HeaderHashHex(header);
   auto const status = client.FetchBlocks(
     std::span<std::string const>(&expected_block_hash, 1U), result);
 

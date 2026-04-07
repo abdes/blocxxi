@@ -60,6 +60,27 @@ using TcpSocket = asio::ip::tcp::socket;
   return ToHex(reversed);
 }
 
+[[nodiscard]] auto HexToBytes(std::string const& hex)
+  -> std::optional<std::vector<std::uint8_t>>
+{
+  if ((hex.size() % 2U) != 0U) {
+    return std::nullopt;
+  }
+  auto bytes = std::vector<std::uint8_t>(hex.size() / 2U);
+  for (auto index = std::size_t { 0 }; index < bytes.size(); ++index) {
+    auto const chunk = hex.substr(index * 2U, 2U);
+    auto parsed = std::uint32_t { 0 };
+    auto stream = std::stringstream {};
+    stream << std::hex << chunk;
+    stream >> parsed;
+    if (stream.fail()) {
+      return std::nullopt;
+    }
+    bytes[index] = static_cast<std::uint8_t>(parsed);
+  }
+  return bytes;
+}
+
 [[nodiscard]] auto DoubleSha256(std::span<std::uint8_t const> payload)
   -> std::array<std::uint8_t, 32>
 {
@@ -69,6 +90,47 @@ using TcpSocket = asio::ip::tcp::socket;
   auto second = nova::ComputeSha256(
     std::span<std::byte const>(reinterpret_cast<std::byte const*>(first.data()), first.size()));
   return second;
+}
+
+[[nodiscard]] auto ComputeMerkleRootHex(std::span<std::string const> txids)
+  -> std::optional<std::string>
+{
+  if (txids.empty()) {
+    return std::nullopt;
+  }
+
+  auto layer = std::vector<std::vector<std::uint8_t>> {};
+  layer.reserve(txids.size());
+  for (auto const& txid : txids) {
+    auto bytes = HexToBytes(txid);
+    if (!bytes.has_value() || bytes->size() != 32U) {
+      return std::nullopt;
+    }
+    std::reverse(bytes->begin(), bytes->end());
+    layer.push_back(std::move(*bytes));
+  }
+
+  while (layer.size() > 1U) {
+    if ((layer.size() % 2U) != 0U) {
+      layer.push_back(layer.back());
+    }
+    auto next = std::vector<std::vector<std::uint8_t>> {};
+    next.reserve(layer.size() / 2U);
+    for (auto index = std::size_t { 0 }; index < layer.size(); index += 2U) {
+      auto concatenated = std::vector<std::uint8_t> {};
+      concatenated.reserve(64U);
+      concatenated.insert(
+        concatenated.end(), layer[index].begin(), layer[index].end());
+      concatenated.insert(concatenated.end(), layer[index + 1U].begin(),
+        layer[index + 1U].end());
+      auto const hash = DoubleSha256(concatenated);
+      next.emplace_back(hash.begin(), hash.end());
+    }
+    layer = std::move(next);
+  }
+
+  std::reverse(layer.front().begin(), layer.front().end());
+  return ToHex(layer.front());
 }
 
 auto AppendLittleEndian(
@@ -401,6 +463,8 @@ auto ParseHeadersPayload(std::span<std::uint8_t const> payload,
       .hash_hex = hash_hex,
       .previous_hash_hex = WireHashToHex(
         std::span<std::uint8_t const>(header.data() + 4U, 32U)),
+      .merkle_root_hex = WireHashToHex(
+        std::span<std::uint8_t const>(header.data() + 36U, 32U)),
       .version = version,
       .timestamp = timestamp,
       .bits = bits,
@@ -440,6 +504,8 @@ auto ParseHeadersPayload(std::span<std::uint8_t const> payload,
   std::memcpy(&metadata.nonce, payload.data() + 76U, sizeof(metadata.nonce));
   metadata.previous_hash_hex = WireHashToHex(
     std::span<std::uint8_t const>(payload.data() + 4U, 32U));
+  metadata.merkle_root_hex = WireHashToHex(
+    std::span<std::uint8_t const>(payload.data() + 36U, 32U));
 
   auto const hash = DoubleSha256(std::span<std::uint8_t const>(payload.data(), 80U));
   auto reversed = std::array<std::uint8_t, 32> {};
@@ -572,6 +638,12 @@ auto ParseHeadersPayload(std::span<std::uint8_t const> payload,
     std::reverse_copy(txid.begin(), txid.end(), txid_bytes.begin());
     metadata.transaction_ids.push_back(ToHex(txid_bytes));
   }
+
+  auto const merkle = ComputeMerkleRootHex(metadata.transaction_ids);
+  if (!merkle.has_value()) {
+    return std::nullopt;
+  }
+  metadata.merkle_root_matches = (*merkle == metadata.merkle_root_hex);
 
   return metadata;
 }

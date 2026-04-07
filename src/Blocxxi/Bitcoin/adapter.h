@@ -38,6 +38,7 @@ struct Header {
   std::uint32_t height { 0 };
   std::string hash_hex {};
   std::string previous_hash_hex {};
+  std::string merkle_root_hex {};
   std::uint32_t version { 0 };
   std::uint32_t timestamp { 0 };
   std::uint32_t bits { 0 };
@@ -70,11 +71,13 @@ struct BlockBody {
 struct BlockMetadata {
   std::string block_hash_hex {};
   std::string previous_hash_hex {};
+  std::string merkle_root_hex {};
   std::uint32_t version { 0 };
   std::uint32_t timestamp { 0 };
   std::uint32_t nonce { 0 };
   std::uint64_t transaction_count { 0 };
   std::uint64_t total_output_value { 0 };
+  bool merkle_root_matches { false };
   std::vector<std::size_t> transaction_sizes {};
   std::vector<std::uint32_t> transaction_versions {};
   std::vector<std::uint64_t> transaction_input_counts {};
