@@ -34,7 +34,8 @@ Platform modules
 
 **Blocxxi.P2P**
   Optional Mainline/Kademlia transport plus deterministic publish/query
-  plumbing for signed event records. The analyzer app never talks to Kademlia
+  plumbing for signed event records, including exact-key lookups and
+  Mainline-backed peer discovery. The analyzer app never talks to Kademlia
   directly.
 
 Examples
@@ -50,6 +51,7 @@ The platform-level examples live under ``src/Blocxxi/Examples/``:
   events, uses Bitcoin Core RPC by default, and supports ``--scripted
   --oneshot`` for bounded proof runs
 - ``bitcoin-event-reader`` — second consumer proof that reuses the same SDK
+  and queries published records by deterministic key
 
 Deferred work
 =============

@@ -7,8 +7,10 @@
 #include <Blocxxi/P2P/event_dht.h>
 
 #include <algorithm>
+#include <set>
 
 #include <Blocxxi/Core/primitives.h>
+#include <Blocxxi/P2P/kademlia/krpc.h>
 
 namespace blocxxi::p2p {
 namespace {
@@ -31,6 +33,9 @@ auto MatchesIdentifiers(core::SignedEventRecord const& record,
 auto MatchesQuery(PublishedEvent const& published, EventQuery const& query) -> bool
 {
   auto const& envelope = published.record.envelope;
+  if (query.deterministic_key.has_value() && published.dht_key != *query.deterministic_key) {
+    return false;
+  }
   if (query.event_type.has_value() && envelope.event_type != *query.event_type) {
     return false;
   }
@@ -49,6 +54,15 @@ auto MatchesQuery(PublishedEvent const& published, EventQuery const& query) -> b
 }
 
 } // namespace
+
+MainlineEventDht::MainlineEventDht(
+  asio::io_context& io_context, kademlia::Session& session,
+  MainlineEventDhtOptions options)
+  : io_context_(io_context)
+  , session_(session)
+  , options_(std::move(options))
+{
+}
 
 auto MemoryEventDht::Publish(core::SignedEventRecord record) -> core::Status
 {
@@ -139,6 +153,166 @@ auto MemoryEventDht::RepublishRecent(RepublishPolicy policy) -> std::size_t
     }
   }
   return count;
+}
+
+auto MainlineEventDht::Publish(core::SignedEventRecord record) -> core::Status
+{
+  if (options_.routers.empty()) {
+    return core::Status::Failure(
+      core::StatusCode::InvalidArgument, "at least one DHT router is required");
+  }
+
+  auto const local_status = local_store_.Publish(record);
+  if (!local_status.ok()) {
+    return local_status;
+  }
+
+  auto const key = record.DeterministicKey();
+  auto last_error = core::Status::Failure(
+    core::StatusCode::IOError, "failed to announce deterministic DHT key");
+  for (auto const& router : options_.routers) {
+    auto peers = std::vector<kademlia::IpEndpoint> {};
+    auto token = std::string {};
+    auto const query_status = QueryRouter(key, router, peers, &token);
+    if (!query_status.ok()) {
+      last_error = query_status;
+      continue;
+    }
+    if (token.empty()) {
+      last_error = core::Status::Failure(
+        core::StatusCode::Rejected, "DHT router did not return announce token");
+      continue;
+    }
+
+    auto const announce_status = AnnounceToRouter(key, router, token);
+    if (announce_status.ok()) {
+      return core::Status::Success();
+    }
+    last_error = announce_status;
+  }
+
+  return last_error;
+}
+
+auto MainlineEventDht::LastPublish() const -> std::optional<PublishResult>
+{
+  return local_store_.LastPublish();
+}
+
+auto MainlineEventDht::Query(EventQuery query, EventQueryResult& result)
+  -> core::Status
+{
+  result.records = local_store_.Query(query);
+  result.peers.clear();
+  if (!query.deterministic_key.has_value()) {
+    return core::Status::Success();
+  }
+  if (options_.routers.empty()) {
+    return core::Status::Failure(
+      core::StatusCode::InvalidArgument, "at least one DHT router is required");
+  }
+
+  auto seen = std::set<std::string> {};
+  auto any_success = false;
+  auto last_error = core::Status::Failure(
+    core::StatusCode::IOError, "failed to query deterministic DHT key");
+  for (auto const& router : options_.routers) {
+    auto peers = std::vector<kademlia::IpEndpoint> {};
+    auto const status = QueryRouter(*query.deterministic_key, router, peers, nullptr);
+    if (!status.ok()) {
+      last_error = status;
+      continue;
+    }
+
+    for (auto const& peer : peers) {
+      if (seen.insert(peer.ToString()).second) {
+        result.peers.push_back(peer);
+      }
+    }
+    any_success = true;
+  }
+
+  return any_success ? core::Status::Success() : last_error;
+}
+
+auto MainlineEventDht::QueryRouter(std::string const& deterministic_key,
+  kademlia::IpEndpoint const& router, std::vector<kademlia::IpEndpoint>& peers,
+  std::string* token) -> core::Status
+{
+  auto done = false;
+  auto status = core::Status::Failure(
+    core::StatusCode::IOError, "DHT query timed out");
+  auto const info_hash = DeriveInfoHash(deterministic_key);
+
+  io_context_.restart();
+  session_.AsyncGetPeers(info_hash, router,
+    [&](std::error_code const& failure, kademlia::KrpcMessage const& response) {
+      done = true;
+      if (failure) {
+        status = core::Status::Failure(core::StatusCode::IOError, failure.message());
+        return;
+      }
+
+      auto const* payload = std::get_if<kademlia::KrpcResponse>(&response.payload_);
+      if (payload == nullptr) {
+        status = core::Status::Failure(
+          core::StatusCode::Rejected, "DHT query did not return a response payload");
+        return;
+      }
+
+      if (token != nullptr) {
+        auto found = payload->values_.find("token");
+        if (found != payload->values_.end()) {
+          *token = found->second.AsString();
+        }
+      }
+
+      auto found_values = payload->values_.find("values");
+      if (found_values != payload->values_.end()) {
+        for (auto const& value : found_values->second.AsList()) {
+          peers.push_back(kademlia::DecodeCompactPeer(value.AsString()));
+        }
+      }
+      status = core::Status::Success();
+    });
+  io_context_.run_for(options_.request_timeout);
+  if (!done) {
+    return core::Status::Failure(core::StatusCode::IOError, "DHT query timed out");
+  }
+  return status;
+}
+
+auto MainlineEventDht::AnnounceToRouter(std::string const& deterministic_key,
+  kademlia::IpEndpoint const& router, std::string token) -> core::Status
+{
+  auto done = false;
+  auto status = core::Status::Failure(
+    core::StatusCode::IOError, "DHT announce timed out");
+  auto const info_hash = DeriveInfoHash(deterministic_key);
+  auto const port = options_.announce_port == 0 ? session_.Self().Endpoint().Port()
+                                                : options_.announce_port;
+
+  io_context_.restart();
+  session_.AsyncAnnouncePeer(info_hash, std::move(token), port, options_.implied_port,
+    router, [&](std::error_code const& failure, kademlia::KrpcMessage const& response) {
+      done = true;
+      if (failure) {
+        status = core::Status::Failure(core::StatusCode::IOError, failure.message());
+        return;
+      }
+
+      if (!std::holds_alternative<kademlia::KrpcResponse>(response.payload_)) {
+        status = core::Status::Failure(
+          core::StatusCode::Rejected, "DHT announce did not return a response payload");
+        return;
+      }
+      status = core::Status::Success();
+    });
+  io_context_.run_for(options_.request_timeout);
+  if (!done) {
+    return core::Status::Failure(core::StatusCode::IOError, "DHT announce timed out");
+  }
+  return status;
 }
 
 auto DeriveInfoHash(std::string const& deterministic_key) -> kademlia::Node::IdType

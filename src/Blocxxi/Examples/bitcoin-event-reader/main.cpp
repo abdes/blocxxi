@@ -91,10 +91,12 @@ auto main() -> int
     return 3;
   }
 
+  auto const event_key = record.DeterministicKey();
   auto const matches = dht.Query(blocxxi::p2p::EventQuery {
-    .taxonomy = std::string { "reader" },
+    .deterministic_key = event_key,
     .limit = 4,
   });
-  std::cout << "reader-events=" << matches.size() << '\n';
+  std::cout << "reader-events=" << matches.size()
+            << " key=" << event_key << '\n';
   return matches.size() == 1U ? 0 : 4;
 }

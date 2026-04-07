@@ -93,7 +93,7 @@ examples that now prove the platform contracts end-to-end.
 - **Blocxxi.Bitcoin** — Bitcoin data-source adapter family, including a
   Bitcoin Core RPC ingestion path for mempool + network-state access
 - **Blocxxi.P2P** — optional Mainline/Kademlia transport and deterministic DHT
-  publish/query plumbing
+  publish/query plumbing, including exact-key lookups for signed event records
 
 ### Platform example proofs
 
@@ -101,7 +101,8 @@ examples that now prove the platform contracts end-to-end.
 - `local-custom-chain` — custom local chain proof with no DHT dependency
 - `bitcoin-observer` — Bitcoin-facing adapter sample using header imports
 - `bitcoin-mempool-analyzer` — thin analyzer app that owns only rule/taxonomy
-- `bitcoin-event-reader` — second consumer proof for SDK reuse
+- `bitcoin-event-reader` — second consumer proof for SDK reuse and
+  deterministic-key event lookups
 
 The analyzer example now runs continuously by default via the platform-owned
 node runtime loop, prints each event it publishes, and uses Bitcoin Core RPC
