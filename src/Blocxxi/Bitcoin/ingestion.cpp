@@ -367,20 +367,27 @@ auto ReadEnv(std::string_view name) -> std::optional<std::string>
   return std::string(value);
 }
 
-auto ApplyConfigValue(BitcoinCoreRpcConfig& config, std::string_view key,
+auto ApplyConfigValue(ResolvedBitcoinCoreRpcConfig& resolved, std::string_view key,
   std::string_view value, std::filesystem::path& data_directory,
-  std::optional<std::filesystem::path>& cookie_file) -> void
+  std::optional<std::filesystem::path>& cookie_file, std::string_view source_label)
+  -> void
 {
+  auto& config = resolved.config;
   if (key == "rpcconnect") {
     config.connection.host = std::string(value);
+    resolved.host_source = std::string(source_label);
   } else if (key == "rpcport") {
     config.connection.port = static_cast<std::uint16_t>(std::stoi(std::string(value)));
+    resolved.port_source = std::string(source_label);
   } else if (key == "rpcuser") {
     config.connection.username = std::string(value);
+    resolved.username_source = std::string(source_label);
   } else if (key == "rpcpassword") {
     config.connection.password = std::string(value);
+    resolved.password_source = std::string(source_label);
   } else if (key == "rpcbind") {
     config.connection.host = std::string(value);
+    resolved.host_source = std::string(source_label);
   } else if (key == "datadir") {
     data_directory = std::filesystem::path(std::string(value));
   } else if (key == "rpccookiefile") {
@@ -651,12 +658,22 @@ auto ResolveBitcoinCoreRpcConfig(
   BitcoinCoreRpcConfig base, std::optional<std::filesystem::path> config_path)
   -> BitcoinCoreRpcConfig
 {
+  return ResolveBitcoinCoreRpcConfigDetails(std::move(base), std::move(config_path)).config;
+}
+
+auto ResolveBitcoinCoreRpcConfigDetails(
+  BitcoinCoreRpcConfig base, std::optional<std::filesystem::path> config_path)
+  -> ResolvedBitcoinCoreRpcConfig
+{
+  auto resolved = ResolvedBitcoinCoreRpcConfig { .config = std::move(base) };
   auto data_directory = std::filesystem::path {};
   auto cookie_file = std::optional<std::filesystem::path> {};
 
-  auto const path = config_path.value_or(DefaultBitcoinCoreConfigPath(base.network));
+  auto const path = config_path.value_or(DefaultBitcoinCoreConfigPath(resolved.config.network));
+  resolved.config_path = path;
   auto config_stream = std::ifstream(path);
   if (config_stream.good()) {
+    resolved.config_file_loaded = true;
     for (auto line = std::string {}; std::getline(config_stream, line);) {
       auto const comment = line.find('#');
       if (comment != std::string::npos) {
@@ -671,43 +688,55 @@ auto ResolveBitcoinCoreRpcConfig(
       if (key.empty() || value.empty()) {
         continue;
       }
-      ApplyConfigValue(base, key, value, data_directory, cookie_file);
+      ApplyConfigValue(resolved, key, value, data_directory, cookie_file,
+        "bitcoin.conf:" + path.string());
     }
   }
 
   if (auto value = ReadEnv("BITCOIN_RPC_HOST"); value.has_value()) {
-    base.connection.host = *value;
+    resolved.config.connection.host = *value;
+    resolved.host_source = "env:BITCOIN_RPC_HOST";
   }
   if (auto value = ReadEnv("BITCOIN_RPC_PORT"); value.has_value()) {
-    base.connection.port = static_cast<std::uint16_t>(std::stoi(*value));
+    resolved.config.connection.port = static_cast<std::uint16_t>(std::stoi(*value));
+    resolved.port_source = "env:BITCOIN_RPC_PORT";
   }
   if (auto value = ReadEnv("BITCOIN_RPC_USER"); value.has_value()) {
-    base.connection.username = *value;
+    resolved.config.connection.username = *value;
+    resolved.username_source = "env:BITCOIN_RPC_USER";
   }
   if (auto value = ReadEnv("BITCOIN_RPC_PASSWORD"); value.has_value()) {
-    base.connection.password = *value;
+    resolved.config.connection.password = *value;
+    resolved.password_source = "env:BITCOIN_RPC_PASSWORD";
   }
   if (auto value = ReadEnv("BITCOIN_RPC_PATH"); value.has_value()) {
-    base.connection.path = *value;
+    resolved.config.connection.path = *value;
+    resolved.path_source = "env:BITCOIN_RPC_PATH";
   }
 
   if (auto value = ReadEnv("BLOCXXI_RPC_HOST"); value.has_value()) {
-    base.connection.host = *value;
+    resolved.config.connection.host = *value;
+    resolved.host_source = "env:BLOCXXI_RPC_HOST";
   }
   if (auto value = ReadEnv("BLOCXXI_RPC_PORT"); value.has_value()) {
-    base.connection.port = static_cast<std::uint16_t>(std::stoi(*value));
+    resolved.config.connection.port = static_cast<std::uint16_t>(std::stoi(*value));
+    resolved.port_source = "env:BLOCXXI_RPC_PORT";
   }
   if (auto value = ReadEnv("BLOCXXI_RPC_USER"); value.has_value()) {
-    base.connection.username = *value;
+    resolved.config.connection.username = *value;
+    resolved.username_source = "env:BLOCXXI_RPC_USER";
   }
   if (auto value = ReadEnv("BLOCXXI_RPC_PASSWORD"); value.has_value()) {
-    base.connection.password = *value;
+    resolved.config.connection.password = *value;
+    resolved.password_source = "env:BLOCXXI_RPC_PASSWORD";
   }
   if (auto value = ReadEnv("BLOCXXI_RPC_PATH"); value.has_value()) {
-    base.connection.path = *value;
+    resolved.config.connection.path = *value;
+    resolved.path_source = "env:BLOCXXI_RPC_PATH";
   }
 
-  if (base.connection.username.empty() || base.connection.password.empty()) {
+  if (resolved.config.connection.username.empty()
+    || resolved.config.connection.password.empty()) {
     auto candidates = std::vector<std::filesystem::path> {};
     if (cookie_file.has_value()) {
       candidates.push_back(*cookie_file);
@@ -720,18 +749,20 @@ auto ResolveBitcoinCoreRpcConfig(
     for (auto const& candidate : candidates) {
       auto const cookie = LoadCookie(candidate);
       if (cookie.has_value()) {
-        if (base.connection.username.empty()) {
-          base.connection.username = cookie->first;
+        if (resolved.config.connection.username.empty()) {
+          resolved.config.connection.username = cookie->first;
+          resolved.username_source = "cookie:" + candidate.string();
         }
-        if (base.connection.password.empty()) {
-          base.connection.password = cookie->second;
+        if (resolved.config.connection.password.empty()) {
+          resolved.config.connection.password = cookie->second;
+          resolved.password_source = "cookie:" + candidate.string();
         }
         break;
       }
     }
   }
 
-  return base;
+  return resolved;
 }
 
 } // namespace blocxxi::bitcoin

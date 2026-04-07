@@ -35,6 +35,17 @@ struct BitcoinCoreRpcConfig {
   std::size_t max_mempool_transactions { 64 };
 };
 
+struct ResolvedBitcoinCoreRpcConfig {
+  BitcoinCoreRpcConfig config {};
+  std::filesystem::path config_path {};
+  bool config_file_loaded { false };
+  std::string host_source { "default" };
+  std::string port_source { "default" };
+  std::string username_source { "unset" };
+  std::string password_source { "unset" };
+  std::string path_source { "default" };
+};
+
 struct TransactionObservation {
   std::string txid {};
   double base_fee_btc { 0.0 };
@@ -118,5 +129,10 @@ private:
   BitcoinCoreRpcConfig base = {},
   std::optional<std::filesystem::path> config_path = std::nullopt)
   -> BitcoinCoreRpcConfig;
+
+[[nodiscard]] BLOCXXI_BITCOIN_API auto ResolveBitcoinCoreRpcConfigDetails(
+  BitcoinCoreRpcConfig base = {},
+  std::optional<std::filesystem::path> config_path = std::nullopt)
+  -> ResolvedBitcoinCoreRpcConfig;
 
 } // namespace blocxxi::bitcoin

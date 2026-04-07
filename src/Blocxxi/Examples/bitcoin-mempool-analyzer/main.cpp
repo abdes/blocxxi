@@ -44,6 +44,31 @@ struct AnalyzerOptions {
   blocxxi::bitcoin::BitcoinCoreRpcConfig rpc {};
 };
 
+auto OverrideSourcesFromCli(AnalyzerOptions const& options,
+  blocxxi::bitcoin::ResolvedBitcoinCoreRpcConfig& resolved) -> void
+{
+  if (options.rpc_host_overridden) {
+    resolved.config.connection.host = options.rpc.connection.host;
+    resolved.host_source = "cli:--rpc-host";
+  }
+  if (options.rpc_port_overridden) {
+    resolved.config.connection.port = options.rpc.connection.port;
+    resolved.port_source = "cli:--rpc-port";
+  }
+  if (options.rpc_user_overridden) {
+    resolved.config.connection.username = options.rpc.connection.username;
+    resolved.username_source = "cli:--rpc-user";
+  }
+  if (options.rpc_password_overridden) {
+    resolved.config.connection.password = options.rpc.connection.password;
+    resolved.password_source = "cli:--rpc-password";
+  }
+  if (options.rpc_path_overridden) {
+    resolved.config.connection.path = options.rpc.connection.path;
+    resolved.path_source = "cli:--rpc-path";
+  }
+}
+
 auto ParseOptions(int argc, char** argv) -> AnalyzerOptions
 {
   auto options = AnalyzerOptions {};
@@ -267,29 +292,18 @@ auto main(int argc, char** argv) -> int
   std::signal(SIGINT, HandleSignal);
   std::signal(SIGTERM, HandleSignal);
 
+  auto resolved = blocxxi::bitcoin::ResolvedBitcoinCoreRpcConfig {
+    .config = options.rpc,
+  };
   if (!options.scripted) {
-    auto resolved = blocxxi::bitcoin::ResolveBitcoinCoreRpcConfig(
+    resolved = blocxxi::bitcoin::ResolveBitcoinCoreRpcConfigDetails(
       blocxxi::bitcoin::BitcoinCoreRpcConfig {
         .network = options.rpc.network,
         .max_mempool_transactions = options.rpc.max_mempool_transactions,
       },
       options.bitcoin_conf);
-    if (options.rpc_host_overridden) {
-      resolved.connection.host = options.rpc.connection.host;
-    }
-    if (options.rpc_port_overridden) {
-      resolved.connection.port = options.rpc.connection.port;
-    }
-    if (options.rpc_user_overridden) {
-      resolved.connection.username = options.rpc.connection.username;
-    }
-    if (options.rpc_password_overridden) {
-      resolved.connection.password = options.rpc.connection.password;
-    }
-    if (options.rpc_path_overridden) {
-      resolved.connection.path = options.rpc.connection.path;
-    }
-    options.rpc = std::move(resolved);
+    OverrideSourcesFromCli(options, resolved);
+    options.rpc = resolved.config;
   }
 
   if (!options.scripted
@@ -341,6 +355,14 @@ auto main(int argc, char** argv) -> int
   node.RegisterService(service);
   std::cout << "analyzer-started mode=" << (options.scripted ? "scripted" : "bitcoin-core-rpc")
             << " poll_interval_ms=" << options.poll_interval.count() << '\n';
+  if (!options.scripted) {
+    std::cout << "analyzer-rpc endpoint=" << options.rpc.connection.host << ':'
+              << options.rpc.connection.port << " path=" << options.rpc.connection.path
+              << " host-source=" << resolved.host_source
+              << " port-source=" << resolved.port_source
+              << " user-source=" << resolved.username_source
+              << " password-source=" << resolved.password_source << '\n';
+  }
   auto cycle = std::size_t { 0 };
   while (g_keep_running.load()) {
     if (!node.RunServicesOnce().ok()) {

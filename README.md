@@ -105,6 +105,8 @@ examples that now prove the platform contracts end-to-end.
 The analyzer example now runs continuously by default, prints each event it
 publishes, and uses Bitcoin Core RPC configuration by default. It can be
 switched into bounded proof mode with `--scripted --oneshot` for tests/CI.
+At startup it also prints which RPC/auth source it resolved (CLI, env,
+bitcoin.conf, or cookie auth).
 
 ---
 

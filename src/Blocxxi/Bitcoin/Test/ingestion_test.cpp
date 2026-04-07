@@ -133,4 +133,29 @@ TEST(BitcoinIngestionTest, ResolveBitcoinCoreRpcConfigFallsBackToCookie)
   std::filesystem::remove_all(root);
 }
 
+TEST(BitcoinIngestionTest, ResolveBitcoinCoreRpcConfigDetailsReportsSources)
+{
+  auto const root
+    = std::filesystem::temp_directory_path() / "blocxxi-bitcoin-source-test";
+  std::filesystem::remove_all(root);
+  std::filesystem::create_directories(root);
+  auto config = std::ofstream(root / "bitcoin.conf");
+  config << "rpcconnect=127.0.0.2\n";
+  config << "rpcport=18332\n";
+  config << "rpcuser=blocxxi\n";
+  config << "rpcpassword=secret\n";
+  config.close();
+
+  auto resolved = ResolveBitcoinCoreRpcConfigDetails(
+    BitcoinCoreRpcConfig { .network = Network::Mainnet },
+    root / "bitcoin.conf");
+
+  EXPECT_TRUE(resolved.config_file_loaded);
+  EXPECT_EQ(resolved.host_source,
+    "bitcoin.conf:" + (root / "bitcoin.conf").string());
+  EXPECT_EQ(resolved.username_source,
+    "bitcoin.conf:" + (root / "bitcoin.conf").string());
+  std::filesystem::remove_all(root);
+}
+
 } // namespace blocxxi::bitcoin
