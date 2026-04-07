@@ -9,6 +9,7 @@
 #include <Blocxxi/Bitcoin/api_export.h>
 
 #include <cstdint>
+#include <filesystem>
 #include <memory>
 #include <optional>
 #include <string>
@@ -109,5 +110,13 @@ private:
   BitcoinCoreRpcConfig config_ {};
   std::shared_ptr<RpcTransport> transport_ {};
 };
+
+[[nodiscard]] BLOCXXI_BITCOIN_API auto DefaultBitcoinCoreConfigPath(
+  Network network = Network::Mainnet) -> std::filesystem::path;
+
+[[nodiscard]] BLOCXXI_BITCOIN_API auto ResolveBitcoinCoreRpcConfig(
+  BitcoinCoreRpcConfig base = {},
+  std::optional<std::filesystem::path> config_path = std::nullopt)
+  -> BitcoinCoreRpcConfig;
 
 } // namespace blocxxi::bitcoin

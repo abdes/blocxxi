@@ -6,6 +6,8 @@
 
 #include <gtest/gtest.h>
 
+#include <filesystem>
+#include <fstream>
 #include <map>
 #include <string>
 
@@ -83,6 +85,52 @@ TEST(BitcoinIngestionTest, CoreRpcAdapterRejectsMissingResponses)
   auto const status = adapter.Poll(batch);
 
   EXPECT_EQ(status.code, core::StatusCode::NotFound);
+}
+
+TEST(BitcoinIngestionTest, ResolveBitcoinCoreRpcConfigReadsBitcoinConf)
+{
+  auto const root
+    = std::filesystem::temp_directory_path() / "blocxxi-bitcoin-conf-test";
+  std::filesystem::remove_all(root);
+  std::filesystem::create_directories(root);
+  auto config = std::ofstream(root / "bitcoin.conf");
+  config << "rpcconnect=10.0.0.2\n";
+  config << "rpcport=18443\n";
+  config << "rpcuser=blocxxi\n";
+  config << "rpcpassword=secret\n";
+  config.close();
+
+  auto resolved = ResolveBitcoinCoreRpcConfig(
+    BitcoinCoreRpcConfig { .network = Network::Regtest },
+    root / "bitcoin.conf");
+
+  EXPECT_EQ(resolved.connection.host, "10.0.0.2");
+  EXPECT_EQ(resolved.connection.port, 18443U);
+  EXPECT_EQ(resolved.connection.username, "blocxxi");
+  EXPECT_EQ(resolved.connection.password, "secret");
+  std::filesystem::remove_all(root);
+}
+
+TEST(BitcoinIngestionTest, ResolveBitcoinCoreRpcConfigFallsBackToCookie)
+{
+  auto const root
+    = std::filesystem::temp_directory_path() / "blocxxi-bitcoin-cookie-test";
+  std::filesystem::remove_all(root);
+  std::filesystem::create_directories(root);
+  auto config = std::ofstream(root / "bitcoin.conf");
+  config << "datadir=" << root.string() << "\n";
+  config.close();
+  auto cookie = std::ofstream(root / ".cookie");
+  cookie << "__cookie__:secret-cookie";
+  cookie.close();
+
+  auto resolved = ResolveBitcoinCoreRpcConfig(
+    BitcoinCoreRpcConfig { .network = Network::Mainnet },
+    root / "bitcoin.conf");
+
+  EXPECT_EQ(resolved.connection.username, "__cookie__");
+  EXPECT_EQ(resolved.connection.password, "secret-cookie");
+  std::filesystem::remove_all(root);
 }
 
 } // namespace blocxxi::bitcoin

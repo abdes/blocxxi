@@ -9,6 +9,9 @@
 #include <algorithm>
 #include <cctype>
 #include <charconv>
+#include <cstdlib>
+#include <fstream>
+#include <filesystem>
 #include <optional>
 #include <span>
 #include <sstream>
@@ -355,6 +358,55 @@ auto BuildRequest(std::string_view method, std::string_view params_json)
   return request;
 }
 
+auto ReadEnv(std::string_view name) -> std::optional<std::string>
+{
+  auto const* value = std::getenv(std::string(name).c_str());
+  if (value == nullptr || *value == '\0') {
+    return std::nullopt;
+  }
+  return std::string(value);
+}
+
+auto ApplyConfigValue(BitcoinCoreRpcConfig& config, std::string_view key,
+  std::string_view value, std::filesystem::path& data_directory,
+  std::optional<std::filesystem::path>& cookie_file) -> void
+{
+  if (key == "rpcconnect") {
+    config.connection.host = std::string(value);
+  } else if (key == "rpcport") {
+    config.connection.port = static_cast<std::uint16_t>(std::stoi(std::string(value)));
+  } else if (key == "rpcuser") {
+    config.connection.username = std::string(value);
+  } else if (key == "rpcpassword") {
+    config.connection.password = std::string(value);
+  } else if (key == "rpcbind") {
+    config.connection.host = std::string(value);
+  } else if (key == "datadir") {
+    data_directory = std::filesystem::path(std::string(value));
+  } else if (key == "rpccookiefile") {
+    cookie_file = std::filesystem::path(std::string(value));
+  }
+}
+
+auto LoadCookie(std::filesystem::path const& path) -> std::optional<std::pair<std::string, std::string>>
+{
+  auto cookie = std::ifstream(path);
+  if (!cookie.good()) {
+    return std::nullopt;
+  }
+
+  auto line = std::string {};
+  std::getline(cookie, line);
+  auto const separator = line.find(':');
+  if (separator == std::string::npos) {
+    return std::nullopt;
+  }
+  return std::pair {
+    line.substr(0U, separator),
+    line.substr(separator + 1U),
+  };
+}
+
 } // namespace
 
 RpcTransport::~RpcTransport() = default;
@@ -573,6 +625,113 @@ auto BitcoinCoreRpcAdapter::Poll(ObservationBatch& batch) -> core::Status
   batch.network_health = std::move(network);
   batch.mempool_transactions = *parsed_entries;
   return core::Status::Success();
+}
+
+auto DefaultBitcoinCoreConfigPath(Network network) -> std::filesystem::path
+{
+  auto const home = ReadEnv("HOME").value_or(".");
+  auto root = std::filesystem::path(home) / ".bitcoin";
+  switch (network) {
+  case Network::Testnet:
+    root /= "testnet3";
+    break;
+  case Network::Signet:
+    root /= "signet";
+    break;
+  case Network::Regtest:
+    root /= "regtest";
+    break;
+  case Network::Mainnet:
+    break;
+  }
+  return root / "bitcoin.conf";
+}
+
+auto ResolveBitcoinCoreRpcConfig(
+  BitcoinCoreRpcConfig base, std::optional<std::filesystem::path> config_path)
+  -> BitcoinCoreRpcConfig
+{
+  auto data_directory = std::filesystem::path {};
+  auto cookie_file = std::optional<std::filesystem::path> {};
+
+  auto const path = config_path.value_or(DefaultBitcoinCoreConfigPath(base.network));
+  auto config_stream = std::ifstream(path);
+  if (config_stream.good()) {
+    for (auto line = std::string {}; std::getline(config_stream, line);) {
+      auto const comment = line.find('#');
+      if (comment != std::string::npos) {
+        line.erase(comment);
+      }
+      auto const separator = line.find('=');
+      if (separator == std::string::npos) {
+        continue;
+      }
+      auto const key = Trim(line.substr(0U, separator));
+      auto const value = Trim(line.substr(separator + 1U));
+      if (key.empty() || value.empty()) {
+        continue;
+      }
+      ApplyConfigValue(base, key, value, data_directory, cookie_file);
+    }
+  }
+
+  if (auto value = ReadEnv("BITCOIN_RPC_HOST"); value.has_value()) {
+    base.connection.host = *value;
+  }
+  if (auto value = ReadEnv("BITCOIN_RPC_PORT"); value.has_value()) {
+    base.connection.port = static_cast<std::uint16_t>(std::stoi(*value));
+  }
+  if (auto value = ReadEnv("BITCOIN_RPC_USER"); value.has_value()) {
+    base.connection.username = *value;
+  }
+  if (auto value = ReadEnv("BITCOIN_RPC_PASSWORD"); value.has_value()) {
+    base.connection.password = *value;
+  }
+  if (auto value = ReadEnv("BITCOIN_RPC_PATH"); value.has_value()) {
+    base.connection.path = *value;
+  }
+
+  if (auto value = ReadEnv("BLOCXXI_RPC_HOST"); value.has_value()) {
+    base.connection.host = *value;
+  }
+  if (auto value = ReadEnv("BLOCXXI_RPC_PORT"); value.has_value()) {
+    base.connection.port = static_cast<std::uint16_t>(std::stoi(*value));
+  }
+  if (auto value = ReadEnv("BLOCXXI_RPC_USER"); value.has_value()) {
+    base.connection.username = *value;
+  }
+  if (auto value = ReadEnv("BLOCXXI_RPC_PASSWORD"); value.has_value()) {
+    base.connection.password = *value;
+  }
+  if (auto value = ReadEnv("BLOCXXI_RPC_PATH"); value.has_value()) {
+    base.connection.path = *value;
+  }
+
+  if (base.connection.username.empty() || base.connection.password.empty()) {
+    auto candidates = std::vector<std::filesystem::path> {};
+    if (cookie_file.has_value()) {
+      candidates.push_back(*cookie_file);
+    }
+    if (!data_directory.empty()) {
+      candidates.push_back(data_directory / ".cookie");
+    }
+    candidates.push_back(path.parent_path() / ".cookie");
+
+    for (auto const& candidate : candidates) {
+      auto const cookie = LoadCookie(candidate);
+      if (cookie.has_value()) {
+        if (base.connection.username.empty()) {
+          base.connection.username = cookie->first;
+        }
+        if (base.connection.password.empty()) {
+          base.connection.password = cookie->second;
+        }
+        break;
+      }
+    }
+  }
+
+  return base;
 }
 
 } // namespace blocxxi::bitcoin

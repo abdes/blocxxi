@@ -12,6 +12,7 @@
 #include <map>
 #include <memory>
 #include <csignal>
+#include <filesystem>
 #include <optional>
 #include <sstream>
 #include <string>
@@ -33,38 +34,19 @@ void HandleSignal(int) { g_keep_running.store(false); }
 struct AnalyzerOptions {
   bool oneshot { false };
   bool scripted { false };
+  bool rpc_host_overridden { false };
+  bool rpc_port_overridden { false };
+  bool rpc_user_overridden { false };
+  bool rpc_password_overridden { false };
+  bool rpc_path_overridden { false };
   std::chrono::milliseconds poll_interval { 1000 };
+  std::optional<std::filesystem::path> bitcoin_conf {};
   blocxxi::bitcoin::BitcoinCoreRpcConfig rpc {};
 };
-
-auto ReadEnv(std::string_view name) -> std::optional<std::string>
-{
-  auto const* value = std::getenv(std::string(name).c_str());
-  if (value == nullptr) {
-    return std::nullopt;
-  }
-  return std::string(value);
-}
 
 auto ParseOptions(int argc, char** argv) -> AnalyzerOptions
 {
   auto options = AnalyzerOptions {};
-  if (auto value = ReadEnv("BLOCXXI_RPC_HOST")) {
-    options.rpc.connection.host = *value;
-  }
-  if (auto value = ReadEnv("BLOCXXI_RPC_PORT")) {
-    options.rpc.connection.port = static_cast<std::uint16_t>(std::stoi(*value));
-  }
-  if (auto value = ReadEnv("BLOCXXI_RPC_USER")) {
-    options.rpc.connection.username = *value;
-  }
-  if (auto value = ReadEnv("BLOCXXI_RPC_PASSWORD")) {
-    options.rpc.connection.password = *value;
-  }
-  if (auto value = ReadEnv("BLOCXXI_RPC_PATH")) {
-    options.rpc.connection.path = *value;
-  }
-
   for (auto index = 1; index < argc; ++index) {
     auto const current = std::string_view(argv[index]);
     if (current == "--oneshot") {
@@ -81,29 +63,39 @@ auto ParseOptions(int argc, char** argv) -> AnalyzerOptions
     }
     if (current == "--rpc-host" && (index + 1) < argc) {
       options.rpc.connection.host = argv[++index];
+      options.rpc_host_overridden = true;
       continue;
     }
     if (current == "--rpc-port" && (index + 1) < argc) {
       options.rpc.connection.port = static_cast<std::uint16_t>(std::stoi(argv[++index]));
+      options.rpc_port_overridden = true;
       continue;
     }
     if (current == "--rpc-user" && (index + 1) < argc) {
       options.rpc.connection.username = argv[++index];
+      options.rpc_user_overridden = true;
       continue;
     }
     if (current == "--rpc-password" && (index + 1) < argc) {
       options.rpc.connection.password = argv[++index];
+      options.rpc_password_overridden = true;
       continue;
     }
     if (current == "--rpc-path" && (index + 1) < argc) {
       options.rpc.connection.path = argv[++index];
+      options.rpc_path_overridden = true;
+      continue;
+    }
+    if (current == "--bitcoin-conf" && (index + 1) < argc) {
+      options.bitcoin_conf = std::filesystem::path(argv[++index]);
       continue;
     }
     if (current == "--help") {
       std::cout
         << "Usage: blocxxi-bitcoin-mempool-analyzer [--oneshot] [--scripted]\n"
         << "       [--poll-interval-ms N] [--rpc-host HOST] [--rpc-port PORT]\n"
-        << "       [--rpc-user USER] [--rpc-password PASSWORD] [--rpc-path PATH]\n";
+        << "       [--rpc-user USER] [--rpc-password PASSWORD] [--rpc-path PATH]\n"
+        << "       [--bitcoin-conf PATH]\n";
       std::exit(0);
     }
   }
@@ -271,17 +263,43 @@ private:
 
 auto main(int argc, char** argv) -> int
 {
-  auto const options = ParseOptions(argc, argv);
+  auto options = ParseOptions(argc, argv);
   std::signal(SIGINT, HandleSignal);
   std::signal(SIGTERM, HandleSignal);
+
+  if (!options.scripted) {
+    auto resolved = blocxxi::bitcoin::ResolveBitcoinCoreRpcConfig(
+      blocxxi::bitcoin::BitcoinCoreRpcConfig {
+        .network = options.rpc.network,
+        .max_mempool_transactions = options.rpc.max_mempool_transactions,
+      },
+      options.bitcoin_conf);
+    if (options.rpc_host_overridden) {
+      resolved.connection.host = options.rpc.connection.host;
+    }
+    if (options.rpc_port_overridden) {
+      resolved.connection.port = options.rpc.connection.port;
+    }
+    if (options.rpc_user_overridden) {
+      resolved.connection.username = options.rpc.connection.username;
+    }
+    if (options.rpc_password_overridden) {
+      resolved.connection.password = options.rpc.connection.password;
+    }
+    if (options.rpc_path_overridden) {
+      resolved.connection.path = options.rpc.connection.path;
+    }
+    options.rpc = std::move(resolved);
+  }
 
   if (!options.scripted
     && (options.rpc.connection.username.empty()
       || options.rpc.connection.password.empty())) {
     std::cerr
-      << "missing Bitcoin Core RPC credentials; use --rpc-user/--rpc-password "
-      << "or BLOCXXI_RPC_USER/BLOCXXI_RPC_PASSWORD, or pass --scripted for the "
-      << "bounded demo transport\n";
+      << "missing Bitcoin Core RPC credentials; provide --rpc-user/--rpc-password, "
+      << "set BITCOIN_RPC_USER/BITCOIN_RPC_PASSWORD or BLOCXXI_RPC_USER/BLOCXXI_RPC_PASSWORD, "
+      << "or point --bitcoin-conf at bitcoin.conf / cookie auth, or pass --scripted "
+      << "for the bounded demo transport\n";
     return 4;
   }
 
