@@ -146,16 +146,12 @@ TEST(EventDhtTest, MainlineEventDhtQueriesDeterministicPeersAcrossSessions)
   publisher.Start();
   querier.Start();
 
-  auto publisher_dht = MainlineEventDht(io_context, publisher,
-    MainlineEventDhtOptions {
-      .routers = { router },
-      .request_timeout = std::chrono::seconds { 1 },
-    });
-  auto querier_dht = MainlineEventDht(io_context, querier,
-    MainlineEventDhtOptions {
-      .routers = { router },
-      .request_timeout = std::chrono::seconds { 1 },
-    });
+  auto const options = MainlineEventDhtOptions {
+    .routers = { router },
+    .request_timeout = std::chrono::seconds { 1 },
+  };
+  auto publisher_dht = MainlineEventDht(io_context, publisher, options);
+  auto querier_dht = MainlineEventDht(io_context, querier, options);
 
   auto const key_pair
     = blocxxi::crypto::KeyPair("40C756697E6F60AC839FE53DD403F0B254D49A26243A196300CD4D515EE28062");
@@ -173,9 +169,10 @@ TEST(EventDhtTest, MainlineEventDhtQueriesDeterministicPeersAcrossSessions)
     key_pair, "publisher");
 
   ASSERT_TRUE(publisher_dht.Publish(record).ok());
+  auto const event_key = record.DeterministicKey();
   auto query_result = EventQueryResult {};
   ASSERT_TRUE(querier_dht.Query(EventQuery {
-                .deterministic_key = record.DeterministicKey(),
+                .deterministic_key = event_key,
                 .limit = 8,
               },
                 query_result)
