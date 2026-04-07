@@ -4,10 +4,18 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //===----------------------------------------------------------------------===//
 
+#include <atomic>
+#include <chrono>
+#include <cstdlib>
+#include <functional>
 #include <iostream>
 #include <map>
 #include <memory>
+#include <csignal>
+#include <optional>
+#include <sstream>
 #include <string>
+#include <thread>
 #include <utility>
 
 #include <Blocxxi/Bitcoin/ingestion.h>
@@ -17,6 +25,90 @@
 #include <Blocxxi/P2P/event_dht.h>
 
 namespace {
+
+auto g_keep_running = std::atomic_bool { true };
+
+void HandleSignal(int) { g_keep_running.store(false); }
+
+struct AnalyzerOptions {
+  bool oneshot { false };
+  bool scripted { false };
+  std::chrono::milliseconds poll_interval { 1000 };
+  blocxxi::bitcoin::BitcoinCoreRpcConfig rpc {};
+};
+
+auto ReadEnv(std::string_view name) -> std::optional<std::string>
+{
+  auto const* value = std::getenv(std::string(name).c_str());
+  if (value == nullptr) {
+    return std::nullopt;
+  }
+  return std::string(value);
+}
+
+auto ParseOptions(int argc, char** argv) -> AnalyzerOptions
+{
+  auto options = AnalyzerOptions {};
+  if (auto value = ReadEnv("BLOCXXI_RPC_HOST")) {
+    options.rpc.connection.host = *value;
+  }
+  if (auto value = ReadEnv("BLOCXXI_RPC_PORT")) {
+    options.rpc.connection.port = static_cast<std::uint16_t>(std::stoi(*value));
+  }
+  if (auto value = ReadEnv("BLOCXXI_RPC_USER")) {
+    options.rpc.connection.username = *value;
+  }
+  if (auto value = ReadEnv("BLOCXXI_RPC_PASSWORD")) {
+    options.rpc.connection.password = *value;
+  }
+  if (auto value = ReadEnv("BLOCXXI_RPC_PATH")) {
+    options.rpc.connection.path = *value;
+  }
+
+  for (auto index = 1; index < argc; ++index) {
+    auto const current = std::string_view(argv[index]);
+    if (current == "--oneshot") {
+      options.oneshot = true;
+      continue;
+    }
+    if (current == "--scripted") {
+      options.scripted = true;
+      continue;
+    }
+    if (current == "--poll-interval-ms" && (index + 1) < argc) {
+      options.poll_interval = std::chrono::milliseconds { std::stoi(argv[++index]) };
+      continue;
+    }
+    if (current == "--rpc-host" && (index + 1) < argc) {
+      options.rpc.connection.host = argv[++index];
+      continue;
+    }
+    if (current == "--rpc-port" && (index + 1) < argc) {
+      options.rpc.connection.port = static_cast<std::uint16_t>(std::stoi(argv[++index]));
+      continue;
+    }
+    if (current == "--rpc-user" && (index + 1) < argc) {
+      options.rpc.connection.username = argv[++index];
+      continue;
+    }
+    if (current == "--rpc-password" && (index + 1) < argc) {
+      options.rpc.connection.password = argv[++index];
+      continue;
+    }
+    if (current == "--rpc-path" && (index + 1) < argc) {
+      options.rpc.connection.path = argv[++index];
+      continue;
+    }
+    if (current == "--help") {
+      std::cout
+        << "Usage: blocxxi-bitcoin-mempool-analyzer [--oneshot] [--scripted]\n"
+        << "       [--poll-interval-ms N] [--rpc-host HOST] [--rpc-port PORT]\n"
+        << "       [--rpc-user USER] [--rpc-password PASSWORD] [--rpc-path PATH]\n";
+      std::exit(0);
+    }
+  }
+  return options;
+}
 
 class ScriptedTransport final : public blocxxi::bitcoin::RpcTransport {
 public:
@@ -49,10 +141,13 @@ private:
 class RulesOnlyAnalyzerService final : public blocxxi::node::Service {
 public:
   RulesOnlyAnalyzerService(blocxxi::bitcoin::BitcoinCoreRpcAdapter adapter,
-    blocxxi::p2p::MemoryEventDht& dht, blocxxi::crypto::KeyPair key_pair)
+    blocxxi::p2p::MemoryEventDht& dht, blocxxi::crypto::KeyPair key_pair,
+    std::function<void(blocxxi::core::SignedEventRecord const&,
+      blocxxi::p2p::PublishResult const&)> on_publish)
     : adapter_(std::move(adapter))
     , dht_(dht)
     , key_pair_(std::move(key_pair))
+    , on_publish_(std::move(on_publish))
   {
   }
 
@@ -112,9 +207,14 @@ public:
           .summary = "high-fee mempool transaction",
         },
         key_pair_, "example-analyzer");
+      auto const published_record = record;
       auto publish_status = dht_.Publish(std::move(record));
       if (!publish_status.ok()) {
         return publish_status;
+      }
+      if (auto const published = dht_.LastPublish(); published.has_value()
+        && on_publish_) {
+        on_publish_(published_record, *published);
       }
     }
 
@@ -144,9 +244,14 @@ public:
           .summary = "mempool pressure wave",
         },
         key_pair_, "example-analyzer");
+      auto const published_record = record;
       auto publish_status = dht_.Publish(std::move(record));
       if (!publish_status.ok()) {
         return publish_status;
+      }
+      if (auto const published = dht_.LastPublish(); published.has_value()
+        && on_publish_) {
+        on_publish_(published_record, *published);
       }
     }
 
@@ -157,35 +262,89 @@ private:
   blocxxi::bitcoin::BitcoinCoreRpcAdapter adapter_;
   blocxxi::p2p::MemoryEventDht& dht_;
   blocxxi::crypto::KeyPair key_pair_;
+  std::function<void(blocxxi::core::SignedEventRecord const&,
+    blocxxi::p2p::PublishResult const&)>
+    on_publish_ {};
 };
 
 } // namespace
 
-auto main() -> int
+auto main(int argc, char** argv) -> int
 {
+  auto const options = ParseOptions(argc, argv);
+  std::signal(SIGINT, HandleSignal);
+  std::signal(SIGTERM, HandleSignal);
+
+  if (!options.scripted
+    && (options.rpc.connection.username.empty()
+      || options.rpc.connection.password.empty())) {
+    std::cerr
+      << "missing Bitcoin Core RPC credentials; use --rpc-user/--rpc-password "
+      << "or BLOCXXI_RPC_USER/BLOCXXI_RPC_PASSWORD, or pass --scripted for the "
+      << "bounded demo transport\n";
+    return 4;
+  }
+
+  auto transport = std::shared_ptr<blocxxi::bitcoin::RpcTransport> {};
+  if (options.scripted) {
+    transport = std::make_shared<ScriptedTransport>();
+  }
+
+  auto const publish_printer
+    = [](blocxxi::core::SignedEventRecord const& record,
+        blocxxi::p2p::PublishResult const& published) {
+        auto identifiers = std::ostringstream {};
+        for (auto index = std::size_t { 0 }; index < record.envelope.identifiers.size();
+             ++index) {
+          if (index > 0U) {
+            identifiers << ',';
+          }
+          identifiers << record.envelope.identifiers[index];
+        }
+        std::cout << "published-event"
+                  << " type=" << record.envelope.event_type
+                  << " taxonomy=" << record.envelope.taxonomy
+                  << " key=" << published.dht_key
+                  << " duplicate=" << (published.duplicate ? "true" : "false")
+                  << " summary=\"" << record.envelope.summary << "\""
+                  << " identifiers=[" << identifiers.str() << "]\n";
+      };
+
   auto node = blocxxi::node::Node();
   auto dht = blocxxi::p2p::MemoryEventDht {};
   auto service = std::make_shared<RulesOnlyAnalyzerService>(
     blocxxi::bitcoin::BitcoinCoreRpcAdapter(
-      blocxxi::bitcoin::BitcoinCoreRpcConfig {
-        .network = blocxxi::bitcoin::Network::Mainnet,
-        .max_mempool_transactions = 8,
-      },
-      std::make_shared<ScriptedTransport>()),
-    dht, blocxxi::crypto::KeyPair());
+      options.rpc, std::move(transport)),
+    dht, blocxxi::crypto::KeyPair(), publish_printer);
 
   if (!node.Start().ok()) {
     return 1;
   }
   node.RegisterService(service);
-  if (!node.RunServicesOnce().ok()) {
-    return 2;
+  std::cout << "analyzer-started mode=" << (options.scripted ? "scripted" : "bitcoin-core-rpc")
+            << " poll_interval_ms=" << options.poll_interval.count() << '\n';
+  auto cycle = std::size_t { 0 };
+  while (g_keep_running.load()) {
+    if (!node.RunServicesOnce().ok()) {
+      return 2;
+    }
+
+    auto const events = dht.Query(blocxxi::p2p::EventQuery {
+      .taxonomy = std::string { "transaction" },
+      .limit = 8,
+    });
+    std::cout << "analyzer-cycle=" << cycle << " analyzer-events=" << events.size()
+              << '\n';
+    if (events.empty()) {
+      return 3;
+    }
+
+    cycle += 1U;
+    if (options.oneshot) {
+      break;
+    }
+    std::this_thread::sleep_for(options.poll_interval);
   }
 
-  auto const events = dht.Query(blocxxi::p2p::EventQuery {
-    .taxonomy = std::string { "transaction" },
-    .limit = 8,
-  });
-  std::cout << "analyzer-events=" << events.size() << '\n';
-  return events.empty() ? 3 : 0;
+  return 0;
 }

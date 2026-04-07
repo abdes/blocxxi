@@ -102,6 +102,10 @@ examples that now prove the platform contracts end-to-end.
 - `bitcoin-mempool-analyzer` — thin analyzer app that owns only rule/taxonomy
 - `bitcoin-event-reader` — second consumer proof for SDK reuse
 
+The analyzer example now runs continuously by default, prints each event it
+publishes, and uses Bitcoin Core RPC configuration by default. It can be
+switched into bounded proof mode with `--scripted --oneshot` for tests/CI.
+
 ---
 
 ## One-Time Environment Setup

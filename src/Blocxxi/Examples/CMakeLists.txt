@@ -26,7 +26,7 @@ if(NOVA_BUILD_TESTS)
   add_test(
     NAME Blocxxi.Examples.BitcoinMempoolAnalyzer
     COMMAND
-      blocxxi-bitcoin-mempool-analyzer
+      blocxxi-bitcoin-mempool-analyzer --scripted --oneshot
   )
   add_test(
     NAME Blocxxi.Examples.BitcoinEventReader
