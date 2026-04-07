@@ -91,6 +91,28 @@ private:
   bool failed_once_ { false };
 };
 
+class ExhaustedService final : public Service {
+public:
+  [[nodiscard]] auto Name() const -> std::string override
+  {
+    return "exhausted.service";
+  }
+
+  [[nodiscard]] auto Policy() const -> ServicePolicy override
+  {
+    return ServicePolicy {
+      .interval = std::chrono::milliseconds { 1 },
+      .retry_backoff = std::chrono::milliseconds { 1 },
+      .max_retries = 1,
+    };
+  }
+
+  auto Poll(Node&) -> core::Status override
+  {
+    return core::Status::Failure(core::StatusCode::IOError, "persistent failure");
+  }
+};
+
 class FastCountingService final : public Service {
 public:
   [[nodiscard]] auto Name() const -> std::string override
@@ -103,6 +125,34 @@ public:
     return ServicePolicy {
       .interval = std::chrono::milliseconds { 0 },
       .retry_backoff = std::chrono::milliseconds { 0 },
+      .max_retries = 0,
+    };
+  }
+
+  auto Poll(Node&) -> core::Status override
+  {
+    run_count_ += 1U;
+    return core::Status::Success();
+  }
+
+  [[nodiscard]] auto Count() const -> std::size_t { return run_count_; }
+
+private:
+  std::size_t run_count_ { 0 };
+};
+
+class SlowCountingService final : public Service {
+public:
+  [[nodiscard]] auto Name() const -> std::string override
+  {
+    return "slow-counting.service";
+  }
+
+  [[nodiscard]] auto Policy() const -> ServicePolicy override
+  {
+    return ServicePolicy {
+      .interval = std::chrono::hours { 1 },
+      .retry_backoff = std::chrono::milliseconds { 1 },
       .max_retries = 0,
     };
   }
@@ -299,6 +349,40 @@ TEST(NodeTest, RunServicesUntilKeepsRuntimeLoopInsideNode)
   EXPECT_EQ(service->Count(), 3U);
   ASSERT_EQ(node.ServiceStates().size(), 1U);
   EXPECT_EQ(node.ServiceStates().front().run_count, 3U);
+}
+
+TEST(NodeTest, RunServicesOnceFailsAfterRetryBudgetIsExhausted)
+{
+  auto node = Node();
+  auto service = std::make_shared<ExhaustedService>();
+  node.RegisterService(service);
+
+  ASSERT_TRUE(node.Start().ok());
+  auto const first = node.RunServicesOnce();
+  EXPECT_TRUE(first.ok());
+  ASSERT_EQ(node.ServiceStates().size(), 1U);
+  EXPECT_EQ(node.ServiceStates().front().failure_count, 1U);
+
+  std::this_thread::sleep_for(std::chrono::milliseconds { 2 });
+  auto const second = node.RunServicesOnce();
+  EXPECT_EQ(second.code, core::StatusCode::IOError);
+  EXPECT_EQ(node.ServiceStates().front().failure_count, 2U);
+  EXPECT_FALSE(node.ServiceStates().front().last_error.empty());
+}
+
+TEST(NodeTest, RunServicesOnceHonorsNextDueBeforePollingAgain)
+{
+  auto node = Node();
+  auto service = std::make_shared<SlowCountingService>();
+  node.RegisterService(service);
+
+  ASSERT_TRUE(node.Start().ok());
+  ASSERT_TRUE(node.RunServicesOnce().ok());
+  ASSERT_TRUE(node.RunServicesOnce().ok());
+
+  ASSERT_EQ(node.ServiceStates().size(), 1U);
+  EXPECT_EQ(service->Count(), 1U);
+  EXPECT_EQ(node.ServiceStates().front().run_count, 1U);
 }
 
 } // namespace blocxxi::node

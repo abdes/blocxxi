@@ -598,6 +598,57 @@ TEST(BitcoinAdapterTest, HeaderSyncAdapterResumesLiveImportFromPersistedLocator)
   std::filesystem::remove_all(state_root);
 }
 
+TEST(BitcoinAdapterTest, ImportLiveSignetHeadersRejectsEmptyLiveFetch)
+{
+  auto io_context = asio::io_context {};
+  auto acceptor
+    = asio::ip::tcp::acceptor(io_context, { asio::ip::make_address("127.0.0.1"), 0 });
+  auto const port = acceptor.local_endpoint().port();
+
+  auto server = std::thread([&]() {
+    auto socket = asio::ip::tcp::socket(io_context);
+    acceptor.accept(socket);
+
+    (void)ReadMessage(socket); // version
+    auto version_reply = std::vector<std::uint8_t> {};
+    AppendLittleEndian(version_reply, 70016U, 4U);
+    asio::write(socket, asio::buffer(EncodeMessage("version", version_reply)));
+    asio::write(socket,
+      asio::buffer(EncodeMessage("verack", std::span<std::uint8_t const> {})));
+
+    (void)ReadMessage(socket); // verack
+    (void)ReadMessage(socket); // getheaders
+
+    auto headers_payload = std::vector<std::uint8_t> {};
+    AppendCompactSize(headers_payload, 0U);
+    asio::write(socket, asio::buffer(EncodeMessage("headers", headers_payload)));
+  });
+
+  auto node = node::Node();
+  ASSERT_TRUE(node.Start().ok());
+  auto adapter = HeaderSyncAdapter({
+    .network = Network::Signet,
+    .peer_hint = "127.0.0.1",
+    .header_sync_only = true,
+  });
+  ASSERT_TRUE(adapter.Bind(node).ok());
+
+  auto live_result = SignetHeadersResult {};
+  auto const status = adapter.ImportLiveSignetHeaders({
+      .host = "127.0.0.1",
+      .port = port,
+    },
+    &live_result);
+
+  server.join();
+
+  EXPECT_EQ(status.code, blocxxi::core::StatusCode::Rejected);
+  EXPECT_TRUE(adapter.ImportedHeights().empty());
+  EXPECT_EQ(node.Snapshot().height, 0U);
+  EXPECT_EQ(node.Blocks().size(), 1U);
+  EXPECT_TRUE(live_result.headers.empty());
+}
+
 TEST(BitcoinAdapterTest, SignetLiveClientFetchesBoundedBlockBodiesFromPeer)
 {
   auto io_context = asio::io_context {};
@@ -748,6 +799,12 @@ TEST(BitcoinAdapterTest, SignetLiveClientReusesCachedBlocksWhenAvailable)
   EXPECT_EQ(result.peer_address, "cache");
   ASSERT_EQ(result.blocks.size(), 1U);
   EXPECT_EQ(result.blocks.front().block_hash_hex, expected_hash);
+  ASSERT_EQ(result.metadata.size(), 1U);
+  EXPECT_EQ(result.metadata.front().block_hash_hex, expected_hash);
+  EXPECT_EQ(result.metadata.front().version, 4U);
+  EXPECT_EQ(result.metadata.front().nonce, 61U);
+  EXPECT_EQ(result.metadata.front().transaction_count, 1U);
+  EXPECT_FALSE(result.metadata.front().merkle_root_matches);
   EXPECT_EQ(result.command_trace.size(), 1U);
   EXPECT_EQ(result.command_trace.front(), "cache");
 

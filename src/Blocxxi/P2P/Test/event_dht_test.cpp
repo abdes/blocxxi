@@ -176,6 +176,43 @@ TEST(EventDhtTest, DeterministicKeyFilterReturnsOnlyMatchingRecords)
   EXPECT_EQ(matches.front().record.envelope.summary, "alpha");
 }
 
+TEST(EventDhtTest, QueryHonorsLimitAcrossMatchingRecords)
+{
+  auto dht = MemoryEventDht();
+  auto const key_pair
+    = blocxxi::crypto::KeyPair("40C756697E6F60AC839FE53DD403F0B254D49A26243A196300CD4D515EE28062");
+
+  auto make_record = [&](std::string identifier, std::string summary) {
+    return core::SignEventRecord(core::EventEnvelope {
+        .event_type = "bitcoin.fee.spike",
+        .taxonomy = "fee-market",
+        .source = "bitcoin.rpc",
+        .producer = "blocxxi.test",
+        .window = { .start_utc = 10, .end_utc = 20 },
+        .observed_at_utc = 10,
+        .published_at_utc = 11,
+        .identifiers = { std::move(identifier) },
+        .summary = std::move(summary),
+      },
+      key_pair, "publisher");
+  };
+
+  ASSERT_TRUE(dht.Publish(make_record("tx:1", "one")).ok());
+  ASSERT_TRUE(dht.Publish(make_record("tx:2", "two")).ok());
+  ASSERT_TRUE(dht.Publish(make_record("tx:3", "three")).ok());
+
+  auto const matches = dht.Query(EventQuery {
+    .event_type = std::string { "bitcoin.fee.spike" },
+    .limit = 2,
+  });
+
+  ASSERT_EQ(matches.size(), 2U);
+  EXPECT_TRUE(std::all_of(matches.begin(), matches.end(),
+    [](PublishedEvent const& published) {
+      return published.record.envelope.event_type == "bitcoin.fee.spike";
+    }));
+}
+
 TEST(EventDhtTest, MainlineEventDhtQueriesDeterministicPeersAcrossSessions)
 {
   auto io_context = asio::io_context {};
@@ -246,6 +283,61 @@ TEST(EventDhtTest, MainlineEventDhtQueriesDeterministicPeersAcrossSessions)
   querier.Stop();
   publisher.Stop();
   server.Stop();
+}
+
+TEST(EventDhtTest, MainlineEventDhtRequiresRouterForPublish)
+{
+  auto io_context = asio::io_context {};
+  auto channel
+    = kademlia::AsyncUdpChannel::ipv4(io_context, "127.0.0.1", std::to_string(NextPortBase()));
+  auto session = kademlia::Session(kademlia::MainlineDhtNode(io_context,
+    MakeTestNode("127.0.0.1", channel->LocalEndpoint().Port()), std::move(channel)));
+  session.Start();
+
+  auto dht = MainlineEventDht(io_context, session, {});
+  auto const key_pair
+    = blocxxi::crypto::KeyPair("40C756697E6F60AC839FE53DD403F0B254D49A26243A196300CD4D515EE28062");
+  auto const record = core::SignEventRecord(core::EventEnvelope {
+      .event_type = "bitcoin.router.required",
+      .taxonomy = "fee-market",
+      .source = "bitcoin.rpc",
+      .producer = "blocxxi.publisher",
+      .window = { .start_utc = 1, .end_utc = 2 },
+      .observed_at_utc = 1,
+      .published_at_utc = 2,
+      .identifiers = { "height:1" },
+      .summary = "publish requires router",
+    },
+    key_pair, "publisher");
+
+  auto const status = dht.Publish(record);
+
+  EXPECT_EQ(status.code, core::StatusCode::InvalidArgument);
+  session.Stop();
+}
+
+TEST(EventDhtTest, MainlineEventDhtRequiresRouterForDeterministicQuery)
+{
+  auto io_context = asio::io_context {};
+  auto channel
+    = kademlia::AsyncUdpChannel::ipv4(io_context, "127.0.0.1", std::to_string(NextPortBase()));
+  auto session = kademlia::Session(kademlia::MainlineDhtNode(io_context,
+    MakeTestNode("127.0.0.1", channel->LocalEndpoint().Port()), std::move(channel)));
+  session.Start();
+
+  auto dht = MainlineEventDht(io_context, session, {});
+  auto result = EventQueryResult {};
+
+  auto const status = dht.Query(EventQuery {
+      .deterministic_key = std::string("event-key"),
+      .limit = 4,
+    },
+    result);
+
+  EXPECT_EQ(status.code, core::StatusCode::InvalidArgument);
+  EXPECT_TRUE(result.records.empty());
+  EXPECT_TRUE(result.peers.empty());
+  session.Stop();
 }
 
 } // namespace blocxxi::p2p
