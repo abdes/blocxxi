@@ -39,6 +39,9 @@ struct Header {
   std::string hash_hex {};
   std::string previous_hash_hex {};
   std::uint32_t version { 0 };
+  std::uint32_t timestamp { 0 };
+  std::uint32_t bits { 0 };
+  std::uint32_t nonce { 0 };
 };
 
 struct SignetLiveOptions {

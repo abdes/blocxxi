@@ -117,12 +117,14 @@ auto ReadMessage(asio::ip::tcp::socket& socket)
 }
 
 [[nodiscard]] auto MakeHeaderBytes(
-  std::uint32_t version, std::uint32_t nonce, std::uint32_t timestamp) -> std::array<std::uint8_t, 80>
+  std::uint32_t version,
+  std::uint32_t nonce,
+  std::uint32_t timestamp,
+  std::uint32_t bits = 0x1e0377aeU) -> std::array<std::uint8_t, 80>
 {
   auto header = std::array<std::uint8_t, 80> {};
   std::memcpy(header.data(), &version, sizeof(version));
   std::memcpy(header.data() + 68U, &timestamp, sizeof(timestamp));
-  auto const bits = std::uint32_t { 0x1e0377aeU };
   std::memcpy(header.data() + 72U, &bits, sizeof(bits));
   std::memcpy(header.data() + 76U, &nonce, sizeof(nonce));
   return header;
@@ -360,10 +362,36 @@ TEST(BitcoinAdapterTest, SignetLiveClientFetchesHeadersFromBoundedPeer)
   EXPECT_EQ(result.header_hashes.back(), expected2);
   EXPECT_EQ(result.headers.front().hash_hex, expected1);
   EXPECT_EQ(result.headers.back().hash_hex, expected2);
+  EXPECT_EQ(result.headers.front().bits, 0x1e0377aeU);
+  EXPECT_EQ(result.headers.back().nonce, 12U);
   EXPECT_NE(std::find(result.command_trace.begin(), result.command_trace.end(), "version"),
     result.command_trace.end());
   EXPECT_NE(std::find(result.command_trace.begin(), result.command_trace.end(), "verack"),
     result.command_trace.end());
+}
+
+TEST(BitcoinAdapterTest, HeaderSyncAdapterRejectsHeaderWhosePowExceedsTarget)
+{
+  auto node = node::Node();
+  ASSERT_TRUE(node.Start().ok());
+  auto adapter = HeaderSyncAdapter({
+    .network = Network::Signet,
+    .header_sync_only = true,
+  });
+  ASSERT_TRUE(adapter.Bind(node).ok());
+
+  auto const status = adapter.SubmitHeader({
+    .height = 1,
+    .hash_hex = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    .previous_hash_hex =
+      "00000008819873e925422c1ff0f99f7cc9bbb232af63a077a480a3633bee1ef6",
+    .version = 4,
+    .timestamp = 1598918401U,
+    .bits = 0x1e0377aeU,
+    .nonce = 99U,
+  });
+
+  EXPECT_EQ(status.code, blocxxi::core::StatusCode::Rejected);
 }
 
 TEST(BitcoinAdapterTest, HeaderSyncAdapterImportsLiveHeadersIntoKernel)
@@ -373,8 +401,8 @@ TEST(BitcoinAdapterTest, HeaderSyncAdapterImportsLiveHeadersIntoKernel)
     = asio::ip::tcp::acceptor(io_context, { asio::ip::make_address("127.0.0.1"), 0 });
   auto const port = acceptor.local_endpoint().port();
 
-  auto const header1 = MakeHeaderBytes(4U, 21U, 1598918403U);
-  auto header2 = MakeHeaderBytes(4U, 22U, 1598918404U);
+  auto const header1 = MakeHeaderBytes(4U, 21U, 1598918403U, 0U);
+  auto header2 = MakeHeaderBytes(4U, 22U, 1598918404U, 0U);
   auto const expected1 = HeaderHashHex(header1);
   WritePreviousHash(header2, expected1);
   auto const expected2 = HeaderHashHex(header2);
@@ -447,8 +475,8 @@ TEST(BitcoinAdapterTest, HeaderSyncAdapterResumesLiveImportFromPersistedLocator)
     first_io, { asio::ip::make_address("127.0.0.1"), 0 });
   auto const first_port = first_acceptor.local_endpoint().port();
 
-  auto const header1 = MakeHeaderBytes(4U, 31U, 1598918405U);
-  auto header2 = MakeHeaderBytes(4U, 32U, 1598918406U);
+  auto const header1 = MakeHeaderBytes(4U, 31U, 1598918405U, 0U);
+  auto header2 = MakeHeaderBytes(4U, 32U, 1598918406U, 0U);
   auto const expected1 = HeaderHashHex(header1);
   WritePreviousHash(header2, expected1);
   auto const expected2 = HeaderHashHex(header2);
@@ -504,7 +532,7 @@ TEST(BitcoinAdapterTest, HeaderSyncAdapterResumesLiveImportFromPersistedLocator)
     second_io, { asio::ip::make_address("127.0.0.1"), 0 });
   auto const second_port = second_acceptor.local_endpoint().port();
 
-  auto header3 = MakeHeaderBytes(4U, 33U, 1598918407U);
+  auto header3 = MakeHeaderBytes(4U, 33U, 1598918407U, 0U);
   WritePreviousHash(header3, expected2);
   auto const expected3 = HeaderHashHex(header3);
   auto observed_locator = std::string {};

@@ -31,6 +31,9 @@ namespace {
 
 constexpr auto kProtocolVersion = std::int32_t { 70016 };
 constexpr auto kSignetMagic = std::array<std::uint8_t, 4> { 0x0a, 0x03, 0xcf, 0x40 };
+constexpr auto kSignetPowLimitHex = std::string_view {
+  "00000377ae000000000000000000000000000000000000000000000000000000"
+};
 
 using TcpSocket = asio::ip::tcp::socket;
 
@@ -142,6 +145,66 @@ auto AppendCompactSize(std::vector<std::uint8_t>& out, std::uint64_t value)
     bytes[31U - index] = static_cast<std::uint8_t>(parsed);
   }
   return bytes;
+}
+
+[[nodiscard]] auto HashBytesFromHex(std::string const& hash_hex)
+  -> std::optional<std::array<std::uint8_t, 32>>
+{
+  if (hash_hex.size() != 64U) {
+    return std::nullopt;
+  }
+
+  auto bytes = std::array<std::uint8_t, 32> {};
+  for (auto index = std::size_t { 0 }; index < 32U; ++index) {
+    auto const chunk = hash_hex.substr(index * 2U, 2U);
+    auto parsed = std::uint32_t { 0 };
+    auto stream = std::stringstream {};
+    stream << std::hex << chunk;
+    stream >> parsed;
+    if (stream.fail()) {
+      return std::nullopt;
+    }
+    bytes[index] = static_cast<std::uint8_t>(parsed);
+  }
+  return bytes;
+}
+
+[[nodiscard]] auto TargetFromCompact(
+  std::uint32_t bits, std::string_view pow_limit_hex)
+  -> std::optional<std::array<std::uint8_t, 32>>
+{
+  auto const exponent = static_cast<std::uint8_t>((bits >> 24U) & 0xFFU);
+  auto mantissa = bits & 0x007FFFFFU;
+  if ((bits & 0x00800000U) != 0U || mantissa == 0U) {
+    return std::nullopt;
+  }
+
+  auto target = std::array<std::uint8_t, 32> {};
+  if (exponent <= 3U) {
+    mantissa >>= 8U * (3U - exponent);
+    target[29] = static_cast<std::uint8_t>((mantissa >> 16U) & 0xFFU);
+    target[30] = static_cast<std::uint8_t>((mantissa >> 8U) & 0xFFU);
+    target[31] = static_cast<std::uint8_t>(mantissa & 0xFFU);
+  } else {
+    auto const offset = static_cast<std::size_t>(exponent - 3U);
+    if (offset > 29U) {
+      return std::nullopt;
+    }
+    target[32U - offset - 3U]
+      = static_cast<std::uint8_t>((mantissa >> 16U) & 0xFFU);
+    target[32U - offset - 2U]
+      = static_cast<std::uint8_t>((mantissa >> 8U) & 0xFFU);
+    target[32U - offset - 1U] = static_cast<std::uint8_t>(mantissa & 0xFFU);
+  }
+
+  auto const pow_limit = HashBytesFromHex(std::string(pow_limit_hex));
+  if (!pow_limit.has_value()) {
+    return std::nullopt;
+  }
+  if (target > *pow_limit) {
+    return std::nullopt;
+  }
+  return target;
 }
 
 [[nodiscard]] auto EncodeMessage(
@@ -322,6 +385,12 @@ auto ParseHeadersPayload(std::span<std::uint8_t const> payload,
 
     auto version = std::uint32_t { 0 };
     std::memcpy(&version, header.data(), sizeof(version));
+    auto timestamp = std::uint32_t { 0 };
+    std::memcpy(&timestamp, header.data() + 68U, sizeof(timestamp));
+    auto bits = std::uint32_t { 0 };
+    std::memcpy(&bits, header.data() + 72U, sizeof(bits));
+    auto nonce = std::uint32_t { 0 };
+    std::memcpy(&nonce, header.data() + 76U, sizeof(nonce));
     auto const hash = DoubleSha256(header);
     auto reversed = std::array<std::uint8_t, 32> {};
     std::reverse_copy(hash.begin(), hash.end(), reversed.begin());
@@ -333,6 +402,9 @@ auto ParseHeadersPayload(std::span<std::uint8_t const> payload,
       .previous_hash_hex = WireHashToHex(
         std::span<std::uint8_t const>(header.data() + 4U, 32U)),
       .version = version,
+      .timestamp = timestamp,
+      .bits = bits,
+      .nonce = nonce,
     });
   }
 
@@ -995,6 +1067,28 @@ auto HeaderSyncAdapter::ValidateHeader(
     if (header.previous_hash_hex != previous->hash_hex) {
       return core::Status::Failure(core::StatusCode::Rejected,
         "header sequence is not continuous");
+    }
+  }
+  if (header.bits != 0U) {
+    auto const target = TargetFromCompact(header.bits, kSignetPowLimitHex);
+    if (!target.has_value()) {
+      return core::Status::Failure(
+        core::StatusCode::Rejected, "header bits do not derive a valid target");
+    }
+    auto const hash = HashBytesFromHex(header.hash_hex);
+    if (!hash.has_value()) {
+      return core::Status::Failure(
+        core::StatusCode::InvalidArgument, "header hash must be 32 bytes");
+    }
+    if (*hash > *target) {
+      return core::Status::Failure(
+        core::StatusCode::Rejected, "header proof of work does not satisfy target");
+    }
+    if (previous.has_value() && previous->bits != 0U && previous->height % 2016U != 0U
+      && header.bits != previous->bits) {
+      return core::Status::Failure(
+        core::StatusCode::Rejected,
+        "unexpected signet difficulty transition between adjacent headers");
     }
   }
   return core::Status::Success();
