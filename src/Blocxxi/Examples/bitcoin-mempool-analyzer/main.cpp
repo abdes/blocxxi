@@ -367,14 +367,25 @@ auto main(int argc, char** argv) -> int
   }
   auto cycle = std::size_t { 0 };
   while (g_keep_running.load()) {
-    if (!node.RunServicesOnce().ok()) {
+    auto const status = node.RunServicesOnce();
+    auto const service_states = node.ServiceStates();
+    auto const failed_service = std::find_if(service_states.begin(), service_states.end(),
+      [](blocxxi::node::ServiceState const& state) {
+        return state.failure_count > 0U && !state.last_error.empty();
+      });
+    if (failed_service != service_states.end()) {
+      std::cout << "analyzer-warning service=" << failed_service->name
+                << " failure-count=" << failed_service->failure_count
+                << " last-error=\"" << failed_service->last_error << "\"\n";
+    }
+    if (!status.ok() && options.oneshot) {
       return 2;
     }
 
     auto const events = dht.Query(blocxxi::p2p::EventQuery { .limit = 64 });
     std::cout << "analyzer-cycle=" << cycle << " analyzer-events=" << events.size()
               << '\n';
-    if (events.empty()) {
+    if (events.empty() && failed_service == service_states.end()) {
       std::cout << "analyzer-idle waiting-for-matching-events=true\n";
     }
 
