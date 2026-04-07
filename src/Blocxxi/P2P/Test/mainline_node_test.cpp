@@ -107,6 +107,21 @@ auto MakeSampleInfohashesQuery(
   return Buffer(encoded.begin(), encoded.end());
 }
 
+auto MakeCustomQuery(std::string transaction_id, std::string method) -> Buffer
+{
+  auto query = KrpcMessage {};
+  query.transaction_id_ = std::move(transaction_id);
+  query.payload_ = KrpcQuery {
+    std::move(method),
+    {
+      { "id", blocxxi::codec::bencode::Value("abcdefghij0123456789") },
+      { "key", blocxxi::codec::bencode::Value("custom-key") },
+    },
+  };
+  auto encoded = Encode(query);
+  return Buffer(encoded.begin(), encoded.end());
+}
+
 } // namespace
 
 // NOLINTNEXTLINE
@@ -436,6 +451,49 @@ TEST(MainlineDhtNodeTest, AnnouncePeerWithImpliedPortUsesSenderPort)
     [](std::error_code const& failure) { ASSERT_FALSE(failure); });
   io_context.run_for(std::chrono::seconds(1));
   ASSERT_TRUE(values_seen);
+}
+
+// NOLINTNEXTLINE
+TEST(MainlineDhtNodeTest, CustomQueryResponderMergesCustomPayloadIntoResponse)
+{
+  asio::io_context io_context;
+  auto receiver
+    = AsyncUdpChannel::ipv4(io_context, "127.0.0.1", "30131");
+  auto sender = AsyncUdpChannel::ipv4(io_context, "127.0.0.1", "30132");
+
+  auto node = MainlineDhtNode(
+    io_context, MakeTestNode("127.0.0.1", 30131), std::move(receiver));
+  node.OnCustomQuery([](std::string_view method, KrpcQuery const& query,
+                       IpEndpoint const&) {
+    if (method != "bx_custom") {
+      return std::optional<blocxxi::codec::bencode::Value::DictionaryType> {};
+    }
+    return std::optional<blocxxi::codec::bencode::Value::DictionaryType> {
+      blocxxi::codec::bencode::Value::DictionaryType {
+        { "echo", blocxxi::codec::bencode::Value(query.arguments_.at("key").AsString()) },
+      },
+    };
+  });
+  node.Start();
+
+  auto custom_reply_seen = false;
+  sender->AsyncReceive([&custom_reply_seen](std::error_code const& failure,
+                        IpEndpoint const&, BufferReader const& buffer) {
+    ASSERT_FALSE(failure);
+    auto message = DecodeKrpc(std::string_view(
+      reinterpret_cast<char const*>(buffer.data()), buffer.size()));
+    ASSERT_EQ(GetType(message), KrpcMessage::Type::Response);
+    auto const& response = std::get<KrpcResponse>(message.payload_);
+    EXPECT_EQ(response.values_.at("echo").AsString(), "custom-key");
+    EXPECT_TRUE(response.values_.contains("id"));
+    custom_reply_seen = true;
+  });
+
+  sender->AsyncSend(MakeCustomQuery("zz", "bx_custom"),
+    IpEndpoint { "127.0.0.1", 30131 },
+    [](std::error_code const& failure) { ASSERT_FALSE(failure); });
+  io_context.run_for(std::chrono::seconds(1));
+  ASSERT_TRUE(custom_reply_seen);
 }
 
 } // namespace blocxxi::p2p::kademlia

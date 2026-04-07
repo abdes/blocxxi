@@ -385,6 +385,65 @@ TEST(BitcoinAdapterTest, SignetLiveClientFetchesHeadersFromBoundedPeer)
     result.command_trace.end());
 }
 
+TEST(BitcoinAdapterTest, SignetLiveClientRespondsToPingDuringHandshakeAndHeaderFetch)
+{
+  auto io_context = asio::io_context {};
+  auto acceptor
+    = asio::ip::tcp::acceptor(io_context, { asio::ip::make_address("127.0.0.1"), 0 });
+  auto const port = acceptor.local_endpoint().port();
+
+  auto const header = MakeHeaderBytes(4U, 19U, 1598918402U);
+  auto const expected = HeaderHashHex(header);
+
+  auto server = std::thread([&]() {
+    auto socket = asio::ip::tcp::socket(io_context);
+    acceptor.accept(socket);
+
+    auto const [version_command, _version_payload] = ReadMessage(socket);
+    EXPECT_EQ(version_command, "version");
+
+    auto const ping_payload = std::vector<std::uint8_t> { 1U, 2U, 3U, 4U, 5U, 6U, 7U, 8U };
+    asio::write(socket, asio::buffer(EncodeMessage("ping", ping_payload)));
+
+    auto version_reply = std::vector<std::uint8_t> {};
+    AppendLittleEndian(version_reply, 70016U, 4U);
+    asio::write(socket, asio::buffer(EncodeMessage("version", version_reply)));
+    asio::write(socket,
+      asio::buffer(EncodeMessage("verack", std::span<std::uint8_t const> {})));
+
+    auto const [pong_command, pong_payload] = ReadMessage(socket);
+    EXPECT_EQ(pong_command, "pong");
+    EXPECT_EQ(pong_payload, ping_payload);
+    auto const [verack_command, _verack_payload] = ReadMessage(socket);
+    EXPECT_EQ(verack_command, "verack");
+    auto const [getheaders_command, _getheaders_payload] = ReadMessage(socket);
+    EXPECT_EQ(getheaders_command, "getheaders");
+
+    auto headers_payload = std::vector<std::uint8_t> {};
+    AppendCompactSize(headers_payload, 1U);
+    headers_payload.insert(headers_payload.end(), header.begin(), header.end());
+    headers_payload.push_back(0U);
+    asio::write(socket, asio::buffer(EncodeMessage("headers", headers_payload)));
+  });
+
+  auto client = SignetLiveClient({
+    .host = "127.0.0.1",
+    .port = port,
+  });
+  auto result = SignetHeadersResult {};
+  auto const status = client.FetchHeaders(result);
+
+  server.join();
+
+  ASSERT_TRUE(status.ok());
+  ASSERT_EQ(result.headers.size(), 1U);
+  EXPECT_EQ(result.headers.front().hash_hex, expected);
+  EXPECT_NE(std::find(result.command_trace.begin(), result.command_trace.end(), "ping"),
+    result.command_trace.end());
+  EXPECT_NE(std::find(result.command_trace.begin(), result.command_trace.end(), "headers"),
+    result.command_trace.end());
+}
+
 TEST(BitcoinAdapterTest, HeaderSyncAdapterRejectsHeaderWhosePowExceedsTarget)
 {
   auto node = node::Node();
@@ -752,6 +811,71 @@ TEST(BitcoinAdapterTest, SignetLiveClientFetchesBoundedBlockBodiesFromPeer)
   ASSERT_EQ(result.metadata.front().transaction_witness_ids.size(), 1U);
   EXPECT_EQ(result.metadata.front().transaction_ids.front(), expected_txid);
   EXPECT_EQ(result.metadata.front().transaction_witness_ids.front(), expected_txid);
+  EXPECT_NE(std::find(result.command_trace.begin(), result.command_trace.end(), "block"),
+    result.command_trace.end());
+}
+
+TEST(BitcoinAdapterTest, SignetLiveClientRespondsToPingBeforeReceivingBlockPayloads)
+{
+  auto io_context = asio::io_context {};
+  auto acceptor
+    = asio::ip::tcp::acceptor(io_context, { asio::ip::make_address("127.0.0.1"), 0 });
+  auto const port = acceptor.local_endpoint().port();
+
+  auto const header = MakeHeaderBytes(4U, 51U, 1598918409U);
+  auto expected_hash = HeaderHashHex(header);
+  auto block_payload = std::vector<std::uint8_t>(header.begin(), header.end());
+  block_payload.push_back(1U);
+  block_payload.push_back(1U);
+  block_payload.push_back(0U);
+  block_payload.push_back(0U);
+  block_payload.push_back(0U);
+  block_payload.push_back(0U);
+  block_payload.push_back(0U);
+  block_payload.push_back(0U);
+  block_payload.push_back(0U);
+  block_payload.push_back(0U);
+  block_payload.push_back(0U);
+
+  auto server = std::thread([&]() {
+    auto socket = asio::ip::tcp::socket(io_context);
+    acceptor.accept(socket);
+    (void)ReadMessage(socket); // version
+
+    auto version_reply = std::vector<std::uint8_t> {};
+    AppendLittleEndian(version_reply, 70016U, 4U);
+    asio::write(socket, asio::buffer(EncodeMessage("version", version_reply)));
+    asio::write(socket,
+      asio::buffer(EncodeMessage("verack", std::span<std::uint8_t const> {})));
+
+    (void)ReadMessage(socket); // verack
+    auto const [getdata_command, _getdata_payload] = ReadMessage(socket);
+    EXPECT_EQ(getdata_command, "getdata");
+
+    auto const ping_payload = std::vector<std::uint8_t> { 9U, 8U, 7U, 6U, 5U, 4U, 3U, 2U };
+    asio::write(socket, asio::buffer(EncodeMessage("ping", ping_payload)));
+    auto const [pong_command, pong_payload] = ReadMessage(socket);
+    EXPECT_EQ(pong_command, "pong");
+    EXPECT_EQ(pong_payload, ping_payload);
+
+    asio::write(socket, asio::buffer(EncodeMessage("block", block_payload)));
+  });
+
+  auto client = SignetLiveClient({
+    .host = "127.0.0.1",
+    .port = port,
+  });
+  auto result = SignetBlocksResult {};
+  auto const status = client.FetchBlocks(
+    std::span<std::string const>(&expected_hash, 1U), result);
+
+  server.join();
+
+  ASSERT_TRUE(status.ok());
+  ASSERT_EQ(result.blocks.size(), 1U);
+  EXPECT_EQ(result.blocks.front().block_hash_hex, expected_hash);
+  EXPECT_NE(std::find(result.command_trace.begin(), result.command_trace.end(), "ping"),
+    result.command_trace.end());
   EXPECT_NE(std::find(result.command_trace.begin(), result.command_trace.end(), "block"),
     result.command_trace.end());
 }
