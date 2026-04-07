@@ -19,3 +19,6 @@ It exposes:
 `Blocxxi.Node` stays facade-oriented: it composes the kernel, runtime services,
 and optional adapters without becoming the home for low-level scheduler,
 checkpoint, or DHT transport logic.
+
+It also does not absorb product-layer concerns such as rule authoring UX,
+entity clustering, historical indexing/backfill, or operator dashboards.

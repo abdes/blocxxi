@@ -60,6 +60,22 @@ manually in app code. Exact-key mainline queries now surface both discovered
 peers and any platform-managed records available from those peers during
 integration flows.
 
+Non-goals / deferred scope
+==========================
+
+The current Bitcoin-platform roadmap intentionally keeps these items out of
+scope for the reusable SDK contract:
+
+- rule authoring UX
+- advanced entity clustering
+- historical indexing/backfill
+- operator dashboards
+
+The current DHT proof also stops short of arbitrary-peer payload transport on
+the live/public network. Today the platform proves deterministic publish/query,
+peer discovery, and platform-managed record retrieval in local integration
+flows.
+
 Deferred work
 =============
 

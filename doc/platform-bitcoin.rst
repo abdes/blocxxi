@@ -21,6 +21,10 @@ The module now has two complementary concerns:
 2. Bitcoin Core RPC ingestion for mempool + network-state access, normalized
    into platform-owned observation models
 
+`Blocxxi.Bitcoin` does **not** own rule authoring UX, entity clustering,
+historical backfill, or operator dashboards; those remain outside the current
+platform scope.
+
 When a ``peer_hint`` is provided, the adapter also emits a bootstrap/discovery
 hint through the existing node surface instead of inventing a Bitcoin-specific
 node API. The current bounded sync flow still supports ordered header batches

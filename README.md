@@ -117,6 +117,21 @@ bitcoin.conf, or cookie auth).
 If Bitcoin Core RPC is unreachable or authentication fails, it now stays alive,
 prints analyzer-warning lines, and keeps retrying instead of silently exiting.
 
+### Current Bitcoin-platform non-goals
+
+The current roadmap intentionally keeps these items out of scope for the
+reusable Bitcoin SDK contract:
+
+- rule authoring UX
+- advanced entity clustering
+- historical indexing/backfill
+- operator dashboards
+
+The current DHT proof is also intentionally narrower than a full public-network
+transport product: Blocxxi now proves deterministic publish/query, peer
+discovery, and platform-managed record retrieval in integration flows, but not
+arbitrary-peer payload transport on the open network.
+
 ---
 
 ## One-Time Environment Setup
