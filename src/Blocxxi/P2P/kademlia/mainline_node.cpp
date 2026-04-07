@@ -49,6 +49,11 @@ void MainlineDhtNode::OnQuery(QueryCallback callback)
   on_query_ = std::move(callback);
 }
 
+void MainlineDhtNode::OnCustomQuery(CustomQueryResponder callback)
+{
+  on_custom_query_ = std::move(callback);
+}
+
 void MainlineDhtNode::OnBootstrapSuccess(BootstrapCallback callback)
 {
   on_bootstrap_success_ = std::move(callback);
@@ -131,6 +136,12 @@ void MainlineDhtNode::AsyncSampleInfohashes(Node::IdType const& target,
     destination, std::move(callback));
 }
 
+void MainlineDhtNode::AsyncQuery(
+  KrpcQuery query, IpEndpoint const& destination, ResponseCallback callback)
+{
+  SendQuery(std::move(query), destination, std::move(callback));
+}
+
 void MainlineDhtNode::Start()
 {
   if (started_) {
@@ -200,7 +211,16 @@ auto MainlineDhtNode::MakeResponse(
   } else if (method == "ping") {
     // id only
   } else {
-    return std::nullopt;
+    if (!on_custom_query_) {
+      return std::nullopt;
+    }
+    auto custom_values = on_custom_query_(method, query, sender);
+    if (!custom_values.has_value()) {
+      return std::nullopt;
+    }
+    for (auto& [key, value] : *custom_values) {
+      values.insert_or_assign(std::move(key), std::move(value));
+    }
   }
 
   auto response = KrpcMessage {};

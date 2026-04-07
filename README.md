@@ -110,8 +110,8 @@ configuration by default. It can be switched into bounded proof mode with
 `--scripted --oneshot` for tests/CI.
 Both Bitcoin intelligence examples now use the P2P platform helpers for event
 signing/publication/query instead of calling signing or DHT storage directly,
-and the Mainline-backed DHT path can now return exact-key records for
-platform-managed peers in integration flows.
+and the Mainline-backed DHT path can now return exact-key records from
+discovered peers in integration flows.
 At startup it also prints which RPC/auth source it resolved (CLI, env,
 bitcoin.conf, or cookie auth).
 If Bitcoin Core RPC is unreachable or authentication fails, it now stays alive,
@@ -129,8 +129,8 @@ reusable Bitcoin SDK contract:
 
 The current DHT proof is also intentionally narrower than a full public-network
 transport product: Blocxxi now proves deterministic publish/query, peer
-discovery, and platform-managed record retrieval in integration flows, but not
-arbitrary-peer payload transport on the open network.
+discovery, and exact-key peer record retrieval in integration flows, but not
+a fully validated arbitrary-peer payload transport story on the open network.
 
 ---
 

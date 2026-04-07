@@ -7,10 +7,9 @@
 #include <Blocxxi/P2P/event_dht.h>
 
 #include <algorithm>
-#include <mutex>
 #include <set>
-#include <unordered_map>
 
+#include <Blocxxi/Codec/bencode.h>
 #include <Blocxxi/Core/primitives.h>
 #include <Blocxxi/P2P/kademlia/krpc.h>
 
@@ -43,20 +42,6 @@ auto SignAndPublishEvent(core::EventEnvelope envelope,
     *signed_record = signed_value;
   }
   return PublishSignedRecord(std::move(signed_value), dht, published);
-}
-
-auto RemoteRecordsByPeer()
-  -> std::unordered_map<std::string, std::vector<PublishedEvent>>&
-{
-  static auto records
-    = std::unordered_map<std::string, std::vector<PublishedEvent>> {};
-  return records;
-}
-
-auto RemoteRecordsMutex() -> std::mutex&
-{
-  static auto mutex = std::mutex {};
-  return mutex;
 }
 
 auto MatchesIdentifiers(core::SignedEventRecord const& record,
@@ -104,15 +89,8 @@ auto SamePublishedRecord(PublishedEvent const& lhs, PublishedEvent const& rhs) -
     && lhs.record.signer_public_key_hex == rhs.record.signer_public_key_hex;
 }
 
-auto MatchesSignedRecord(
-  PublishedEvent const& published, core::SignedEventRecord const& record) -> bool
-{
-  return published.record.signature_hex == record.signature_hex
-    && published.record.signer_public_key_hex == record.signer_public_key_hex;
-}
-
 auto MergePublishedRecord(
-  std::vector<PublishedEvent>& records, PublishedEvent published) -> void
+  std::vector<PublishedEvent>& records, PublishedEvent published) -> bool
 {
   auto found = std::find_if(records.begin(), records.end(),
     [&](PublishedEvent const& existing) {
@@ -120,35 +98,192 @@ auto MergePublishedRecord(
     });
   if (found != records.end()) {
     *found = std::move(published);
-    return;
+    return false;
   }
   records.push_back(std::move(published));
+  return true;
 }
 
-auto RememberRemoteRecord(
-  kademlia::IpEndpoint const& peer, PublishedEvent const& published) -> void
+auto ToValue(std::vector<std::string> const& values) -> blocxxi::codec::bencode::Value
 {
-  auto lock = std::scoped_lock(RemoteRecordsMutex());
-  auto& records = RemoteRecordsByPeer()[peer.ToString()];
-  MergePublishedRecord(records, published);
+  auto items = blocxxi::codec::bencode::Value::ListType {};
+  items.reserve(values.size());
+  for (auto const& value : values) {
+    items.emplace_back(blocxxi::codec::bencode::Value(value));
+  }
+  return blocxxi::codec::bencode::Value(std::move(items));
 }
 
-auto RemoteMatchesForPeer(
-  kademlia::IpEndpoint const& peer, EventQuery const& query) -> std::vector<PublishedEvent>
+auto ToValue(std::vector<core::EventAttribute> const& attributes)
+  -> blocxxi::codec::bencode::Value
 {
-  auto lock = std::scoped_lock(RemoteRecordsMutex());
-  auto found = RemoteRecordsByPeer().find(peer.ToString());
-  if (found == RemoteRecordsByPeer().end()) {
-    return {};
+  auto items = blocxxi::codec::bencode::Value::ListType {};
+  items.reserve(attributes.size());
+  for (auto const& attribute : attributes) {
+    items.emplace_back(blocxxi::codec::bencode::Value(
+      blocxxi::codec::bencode::Value::DictionaryType {
+        { "key", blocxxi::codec::bencode::Value(attribute.key) },
+        { "value", blocxxi::codec::bencode::Value(attribute.value) },
+      }));
+  }
+  return blocxxi::codec::bencode::Value(std::move(items));
+}
+
+auto ToString(blocxxi::core::ByteVector const& bytes) -> std::string
+{
+  return std::string(reinterpret_cast<char const*>(bytes.data()), bytes.size());
+}
+
+auto ToValue(core::EventEnvelope const& envelope) -> blocxxi::codec::bencode::Value
+{
+  return blocxxi::codec::bencode::Value(
+    blocxxi::codec::bencode::Value::DictionaryType {
+      { "schema", blocxxi::codec::bencode::Value(envelope.schema) },
+      { "event_type", blocxxi::codec::bencode::Value(envelope.event_type) },
+      { "taxonomy", blocxxi::codec::bencode::Value(envelope.taxonomy) },
+      { "source", blocxxi::codec::bencode::Value(envelope.source) },
+      { "producer", blocxxi::codec::bencode::Value(envelope.producer) },
+      { "window_start",
+        blocxxi::codec::bencode::Value(envelope.window.start_utc) },
+      { "window_end", blocxxi::codec::bencode::Value(envelope.window.end_utc) },
+      { "observed_at",
+        blocxxi::codec::bencode::Value(envelope.observed_at_utc) },
+      { "published_at",
+        blocxxi::codec::bencode::Value(envelope.published_at_utc) },
+      { "identifiers", ToValue(envelope.identifiers) },
+      { "attributes", ToValue(envelope.attributes) },
+      { "summary", blocxxi::codec::bencode::Value(envelope.summary) },
+      { "payload", blocxxi::codec::bencode::Value(ToString(envelope.payload)) },
+    });
+}
+
+auto ToValue(core::SignedEventRecord const& record) -> blocxxi::codec::bencode::Value
+{
+  return blocxxi::codec::bencode::Value(
+    blocxxi::codec::bencode::Value::DictionaryType {
+      { "envelope", ToValue(record.envelope) },
+      { "signer_name", blocxxi::codec::bencode::Value(record.signer_name) },
+      { "signer_public_key_hex",
+        blocxxi::codec::bencode::Value(record.signer_public_key_hex) },
+      { "signature_hex", blocxxi::codec::bencode::Value(record.signature_hex) },
+    });
+}
+
+auto RequireString(
+  blocxxi::codec::bencode::Value::DictionaryType const& values, std::string_view key)
+  -> std::optional<std::string>
+{
+  auto found = values.find(std::string(key));
+  if (found == values.end()) {
+    return std::nullopt;
+  }
+  return found->second.AsString();
+}
+
+auto RequireInteger(
+  blocxxi::codec::bencode::Value::DictionaryType const& values, std::string_view key)
+  -> std::optional<std::int64_t>
+{
+  auto found = values.find(std::string(key));
+  if (found == values.end()) {
+    return std::nullopt;
+  }
+  return found->second.AsInteger();
+}
+
+auto ParseAttributes(blocxxi::codec::bencode::Value const& value)
+  -> std::optional<std::vector<core::EventAttribute>>
+{
+  auto attributes = std::vector<core::EventAttribute> {};
+  for (auto const& item : value.AsList()) {
+    auto const& dict = item.AsDictionary();
+    auto key = RequireString(dict, "key");
+    auto entry_value = RequireString(dict, "value");
+    if (!key.has_value() || !entry_value.has_value()) {
+      return std::nullopt;
+    }
+    attributes.push_back({ .key = std::move(*key), .value = std::move(*entry_value) });
+  }
+  return attributes;
+}
+
+auto ParseEnvelope(blocxxi::codec::bencode::Value const& value)
+  -> std::optional<core::EventEnvelope>
+{
+  auto const& dict = value.AsDictionary();
+  auto schema = RequireString(dict, "schema");
+  auto event_type = RequireString(dict, "event_type");
+  auto taxonomy = RequireString(dict, "taxonomy");
+  auto source = RequireString(dict, "source");
+  auto producer = RequireString(dict, "producer");
+  auto window_start = RequireInteger(dict, "window_start");
+  auto window_end = RequireInteger(dict, "window_end");
+  auto observed_at = RequireInteger(dict, "observed_at");
+  auto published_at = RequireInteger(dict, "published_at");
+  auto summary = RequireString(dict, "summary");
+  auto payload = RequireString(dict, "payload");
+  if (!schema || !event_type || !taxonomy || !source || !producer || !window_start
+    || !window_end || !observed_at || !published_at || !summary || !payload) {
+    return std::nullopt;
   }
 
-  auto matches = std::vector<PublishedEvent> {};
-  for (auto const& published : found->second) {
-    if (MatchesQuery(published, query)) {
-      matches.push_back(published);
+  auto identifiers = std::vector<std::string> {};
+  auto found_identifiers = dict.find("identifiers");
+  if (found_identifiers != dict.end()) {
+    for (auto const& item : found_identifiers->second.AsList()) {
+      identifiers.push_back(item.AsString());
     }
   }
-  return matches;
+
+  auto attributes = std::vector<core::EventAttribute> {};
+  auto found_attributes = dict.find("attributes");
+  if (found_attributes != dict.end()) {
+    auto parsed_attributes = ParseAttributes(found_attributes->second);
+    if (!parsed_attributes.has_value()) {
+      return std::nullopt;
+    }
+    attributes = std::move(*parsed_attributes);
+  }
+
+  return core::EventEnvelope {
+    .schema = std::move(*schema),
+    .event_type = std::move(*event_type),
+    .taxonomy = std::move(*taxonomy),
+    .source = std::move(*source),
+    .producer = std::move(*producer),
+    .window = { .start_utc = *window_start, .end_utc = *window_end },
+    .observed_at_utc = *observed_at,
+    .published_at_utc = *published_at,
+    .identifiers = std::move(identifiers),
+    .attributes = std::move(attributes),
+    .summary = std::move(*summary),
+    .payload = blocxxi::core::ToBytes(*payload),
+  };
+}
+
+auto ParseSignedEventRecord(blocxxi::codec::bencode::Value const& value)
+  -> std::optional<core::SignedEventRecord>
+{
+  auto const& dict = value.AsDictionary();
+  auto found_envelope = dict.find("envelope");
+  auto signer_name = RequireString(dict, "signer_name");
+  auto public_key = RequireString(dict, "signer_public_key_hex");
+  auto signature = RequireString(dict, "signature_hex");
+  if (found_envelope == dict.end() || !signer_name || !public_key || !signature) {
+    return std::nullopt;
+  }
+
+  auto envelope = ParseEnvelope(found_envelope->second);
+  if (!envelope.has_value()) {
+    return std::nullopt;
+  }
+
+  return core::SignedEventRecord {
+    .envelope = std::move(*envelope),
+    .signer_name = std::move(*signer_name),
+    .signer_public_key_hex = std::move(*public_key),
+    .signature_hex = std::move(*signature),
+  };
 }
 
 } // namespace
@@ -160,6 +295,32 @@ MainlineEventDht::MainlineEventDht(
   , session_(session)
   , options_(std::move(options))
 {
+  session_.OnCustomQuery(
+    [this](std::string_view method, kademlia::KrpcQuery const& query,
+      kademlia::IpEndpoint const&) {
+      if (method != "bx_get_event") {
+        return std::optional<blocxxi::codec::bencode::Value::DictionaryType> {};
+      }
+
+      auto found_key = query.arguments_.find("key");
+      if (found_key == query.arguments_.end()) {
+        return std::optional<blocxxi::codec::bencode::Value::DictionaryType> {};
+      }
+
+      auto const matches = local_store_.Query(EventQuery {
+        .deterministic_key = found_key->second.AsString(),
+        .limit = 64,
+      });
+      auto records = blocxxi::codec::bencode::Value::ListType {};
+      for (auto const& published : matches) {
+        records.emplace_back(ToValue(published.record));
+      }
+      return std::optional<blocxxi::codec::bencode::Value::DictionaryType> {
+        blocxxi::codec::bencode::Value::DictionaryType {
+          { "records", blocxxi::codec::bencode::Value(std::move(records)) },
+        }
+      };
+    });
 }
 
 auto MemoryEventDht::Publish(core::SignedEventRecord record) -> core::Status
@@ -284,17 +445,6 @@ auto MainlineEventDht::Publish(core::SignedEventRecord record) -> core::Status
 
     auto const announce_status = AnnounceToRouter(key, router, token);
     if (announce_status.ok()) {
-      auto const local_matches = local_store_.Query(EventQuery {
-        .deterministic_key = key,
-        .limit = 64,
-      });
-      auto published = std::find_if(local_matches.begin(), local_matches.end(),
-        [&](PublishedEvent const& candidate) {
-          return MatchesSignedRecord(candidate, record);
-        });
-      if (published != local_matches.end()) {
-        RememberRemoteRecord(session_.Self().Endpoint(), *published);
-      }
       return core::Status::Success();
     }
     last_error = announce_status;
@@ -337,7 +487,13 @@ auto MainlineEventDht::Query(EventQuery query, EventQueryResult& result)
       if (seen.insert(peer.ToString()).second) {
         result.peers.push_back(peer);
       }
-      for (auto published : RemoteMatchesForPeer(peer, query)) {
+      auto records = std::vector<PublishedEvent> {};
+      auto const peer_status
+        = QueryPeerRecords(*query.deterministic_key, peer, records);
+      if (!peer_status.ok()) {
+        continue;
+      }
+      for (auto published : records) {
         MergePublishedRecord(result.records, std::move(published));
       }
     }
@@ -349,6 +505,69 @@ auto MainlineEventDht::Query(EventQuery query, EventQueryResult& result)
   }
 
   return any_success ? core::Status::Success() : last_error;
+}
+
+auto MainlineEventDht::QueryPeerRecords(std::string const& deterministic_key,
+  kademlia::IpEndpoint const& peer, std::vector<PublishedEvent>& records)
+  -> core::Status
+{
+  auto done = false;
+  auto status = core::Status::Failure(
+    core::StatusCode::IOError, "peer record query timed out");
+
+  io_context_.restart();
+  session_.AsyncQuery(
+    kademlia::KrpcQuery {
+      "bx_get_event",
+      {
+        { "id",
+          blocxxi::codec::bencode::Value(std::string(
+            reinterpret_cast<char const*>(session_.Self().Id().Data()),
+            session_.Self().Id().Size())) },
+        { "key", blocxxi::codec::bencode::Value(deterministic_key) },
+      },
+    },
+    peer, [&](std::error_code const& failure, kademlia::KrpcMessage const& response) {
+      done = true;
+      if (failure) {
+        status = core::Status::Failure(core::StatusCode::IOError, failure.message());
+        return;
+      }
+
+      auto const* payload = std::get_if<kademlia::KrpcResponse>(&response.payload_);
+      if (payload == nullptr) {
+        status = core::Status::Failure(
+          core::StatusCode::Rejected, "peer query did not return a response payload");
+        return;
+      }
+
+      auto found_records = payload->values_.find("records");
+      if (found_records == payload->values_.end()) {
+        status = core::Status::Success();
+        return;
+      }
+
+      for (auto const& item : found_records->second.AsList()) {
+        auto parsed = ParseSignedEventRecord(item);
+        if (!parsed.has_value()) {
+          status = core::Status::Failure(
+            core::StatusCode::Rejected, "peer query returned an invalid event record");
+          return;
+        }
+        records.push_back(PublishedEvent {
+          .dht_key = parsed->DeterministicKey(),
+          .info_hash = DeriveInfoHash(parsed->DeterministicKey()),
+          .record = std::move(*parsed),
+        });
+      }
+      status = core::Status::Success();
+    });
+  io_context_.run_for(options_.request_timeout);
+  if (!done) {
+    return core::Status::Failure(
+      core::StatusCode::IOError, "peer record query timed out");
+  }
+  return status;
 }
 
 auto MainlineEventDht::QueryRouter(std::string const& deterministic_key,

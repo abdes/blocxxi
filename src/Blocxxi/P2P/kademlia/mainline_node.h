@@ -30,6 +30,9 @@ public:
   using ChannelType = AsyncUdpChannel;
   using QueryCallback = std::function<void(
     std::string_view method, IpEndpoint const& sender)>;
+  using CustomQueryResponder = std::function<std::optional<
+    blocxxi::codec::bencode::Value::DictionaryType>(
+    std::string_view method, KrpcQuery const& query, IpEndpoint const& sender)>;
   using BootstrapCallback = std::function<void(std::string const& bootstrap)>;
   using ResponseCallback
     = std::function<void(std::error_code const&, KrpcMessage const&)>;
@@ -47,6 +50,7 @@ public:
 
   void AddBootstrapNode(std::string bootstrap_endpoint);
   void OnQuery(QueryCallback callback);
+  void OnCustomQuery(CustomQueryResponder callback);
   void OnBootstrapSuccess(BootstrapCallback callback);
 
   void AsyncPing(IpEndpoint const& destination, ResponseCallback callback);
@@ -59,6 +63,8 @@ public:
     ResponseCallback callback);
   void AsyncSampleInfohashes(Node::IdType const& target,
     IpEndpoint const& destination, ResponseCallback callback);
+  void AsyncQuery(KrpcQuery query, IpEndpoint const& destination,
+    ResponseCallback callback);
 
   void Start();
   void Stop();
@@ -98,6 +104,7 @@ private:
   std::unordered_map<std::string, std::string> issued_tokens_;
   std::map<std::string, std::vector<IpEndpoint>, std::less<>> announced_peers_;
   QueryCallback on_query_;
+  CustomQueryResponder on_custom_query_;
   BootstrapCallback on_bootstrap_success_;
   std::size_t next_request_id_ { 0 };
   bool started_ { false };

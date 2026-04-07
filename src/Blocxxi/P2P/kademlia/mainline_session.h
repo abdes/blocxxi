@@ -35,6 +35,10 @@ public:
   }
 
   void OnQuery(QueryCallback callback) { node_.OnQuery(std::move(callback)); }
+  void OnCustomQuery(MainlineDhtNode::CustomQueryResponder callback)
+  {
+    node_.OnCustomQuery(std::move(callback));
+  }
 
   void OnBootstrapSuccess(BootstrapCallback callback)
   {
@@ -73,6 +77,12 @@ public:
     IpEndpoint const& destination, ResponseCallback callback)
   {
     node_.AsyncSampleInfohashes(target, destination, std::move(callback));
+  }
+
+  void AsyncQuery(
+    KrpcQuery query, IpEndpoint const& destination, ResponseCallback callback)
+  {
+    node_.AsyncQuery(std::move(query), destination, std::move(callback));
   }
 
   [[nodiscard]] auto Self() const -> Node const& { return node_.Self(); }

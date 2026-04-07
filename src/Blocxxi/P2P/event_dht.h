@@ -94,6 +94,9 @@ private:
   auto QueryRouter(std::string const& deterministic_key,
     kademlia::IpEndpoint const& router, std::vector<kademlia::IpEndpoint>& peers,
     std::string* token) -> core::Status;
+  auto QueryPeerRecords(std::string const& deterministic_key,
+    kademlia::IpEndpoint const& peer, std::vector<PublishedEvent>& records)
+    -> core::Status;
   auto AnnounceToRouter(std::string const& deterministic_key,
     kademlia::IpEndpoint const& router, std::string token) -> core::Status;
 

@@ -57,8 +57,7 @@ The Bitcoin examples keep signing/publication/query inside the reusable
 platform surface: they construct event envelopes and rule outputs, then hand
 them to the P2P event-DHT helpers rather than signing or storing records
 manually in app code. Exact-key mainline queries now surface both discovered
-peers and any platform-managed records available from those peers during
-integration flows.
+peers and records fetched back from those peers during integration flows.
 
 Non-goals / deferred scope
 ==========================
@@ -73,8 +72,7 @@ scope for the reusable SDK contract:
 
 The current DHT proof also stops short of arbitrary-peer payload transport on
 the live/public network. Today the platform proves deterministic publish/query,
-peer discovery, and platform-managed record retrieval in local integration
-flows.
+peer discovery, and exact-key peer record retrieval in integration flows.
 
 Deferred work
 =============
