@@ -6,9 +6,8 @@
 
 #include <Blocxxi/Crypto/keypair.h>
 
-#include <iostream> // TODO(Abdessattar): remove only for debug
-
 #include <Nova/Base/Compilers.h>
+#include <Nova/Base/Logging.h>
 
 NOVA_DIAGNOSTIC_PUSH
 #if NOVA_GNUC_VERSION
@@ -83,8 +82,7 @@ KeyPair::KeyPair() {
     MakeRandomPrivateKey(private_key);
     DerivePublicKey(public_key, private_key);
   } catch (std::exception &ex) {
-    // Change to log
-    std::cerr << "Failed to initialize KeyPair: " << ex.what() << std::endl;
+    LOG_F(ERROR, "Failed to initialize KeyPair: {}", ex.what());
     throw;
   }
 
@@ -100,8 +98,7 @@ KeyPair::KeyPair(const KeyPair::PrivateKey &secret) {
     MakePrivateKeyFromSecret(private_key, secret);
     DerivePublicKey(public_key, private_key);
   } catch (std::exception &ex) {
-    // Change to log
-    std::cerr << "Failed to initialize KeyPair: " << ex.what() << std::endl;
+    LOG_F(ERROR, "Failed to initialize KeyPair: {}", ex.what());
     throw;
   }
 
@@ -119,8 +116,7 @@ KeyPair::KeyPair(const std::string &secret_hex) {
     MakePrivateKeyFromSecret(private_key, secret);
     DerivePublicKey(public_key, private_key);
   } catch (const std::exception &ex) {
-    // Change to log
-    std::cerr << "Failed to initialize KeyPair: " << ex.what() << std::endl;
+    LOG_F(ERROR, "Failed to initialize KeyPair: {}", ex.what());
     throw;
   }
 

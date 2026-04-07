@@ -36,6 +36,7 @@ constexpr auto kSignetPowLimitHex = std::string_view {
 };
 
 using TcpSocket = asio::ip::tcp::socket;
+using TcpEndpoints = asio::ip::tcp::resolver::results_type;
 
 [[nodiscard]] auto ToBytes(std::string_view text) -> std::vector<std::uint8_t>
 {
@@ -419,6 +420,86 @@ auto SendMessage(
   return !error;
 }
 
+auto ResolveEndpoints(asio::io_context& io_context, std::string const& host,
+  std::uint16_t port) -> std::optional<TcpEndpoints>
+{
+  auto resolver = asio::ip::tcp::resolver(io_context);
+  auto error = std::error_code {};
+  auto endpoints
+    = resolver.resolve(host, std::to_string(static_cast<unsigned int>(port)), error);
+  if (error) {
+    return std::nullopt;
+  }
+  return endpoints;
+}
+
+auto ReadTrackedMessage(
+  TcpSocket& socket, std::vector<std::string>& command_trace) -> std::optional<DecodedMessage>
+{
+  auto message = ReadMessage(socket);
+  if (message.has_value()) {
+    command_trace.push_back(message->command);
+  }
+  return message;
+}
+
+auto ReadNextNonPingMessage(
+  TcpSocket& socket, std::vector<std::string>& command_trace) -> std::optional<DecodedMessage>
+{
+  while (true) {
+    auto message = ReadTrackedMessage(socket, command_trace);
+    if (!message.has_value()) {
+      return std::nullopt;
+    }
+    if (message->command != "ping") {
+      return message;
+    }
+    if (!SendMessage(socket, "pong", message->payload)) {
+      return std::nullopt;
+    }
+  }
+}
+
+auto CompleteVersionHandshake(TcpSocket& socket, std::string const& remote_address,
+  std::uint16_t port, std::int32_t& protocol_version,
+  std::vector<std::string>& command_trace) -> bool
+{
+  auto const version = EncodeVersionPayload(remote_address, port);
+  if (!SendMessage(socket, "version", version)) {
+    return false;
+  }
+
+  auto saw_version = false;
+  auto saw_verack = false;
+  while (!(saw_version && saw_verack)) {
+    auto message = ReadTrackedMessage(socket, command_trace);
+    if (!message.has_value()) {
+      return false;
+    }
+
+    if (message->command == "version") {
+      if (message->payload.size() >= sizeof(protocol_version)) {
+        std::memcpy(&protocol_version, message->payload.data(), sizeof(protocol_version));
+      }
+      saw_version = true;
+      if (!SendMessage(socket, "verack", std::span<std::uint8_t const> {})) {
+        return false;
+      }
+      continue;
+    }
+    if (message->command == "ping") {
+      if (!SendMessage(socket, "pong", message->payload)) {
+        return false;
+      }
+      continue;
+    }
+    if (message->command == "verack") {
+      saw_verack = true;
+    }
+  }
+  return true;
+}
+
 auto ParseHeadersPayload(std::span<std::uint8_t const> payload,
   std::uint32_t locator_height,
   std::vector<std::string>& header_hashes,
@@ -706,11 +787,8 @@ SignetLiveClient::SignetLiveClient(SignetLiveOptions options)
 auto SignetLiveClient::FetchHeaders(SignetHeadersResult& result) -> core::Status
 {
   auto io_context = asio::io_context {};
-  auto resolver = asio::ip::tcp::resolver(io_context);
-  auto error = std::error_code {};
-  auto endpoints = resolver.resolve(options_.host,
-    std::to_string(static_cast<unsigned int>(options_.port)), error);
-  if (error) {
+  auto endpoints = ResolveEndpoints(io_context, options_.host, options_.port);
+  if (!endpoints.has_value()) {
     return core::Status::Failure(
       core::StatusCode::IOError, "failed to resolve signet host");
   }
@@ -721,48 +799,18 @@ auto SignetLiveClient::FetchHeaders(SignetHeadersResult& result) -> core::Status
       core::StatusCode::InvalidArgument, "invalid signet locator hash");
   }
 
-  for (auto const& endpoint : endpoints) {
+  for (auto const& endpoint : *endpoints) {
     auto socket = TcpSocket(io_context);
+    auto error = std::error_code {};
     socket.connect(endpoint.endpoint(), error);
     if (error) {
       continue;
     }
 
     auto const remote_address = endpoint.endpoint().address().to_string();
-    auto const version = EncodeVersionPayload(remote_address, options_.port);
-    if (!SendMessage(socket, "version", version)) {
-      continue;
-    }
-
-    auto saw_version = false;
-    auto saw_verack = false;
     result = SignetHeadersResult {};
-    while (!(saw_version && saw_verack)) {
-      auto message = ReadMessage(socket);
-      if (!message.has_value()) {
-        break;
-      }
-
-      result.command_trace.push_back(message->command);
-      if (message->command == "version") {
-        if (message->payload.size() >= 4U) {
-          std::memcpy(
-            &result.protocol_version, message->payload.data(), sizeof(std::int32_t));
-        }
-        saw_version = true;
-        if (!SendMessage(socket, "verack", std::span<std::uint8_t const> {})) {
-          break;
-        }
-      } else if (message->command == "ping") {
-        if (!SendMessage(socket, "pong", message->payload)) {
-          break;
-        }
-      } else if (message->command == "verack") {
-        saw_verack = true;
-      }
-    }
-
-    if (!(saw_version && saw_verack)) {
+    if (!CompleteVersionHandshake(socket, remote_address, options_.port,
+          result.protocol_version, result.command_trace)) {
       continue;
     }
 
@@ -771,17 +819,9 @@ auto SignetLiveClient::FetchHeaders(SignetHeadersResult& result) -> core::Status
     }
 
     while (true) {
-      auto message = ReadMessage(socket);
+      auto message = ReadNextNonPingMessage(socket, result.command_trace);
       if (!message.has_value()) {
         break;
-      }
-
-      result.command_trace.push_back(message->command);
-      if (message->command == "ping") {
-        if (!SendMessage(socket, "pong", message->payload)) {
-          break;
-        }
-        continue;
       }
       if (message->command == "headers") {
         auto status = ParseHeadersPayload(message->payload, options_.locator_height,
@@ -850,57 +890,24 @@ auto SignetLiveClient::FetchBlocks(
   }
 
   auto io_context = asio::io_context {};
-  auto resolver = asio::ip::tcp::resolver(io_context);
-  auto error = std::error_code {};
-  auto endpoints = resolver.resolve(resolved_options.host,
-    std::to_string(static_cast<unsigned int>(resolved_options.port)), error);
-  if (error) {
+  auto endpoints = ResolveEndpoints(io_context, resolved_options.host, resolved_options.port);
+  if (!endpoints.has_value()) {
     return core::Status::Failure(
       core::StatusCode::IOError, "failed to resolve signet host");
   }
 
-  for (auto const& endpoint : endpoints) {
+  for (auto const& endpoint : *endpoints) {
     auto socket = TcpSocket(io_context);
+    auto error = std::error_code {};
     socket.connect(endpoint.endpoint(), error);
     if (error) {
       continue;
     }
 
     auto const remote_address = endpoint.endpoint().address().to_string();
-    auto const version = EncodeVersionPayload(remote_address, resolved_options.port);
-    if (!SendMessage(socket, "version", version)) {
-      continue;
-    }
-
-    auto saw_version = false;
-    auto saw_verack = false;
     result = SignetBlocksResult {};
-    while (!(saw_version && saw_verack)) {
-      auto message = ReadMessage(socket);
-      if (!message.has_value()) {
-        break;
-      }
-
-      result.command_trace.push_back(message->command);
-      if (message->command == "version") {
-        if (message->payload.size() >= 4U) {
-          std::memcpy(
-            &result.protocol_version, message->payload.data(), sizeof(std::int32_t));
-        }
-        saw_version = true;
-        if (!SendMessage(socket, "verack", std::span<std::uint8_t const> {})) {
-          break;
-        }
-      } else if (message->command == "ping") {
-        if (!SendMessage(socket, "pong", message->payload)) {
-          break;
-        }
-      } else if (message->command == "verack") {
-        saw_verack = true;
-      }
-    }
-
-    if (!(saw_version && saw_verack)) {
+    if (!CompleteVersionHandshake(socket, remote_address, resolved_options.port,
+          result.protocol_version, result.command_trace)) {
       continue;
     }
 
@@ -909,17 +916,9 @@ auto SignetLiveClient::FetchBlocks(
     }
 
     while (result.blocks.size() < block_hashes.size()) {
-      auto message = ReadMessage(socket);
+      auto message = ReadNextNonPingMessage(socket, result.command_trace);
       if (!message.has_value()) {
         break;
-      }
-
-      result.command_trace.push_back(message->command);
-      if (message->command == "ping") {
-        if (!SendMessage(socket, "pong", message->payload)) {
-          break;
-        }
-        continue;
       }
       if (message->command == "block") {
         auto block = ParseBlockPayload(message->payload);
