@@ -291,6 +291,8 @@ auto main(int argc, char** argv) -> int
   auto options = ParseOptions(argc, argv);
   std::signal(SIGINT, HandleSignal);
   std::signal(SIGTERM, HandleSignal);
+  std::cout << std::unitbuf;
+  std::cerr << std::unitbuf;
 
   auto resolved = blocxxi::bitcoin::ResolvedBitcoinCoreRpcConfig {
     .config = options.rpc,
@@ -372,6 +374,9 @@ auto main(int argc, char** argv) -> int
     auto const events = dht.Query(blocxxi::p2p::EventQuery { .limit = 64 });
     std::cout << "analyzer-cycle=" << cycle << " analyzer-events=" << events.size()
               << '\n';
+    if (events.empty()) {
+      std::cout << "analyzer-idle waiting-for-matching-events=true\n";
+    }
 
     cycle += 1U;
     if (options.oneshot) {
