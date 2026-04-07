@@ -9,6 +9,7 @@
 #include <Blocxxi/P2P/api_export.h>
 
 #include <chrono>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -76,6 +77,7 @@ public:
   /// Copy constructor.
   Node(const Node &other)
       : node_id_(other.node_id_), endpoint_(other.endpoint_),
+        url_(other.url_),
         failed_requests_count_(other.failed_requests_count_),
         last_seen_time_(other.last_seen_time_) {
   }
@@ -93,30 +95,27 @@ public:
   Node(Node &&other) noexcept
       : node_id_(std::move(other.node_id_)),
         endpoint_(std::move(other.endpoint_)),
+        url_(std::move(other.url_)),
         failed_requests_count_(other.failed_requests_count_),
         last_seen_time_(other.last_seen_time_) {
-    // we don't move the url_, instead delete it
-    delete other.url_;
-    other.url_ = nullptr;
+    other.url_.reset();
   }
 
   /// Move assignment.
   auto operator=(Node &&rhs) noexcept -> Node & {
     if (this != &rhs) {
-      delete url_;
-      url_ = nullptr;
       node_id_ = std::move(rhs.node_id_);
       endpoint_ = std::move(rhs.endpoint_);
+      url_ = std::move(rhs.url_);
       failed_requests_count_ = rhs.failed_requests_count_;
       last_seen_time_ = rhs.last_seen_time_;
+      rhs.url_.reset();
     }
     return *this;
   }
 
   /// Destructor.
-  ~Node() {
-    delete url_;
-  }
+  ~Node() = default;
 
   /*!
    * @brief Create a node object from a knode URL string.
@@ -217,7 +216,7 @@ private:
 
   /// The URL representation of the Node. Initialized on demand when a call to
   /// ToString() is first made.
-  mutable std::string *url_{nullptr};
+  mutable std::optional<std::string> url_{};
 
   /// The number of times a communication with the peer represented by this
   /// node has failed (i.e. timed out). This number if incremented every time

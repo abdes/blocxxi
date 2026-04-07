@@ -7,4 +7,13 @@
 add_subdirectory("Codec")
 add_subdirectory("Crypto")
 add_subdirectory("Nat")
+add_subdirectory("Core")
+add_subdirectory("Chain")
+add_subdirectory("Storage")
+add_subdirectory("Node")
+add_subdirectory("Bitcoin")
 add_subdirectory("P2P")
+
+if(NOVA_BUILD_EXAMPLES)
+  add_subdirectory("Examples")
+endif()

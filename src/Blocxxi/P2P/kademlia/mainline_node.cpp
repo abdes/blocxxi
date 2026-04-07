@@ -29,6 +29,32 @@ auto FindInteger(KrpcQuery const& query, std::string_view key)
   return found->second.AsInteger();
 }
 
+auto TakePendingRequest(
+  std::unordered_map<std::string, MainlineDhtNode::ResponseCallback>& pending_requests,
+  std::unordered_map<std::string, std::unique_ptr<asio::steady_timer>>& pending_request_timers,
+  std::string const& transaction_id, bool cancel_timer)
+  -> std::optional<MainlineDhtNode::ResponseCallback>
+{
+  auto found = pending_requests.find(transaction_id);
+  if (found == pending_requests.end()) {
+    pending_request_timers.erase(transaction_id);
+    return std::nullopt;
+  }
+
+  auto callback = std::optional<MainlineDhtNode::ResponseCallback> {
+    std::move(found->second)
+  };
+  pending_requests.erase(found);
+  if (auto timer = pending_request_timers.find(transaction_id);
+      timer != pending_request_timers.end()) {
+    if (cancel_timer) {
+      timer->second->cancel();
+    }
+    pending_request_timers.erase(timer);
+  }
+  return callback;
+}
+
 } // namespace
 
 MainlineDhtNode::MainlineDhtNode(asio::io_context& io_context, Node self,
@@ -47,6 +73,11 @@ void MainlineDhtNode::AddBootstrapNode(std::string bootstrap_endpoint)
 void MainlineDhtNode::OnQuery(QueryCallback callback)
 {
   on_query_ = std::move(callback);
+}
+
+void MainlineDhtNode::OnCustomQuery(CustomQueryResponder callback)
+{
+  on_custom_query_ = std::move(callback);
 }
 
 void MainlineDhtNode::OnBootstrapSuccess(BootstrapCallback callback)
@@ -131,6 +162,12 @@ void MainlineDhtNode::AsyncSampleInfohashes(Node::IdType const& target,
     destination, std::move(callback));
 }
 
+void MainlineDhtNode::AsyncQuery(
+  KrpcQuery query, IpEndpoint const& destination, ResponseCallback callback)
+{
+  SendQuery(std::move(query), destination, std::move(callback));
+}
+
 void MainlineDhtNode::Start()
 {
   if (started_) {
@@ -200,7 +237,16 @@ auto MainlineDhtNode::MakeResponse(
   } else if (method == "ping") {
     // id only
   } else {
-    return std::nullopt;
+    if (!on_custom_query_) {
+      return std::nullopt;
+    }
+    auto custom_values = on_custom_query_(method, query, sender);
+    if (!custom_values.has_value()) {
+      return std::nullopt;
+    }
+    for (auto& [key, value] : *custom_values) {
+      values.insert_or_assign(std::move(key), std::move(value));
+    }
   }
 
   auto response = KrpcMessage {};
@@ -258,16 +304,12 @@ void MainlineDhtNode::SendQuery(
     if (failure == asio::error::operation_aborted) {
       return;
     }
-    auto request = pending_requests_.find(transaction_id);
-    if (request != pending_requests_.end()) {
+    if (auto callback = TakePendingRequest(
+          pending_requests_, pending_request_timers_, transaction_id, false)) {
       auto response = KrpcMessage {};
-      auto callback = std::move(request->second);
-      pending_requests_.erase(request);
-      pending_request_timers_.erase(transaction_id);
-      callback(std::make_error_code(std::errc::timed_out), response);
+      (*callback)(std::make_error_code(std::errc::timed_out), response);
       return;
     }
-    pending_request_timers_.erase(transaction_id);
   });
   pending_request_timers_.emplace(transaction_id, std::move(timer));
 
@@ -278,17 +320,10 @@ void MainlineDhtNode::SendQuery(
       if (!failure) {
         return;
       }
-      auto found = pending_requests_.find(transaction_id);
-      if (found != pending_requests_.end()) {
+      if (auto callback = TakePendingRequest(
+            pending_requests_, pending_request_timers_, transaction_id, true)) {
         auto response = KrpcMessage {};
-        auto callback = std::move(found->second);
-        pending_requests_.erase(found);
-        if (auto timer = pending_request_timers_.find(transaction_id);
-            timer != pending_request_timers_.end()) {
-          timer->second->cancel();
-          pending_request_timers_.erase(timer);
-        }
-        callback(failure, response);
+        (*callback)(failure, response);
         return;
       }
     });
@@ -410,16 +445,9 @@ void MainlineDhtNode::ScheduleReceive()
             }
             pending_bootstraps_.erase(found);
           } else {
-            auto request = pending_requests_.find(message.transaction_id_);
-            if (request != pending_requests_.end()) {
-              auto callback = std::move(request->second);
-              pending_requests_.erase(request);
-              if (auto timer = pending_request_timers_.find(message.transaction_id_);
-                  timer != pending_request_timers_.end()) {
-                timer->second->cancel();
-                pending_request_timers_.erase(timer);
-              }
-              callback(std::error_code {}, message);
+            if (auto callback = TakePendingRequest(
+                  pending_requests_, pending_request_timers_, message.transaction_id_, true)) {
+              (*callback)(std::error_code {}, message);
             }
           }
         }

@@ -393,7 +393,6 @@ public:
     std::memcpy(start, buf.data(), std::min(src_size, dst_size));
   }
 
-  // TODO(Abdessattar): Replace the parameters with a span
   void Randomize() { random::GenerateBlock(Data(), Size()); }
 
   [[nodiscard]] auto ToHex() const -> std::string

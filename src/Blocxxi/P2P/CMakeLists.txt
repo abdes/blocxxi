@@ -34,12 +34,14 @@ file(
   GLOB_RECURSE BLOCXXI_P2P_HEADERS
   CONFIGURE_DEPENDS
   ${CMAKE_CURRENT_SOURCE_DIR}/kademlia/*.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/event_dht.h
   ${CMAKE_CURRENT_SOURCE_DIR}/api_export.h
 )
 file(
   GLOB_RECURSE BLOCXXI_P2P_SOURCES
   CONFIGURE_DEPENDS
   ${CMAKE_CURRENT_SOURCE_DIR}/kademlia/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/event_dht.cpp
 )
 list(
   TRANSFORM BLOCXXI_P2P_HEADERS
@@ -86,6 +88,7 @@ target_link_libraries(
   PUBLIC
     nova::base
     blocxxi::codec
+    blocxxi::core
     blocxxi::crypto
     asio::asio
 )

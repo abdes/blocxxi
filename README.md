@@ -2,8 +2,19 @@
 
 Blocxxi is being re-founded on Nova’s Conan + CMake scaffold while preserving
 its blockchain, Kademlia, and reusable networking/domain code. The repository
-currently carries the Nova reusable modules under `src/Nova/` and project-owned
-Blocxxi integration work on top.
+now exposes a reusable blockchain platform surface (`Core`, `Chain`, `Storage`,
+`Node`, `Bitcoin`) alongside the existing `P2P` subsystem, with project-owned
+Blocxxi integration work layered on top of the Nova reusable modules under
+`src/Nova/`.
+
+The current platform direction is intentionally split:
+
+- **application logic** stays thin and owns detection rules + event taxonomy
+- **Blocxxi platform logic** owns Bitcoin ingestion, runtime orchestration,
+  node identity/signing, deterministic DHT publish/query, and event transport
+
+That split is reflected in the module tree and in the new Bitcoin intelligence
+examples that now prove the platform contracts end-to-end.
 
 ---
 
@@ -59,11 +70,67 @@ Blocxxi integration work on top.
 │       ├── Codec/
 │       ├── Crypto/
 │       ├── Nat/
-│       └── P2P/
+│       ├── Core/
+│       ├── Chain/
+│       ├── Storage/
+│       ├── Node/
+│       ├── Bitcoin/
+│       ├── P2P/
+│       └── Examples/       # platform-level SDK proofs and thin consumers
 └── tools/
     ├── generate-builds.ps1 # One-shot Conan + CMake bootstrap script
     └── presets/            # CMake preset fragments
 ```
+
+### Platform contracts at a glance
+
+- **Blocxxi.Core** — developer-facing primitives, events, status types, and
+  signed event envelope modeling
+- **Blocxxi.Chain** — the minimal local blockchain kernel
+- **Blocxxi.Storage** — block/snapshot storage ports and reference adapters
+- **Blocxxi.Node** — public composition facade plus bounded and continuous
+  runtime/service orchestration
+- **Blocxxi.Bitcoin** — Bitcoin data-source adapter family, including a
+  Bitcoin Core RPC ingestion path for mempool + network-state access
+- **Blocxxi.P2P** — optional Mainline/Kademlia transport and deterministic DHT
+  publish/query plumbing, including exact-key lookups for signed event records
+
+### Platform example proofs
+
+- `hello-plugin` — tiny external-developer plugin story
+- `local-custom-chain` — custom local chain proof with no DHT dependency
+- `bitcoin-observer` — Bitcoin-facing adapter sample using header imports
+- `bitcoin-mempool-analyzer` — thin analyzer app that owns only rule/taxonomy
+- `bitcoin-event-reader` — second consumer proof for SDK reuse and
+  deterministic-key event lookups
+
+The analyzer example now runs continuously by default via the platform-owned
+node runtime loop, prints each event it publishes, and uses Bitcoin Core RPC
+configuration by default. It can be switched into bounded proof mode with
+`--scripted --oneshot` for tests/CI.
+Both Bitcoin intelligence examples now use the P2P platform helpers for event
+signing/publication/query instead of calling signing or DHT storage directly,
+and the Mainline-backed DHT path can now return exact-key records from
+discovered peers in integration flows.
+At startup it also prints which RPC/auth source it resolved (CLI, env,
+bitcoin.conf, or cookie auth).
+If Bitcoin Core RPC is unreachable or authentication fails, it now stays alive,
+prints analyzer-warning lines, and keeps retrying instead of silently exiting.
+
+### Current Bitcoin-platform non-goals
+
+The current roadmap intentionally keeps these items out of scope for the
+reusable Bitcoin SDK contract:
+
+- rule authoring UX
+- advanced entity clustering
+- historical indexing/backfill
+- operator dashboards
+
+The current DHT proof is also intentionally narrower than a full public-network
+transport product: Blocxxi now proves deterministic publish/query, peer
+discovery, and exact-key peer record retrieval in integration flows, but not
+a fully validated arbitrary-peer payload transport story on the open network.
 
 ---
 
@@ -247,6 +314,20 @@ These cache variables can be passed via `-D` or set in a CMake preset:
 
 > **Note:** When renaming the project, replace the `NOVA_` prefix with your
 > project's prefix throughout `CMakeLists.txt` and `conanfile.py`.
+
+Public-network validation
+-------------------------
+
+For reproducible public-network evidence, run:
+
+```bash
+python tools/public_network_validation.py
+```
+
+This validates:
+- public Mainline DHT discovery via `mainline-node`
+- public signet peer version/verack handshake
+- public signet `getheaders`/`headers` exchange
 
 ---
 

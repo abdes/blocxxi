@@ -53,18 +53,15 @@ auto Node::LogDistanceTo(blocxxi::crypto::Hash160 const &hash) const -> size_t {
 }
 
 auto Node::ToString() const -> std::string const & {
-  // TODO(Abdessattar): use std::optional instead of a pointer
-  if (url_) {
-    return *url_;
+  if (!url_) {
+    url_.emplace();
+    url_->append("knode://")
+        .append(node_id_.ToHex())
+        .append("@")
+        .append(endpoint_.Address().to_string())
+        .append(":")
+        .append(std::to_string(static_cast<unsigned int>(endpoint_.Port())));
   }
-
-  url_ = new std::string();
-  url_->append("knode://")
-      .append(node_id_.ToHex())
-      .append("@")
-      .append(endpoint_.Address().to_string())
-      .append(":")
-      .append(std::to_string(static_cast<unsigned int>(endpoint_.Port())));
   return *url_;
 }
 

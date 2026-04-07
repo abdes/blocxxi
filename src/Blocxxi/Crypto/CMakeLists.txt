@@ -51,14 +51,16 @@ target_sources(
     api_export.h
     hash.h
     keypair.h
+    signature.h
     random.h
     hash.cpp
     keypair.cpp
+    signature.cpp
     random.cpp
   PUBLIC
     FILE_SET HEADERS
     BASE_DIRS ${NOVA_SOURCE_DIR}
-    FILES api_export.h hash.h keypair.h random.h
+    FILES api_export.h hash.h keypair.h signature.h random.h
 )
 
 arrange_target_files_for_ide(${META_MODULE_TARGET})
