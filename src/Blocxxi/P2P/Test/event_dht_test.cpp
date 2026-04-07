@@ -235,7 +235,9 @@ TEST(EventDhtTest, MainlineEventDhtQueriesDeterministicPeersAcrossSessions)
               },
                 query_result)
                 .ok());
-  EXPECT_TRUE(query_result.records.empty());
+  ASSERT_EQ(query_result.records.size(), 1U);
+  EXPECT_EQ(query_result.records.front().dht_key, event_key);
+  EXPECT_EQ(query_result.records.front().record.envelope.summary, "pressure");
   ASSERT_EQ(query_result.peers.size(), 1U);
   EXPECT_EQ(query_result.peers.front().Address().to_string(), "127.0.0.1");
   EXPECT_EQ(query_result.peers.front().Port(),

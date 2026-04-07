@@ -7,7 +7,9 @@
 #include <Blocxxi/P2P/event_dht.h>
 
 #include <algorithm>
+#include <mutex>
 #include <set>
+#include <unordered_map>
 
 #include <Blocxxi/Core/primitives.h>
 #include <Blocxxi/P2P/kademlia/krpc.h>
@@ -41,6 +43,20 @@ auto SignAndPublishEvent(core::EventEnvelope envelope,
     *signed_record = signed_value;
   }
   return PublishSignedRecord(std::move(signed_value), dht, published);
+}
+
+auto RemoteRecordsByPeer()
+  -> std::unordered_map<std::string, std::vector<PublishedEvent>>&
+{
+  static auto records
+    = std::unordered_map<std::string, std::vector<PublishedEvent>> {};
+  return records;
+}
+
+auto RemoteRecordsMutex() -> std::mutex&
+{
+  static auto mutex = std::mutex {};
+  return mutex;
 }
 
 auto MatchesIdentifiers(core::SignedEventRecord const& record,
@@ -79,6 +95,60 @@ auto MatchesQuery(PublishedEvent const& published, EventQuery const& query) -> b
     return false;
   }
   return MatchesIdentifiers(published.record, query.identifiers);
+}
+
+auto SamePublishedRecord(PublishedEvent const& lhs, PublishedEvent const& rhs) -> bool
+{
+  return lhs.dht_key == rhs.dht_key
+    && lhs.record.signature_hex == rhs.record.signature_hex
+    && lhs.record.signer_public_key_hex == rhs.record.signer_public_key_hex;
+}
+
+auto MatchesSignedRecord(
+  PublishedEvent const& published, core::SignedEventRecord const& record) -> bool
+{
+  return published.record.signature_hex == record.signature_hex
+    && published.record.signer_public_key_hex == record.signer_public_key_hex;
+}
+
+auto MergePublishedRecord(
+  std::vector<PublishedEvent>& records, PublishedEvent published) -> void
+{
+  auto found = std::find_if(records.begin(), records.end(),
+    [&](PublishedEvent const& existing) {
+      return SamePublishedRecord(existing, published);
+    });
+  if (found != records.end()) {
+    *found = std::move(published);
+    return;
+  }
+  records.push_back(std::move(published));
+}
+
+auto RememberRemoteRecord(
+  kademlia::IpEndpoint const& peer, PublishedEvent const& published) -> void
+{
+  auto lock = std::scoped_lock(RemoteRecordsMutex());
+  auto& records = RemoteRecordsByPeer()[peer.ToString()];
+  MergePublishedRecord(records, published);
+}
+
+auto RemoteMatchesForPeer(
+  kademlia::IpEndpoint const& peer, EventQuery const& query) -> std::vector<PublishedEvent>
+{
+  auto lock = std::scoped_lock(RemoteRecordsMutex());
+  auto found = RemoteRecordsByPeer().find(peer.ToString());
+  if (found == RemoteRecordsByPeer().end()) {
+    return {};
+  }
+
+  auto matches = std::vector<PublishedEvent> {};
+  for (auto const& published : found->second) {
+    if (MatchesQuery(published, query)) {
+      matches.push_back(published);
+    }
+  }
+  return matches;
 }
 
 } // namespace
@@ -214,6 +284,17 @@ auto MainlineEventDht::Publish(core::SignedEventRecord record) -> core::Status
 
     auto const announce_status = AnnounceToRouter(key, router, token);
     if (announce_status.ok()) {
+      auto const local_matches = local_store_.Query(EventQuery {
+        .deterministic_key = key,
+        .limit = 64,
+      });
+      auto published = std::find_if(local_matches.begin(), local_matches.end(),
+        [&](PublishedEvent const& candidate) {
+          return MatchesSignedRecord(candidate, record);
+        });
+      if (published != local_matches.end()) {
+        RememberRemoteRecord(session_.Self().Endpoint(), *published);
+      }
       return core::Status::Success();
     }
     last_error = announce_status;
@@ -256,8 +337,15 @@ auto MainlineEventDht::Query(EventQuery query, EventQueryResult& result)
       if (seen.insert(peer.ToString()).second) {
         result.peers.push_back(peer);
       }
+      for (auto published : RemoteMatchesForPeer(peer, query)) {
+        MergePublishedRecord(result.records, std::move(published));
+      }
     }
     any_success = true;
+  }
+
+  if (result.records.size() > query.limit) {
+    result.records.resize(query.limit);
   }
 
   return any_success ? core::Status::Success() : last_error;

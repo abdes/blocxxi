@@ -56,7 +56,9 @@ The platform-level examples live under ``src/Blocxxi/Examples/``:
 The Bitcoin examples keep signing/publication/query inside the reusable
 platform surface: they construct event envelopes and rule outputs, then hand
 them to the P2P event-DHT helpers rather than signing or storing records
-manually in app code.
+manually in app code. Exact-key mainline queries now surface both discovered
+peers and any platform-managed records available from those peers during
+integration flows.
 
 Deferred work
 =============

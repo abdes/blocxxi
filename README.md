@@ -109,7 +109,9 @@ node runtime loop, prints each event it publishes, and uses Bitcoin Core RPC
 configuration by default. It can be switched into bounded proof mode with
 `--scripted --oneshot` for tests/CI.
 Both Bitcoin intelligence examples now use the P2P platform helpers for event
-signing/publication/query instead of calling signing or DHT storage directly.
+signing/publication/query instead of calling signing or DHT storage directly,
+and the Mainline-backed DHT path can now return exact-key records for
+platform-managed peers in integration flows.
 At startup it also prints which RPC/auth source it resolved (CLI, env,
 bitcoin.conf, or cookie auth).
 If Bitcoin Core RPC is unreachable or authentication fails, it now stays alive,
