@@ -91,6 +91,34 @@ private:
   bool failed_once_ { false };
 };
 
+class FastCountingService final : public Service {
+public:
+  [[nodiscard]] auto Name() const -> std::string override
+  {
+    return "fast-counting.service";
+  }
+
+  [[nodiscard]] auto Policy() const -> ServicePolicy override
+  {
+    return ServicePolicy {
+      .interval = std::chrono::milliseconds { 0 },
+      .retry_backoff = std::chrono::milliseconds { 0 },
+      .max_retries = 0,
+    };
+  }
+
+  auto Poll(Node&) -> core::Status override
+  {
+    run_count_ += 1U;
+    return core::Status::Success();
+  }
+
+  [[nodiscard]] auto Count() const -> std::size_t { return run_count_; }
+
+private:
+  std::size_t run_count_ { 0 };
+};
+
 } // namespace
 
 TEST(NodeTest, NoDhtNodeCanStartAcceptTransactionsAndCommit)
@@ -251,6 +279,26 @@ TEST(NodeTest, ServiceFailuresUseRetryStateInsteadOfAnalyzerLoops)
   EXPECT_TRUE(second.ok());
   EXPECT_EQ(node.ServiceStates().front().run_count, 1U);
   EXPECT_EQ(node.ServiceStates().front().failure_count, 0U);
+}
+
+TEST(NodeTest, RunServicesUntilKeepsRuntimeLoopInsideNode)
+{
+  auto node = Node();
+  auto service = std::make_shared<FastCountingService>();
+  auto iterations = std::size_t { 0 };
+  node.RegisterService(service);
+
+  ASSERT_TRUE(node.Start().ok());
+  ASSERT_TRUE(node.RunServicesUntil(
+                [&iterations]() {
+                  iterations += 1U;
+                  return iterations <= 3U;
+                },
+                std::chrono::milliseconds { 0 })
+                .ok());
+  EXPECT_EQ(service->Count(), 3U);
+  ASSERT_EQ(node.ServiceStates().size(), 1U);
+  EXPECT_EQ(node.ServiceStates().front().run_count, 3U);
 }
 
 } // namespace blocxxi::node

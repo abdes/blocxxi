@@ -13,7 +13,7 @@ It exposes:
 - transaction submission
 - pending-block commitment
 - explicit discovery/adapter attachment hooks
-- service registration and bounded runtime/orchestration hooks
+- service registration plus bounded and continuous runtime/orchestration hooks
 - checkpoint/poll/retry loops for platform-owned services
 
 `Blocxxi.Node` stays facade-oriented: it composes the kernel, runtime services,

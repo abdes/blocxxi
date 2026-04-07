@@ -16,7 +16,6 @@
 #include <optional>
 #include <sstream>
 #include <string>
-#include <thread>
 #include <utility>
 
 #include <Blocxxi/Bitcoin/ingestion.h>
@@ -158,10 +157,12 @@ private:
 class RulesOnlyAnalyzerService final : public blocxxi::node::Service {
 public:
   RulesOnlyAnalyzerService(blocxxi::bitcoin::BitcoinCoreRpcAdapter adapter,
+    std::chrono::milliseconds poll_interval,
     blocxxi::p2p::MemoryEventDht& dht, blocxxi::crypto::KeyPair key_pair,
     std::function<void(blocxxi::core::SignedEventRecord const&,
       blocxxi::p2p::PublishResult const&)> on_publish)
     : adapter_(std::move(adapter))
+    , poll_interval_(poll_interval)
     , dht_(dht)
     , key_pair_(std::move(key_pair))
     , on_publish_(std::move(on_publish))
@@ -176,7 +177,7 @@ public:
   [[nodiscard]] auto Policy() const -> blocxxi::node::ServicePolicy override
   {
     return {
-      .interval = std::chrono::milliseconds { 1 },
+      .interval = poll_interval_,
       .retry_backoff = std::chrono::milliseconds { 1 },
       .max_retries = 1,
     };
@@ -277,6 +278,7 @@ public:
 
 private:
   blocxxi::bitcoin::BitcoinCoreRpcAdapter adapter_;
+  std::chrono::milliseconds poll_interval_ {};
   blocxxi::p2p::MemoryEventDht& dht_;
   blocxxi::crypto::KeyPair key_pair_;
   std::function<void(blocxxi::core::SignedEventRecord const&,
@@ -349,11 +351,18 @@ auto main(int argc, char** argv) -> int
   auto service = std::make_shared<RulesOnlyAnalyzerService>(
     blocxxi::bitcoin::BitcoinCoreRpcAdapter(
       options.rpc, std::move(transport)),
+    options.poll_interval,
     dht, blocxxi::crypto::KeyPair(), publish_printer);
 
   if (!node.Start().ok()) {
     return 1;
   }
+  node.Subscribe([](blocxxi::core::ChainEvent const& event) {
+    if (event.type != blocxxi::core::EventType::ServiceFailed) {
+      return;
+    }
+    std::cout << "analyzer-warning " << event.message << '\n';
+  });
   node.RegisterService(service);
   std::cout << "analyzer-started mode=" << (options.scripted ? "scripted" : "bitcoin-core-rpc")
             << " poll_interval_ms=" << options.poll_interval.count() << '\n';
@@ -365,35 +374,14 @@ auto main(int argc, char** argv) -> int
               << " user-source=" << resolved.username_source
               << " password-source=" << resolved.password_source << '\n';
   }
-  auto cycle = std::size_t { 0 };
-  while (g_keep_running.load()) {
-    auto const status = node.RunServicesOnce();
-    auto const service_states = node.ServiceStates();
-    auto const failed_service = std::find_if(service_states.begin(), service_states.end(),
-      [](blocxxi::node::ServiceState const& state) {
-        return state.failure_count > 0U && !state.last_error.empty();
-      });
-    if (failed_service != service_states.end()) {
-      std::cout << "analyzer-warning service=" << failed_service->name
-                << " failure-count=" << failed_service->failure_count
-                << " last-error=\"" << failed_service->last_error << "\"\n";
-    }
-    if (!status.ok() && options.oneshot) {
+  if (options.oneshot) {
+    if (!node.RunServicesOnce().ok()) {
       return 2;
     }
-
-    auto const events = dht.Query(blocxxi::p2p::EventQuery { .limit = 64 });
-    std::cout << "analyzer-cycle=" << cycle << " analyzer-events=" << events.size()
-              << '\n';
-    if (events.empty() && failed_service == service_states.end()) {
-      std::cout << "analyzer-idle waiting-for-matching-events=true\n";
-    }
-
-    cycle += 1U;
-    if (options.oneshot) {
-      break;
-    }
-    std::this_thread::sleep_for(options.poll_interval);
+  } else {
+    (void)node.RunServicesUntil(
+      []() { return g_keep_running.load(); },
+      std::chrono::milliseconds { 10 });
   }
 
   return 0;

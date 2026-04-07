@@ -88,7 +88,8 @@ examples that now prove the platform contracts end-to-end.
   signed event envelope modeling
 - **Blocxxi.Chain** — the minimal local blockchain kernel
 - **Blocxxi.Storage** — block/snapshot storage ports and reference adapters
-- **Blocxxi.Node** — public composition facade plus runtime/service orchestration
+- **Blocxxi.Node** — public composition facade plus bounded and continuous
+  runtime/service orchestration
 - **Blocxxi.Bitcoin** — Bitcoin data-source adapter family, including a
   Bitcoin Core RPC ingestion path for mempool + network-state access
 - **Blocxxi.P2P** — optional Mainline/Kademlia transport and deterministic DHT
@@ -102,9 +103,10 @@ examples that now prove the platform contracts end-to-end.
 - `bitcoin-mempool-analyzer` — thin analyzer app that owns only rule/taxonomy
 - `bitcoin-event-reader` — second consumer proof for SDK reuse
 
-The analyzer example now runs continuously by default, prints each event it
-publishes, and uses Bitcoin Core RPC configuration by default. It can be
-switched into bounded proof mode with `--scripted --oneshot` for tests/CI.
+The analyzer example now runs continuously by default via the platform-owned
+node runtime loop, prints each event it publishes, and uses Bitcoin Core RPC
+configuration by default. It can be switched into bounded proof mode with
+`--scripted --oneshot` for tests/CI.
 At startup it also prints which RPC/auth source it resolved (CLI, env,
 bitcoin.conf, or cookie auth).
 If Bitcoin Core RPC is unreachable or authentication fails, it now stays alive,

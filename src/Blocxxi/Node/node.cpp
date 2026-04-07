@@ -410,6 +410,23 @@ auto Node::RunServicesFor(
   return overall;
 }
 
+auto Node::RunServicesUntil(
+  std::function<bool()> keep_running, std::chrono::milliseconds idle_sleep)
+  -> core::Status
+{
+  auto overall = core::Status::Success();
+  while (keep_running()) {
+    auto const status = RunServicesOnce();
+    if (!status.ok()) {
+      overall = status;
+    }
+    if (idle_sleep.count() > 0) {
+      std::this_thread::sleep_for(idle_sleep);
+    }
+  }
+  return overall;
+}
+
 auto Node::ServiceStates() const -> std::vector<ServiceState>
 {
   auto states = std::vector<ServiceState> {};

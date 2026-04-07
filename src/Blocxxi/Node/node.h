@@ -11,6 +11,7 @@
 #include <chrono>
 #include <cstddef>
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -64,6 +65,9 @@ public:
   BLOCXXI_NODE_API auto SubmitBlock(core::Block block) -> core::Status;
   BLOCXXI_NODE_API auto RunServicesOnce() -> core::Status;
   BLOCXXI_NODE_API auto RunServicesFor(std::chrono::milliseconds duration,
+    std::chrono::milliseconds idle_sleep = std::chrono::milliseconds { 10 })
+    -> core::Status;
+  BLOCXXI_NODE_API auto RunServicesUntil(std::function<bool()> keep_running,
     std::chrono::milliseconds idle_sleep = std::chrono::milliseconds { 10 })
     -> core::Status;
   [[nodiscard]] BLOCXXI_NODE_API auto ServiceStates() const

@@ -46,8 +46,9 @@ The platform-level examples live under ``src/Blocxxi/Examples/``:
 - ``local-custom-chain`` — custom local chain proof with no DHT dependency
 - ``bitcoin-observer`` — Bitcoin-facing adapter sample using header imports
 - ``bitcoin-mempool-analyzer`` — thin analyzer proof with rule/taxonomy only;
-  runs continuously by default, prints published events, uses Bitcoin Core RPC
-  by default, and supports ``--scripted --oneshot`` for bounded proof runs
+  runs continuously by default through the Node runtime loop, prints published
+  events, uses Bitcoin Core RPC by default, and supports ``--scripted
+  --oneshot`` for bounded proof runs
 - ``bitcoin-event-reader`` — second consumer proof that reuses the same SDK
 
 Deferred work
