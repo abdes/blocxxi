@@ -17,6 +17,27 @@
 #include <Blocxxi/Storage/in_memory_store.h>
 
 namespace blocxxi::node {
+namespace {
+
+template <typename ShouldContinue>
+auto RunServiceLoop(
+  Node& node, ShouldContinue&& should_continue, std::chrono::milliseconds idle_sleep)
+  -> core::Status
+{
+  auto overall = core::Status::Success();
+  while (std::forward<ShouldContinue>(should_continue)()) {
+    auto const status = node.RunServicesOnce();
+    if (!status.ok()) {
+      overall = status;
+    }
+    if (idle_sleep.count() > 0) {
+      std::this_thread::sleep_for(idle_sleep);
+    }
+  }
+  return overall;
+}
+
+} // namespace
 
 struct Node::Impl {
   struct ManagedService {
@@ -396,35 +417,18 @@ auto Node::RunServicesFor(
   std::chrono::milliseconds duration, std::chrono::milliseconds idle_sleep)
   -> core::Status
 {
-  auto overall = core::Status::Success();
   auto const deadline = std::chrono::steady_clock::now() + duration;
-  while (std::chrono::steady_clock::now() < deadline) {
-    auto const status = RunServicesOnce();
-    if (!status.ok()) {
-      overall = status;
-    }
-    if (idle_sleep.count() > 0) {
-      std::this_thread::sleep_for(idle_sleep);
-    }
-  }
-  return overall;
+  return RunServiceLoop(*this,
+    [deadline]() { return std::chrono::steady_clock::now() < deadline; },
+    idle_sleep);
 }
 
 auto Node::RunServicesUntil(
   std::function<bool()> keep_running, std::chrono::milliseconds idle_sleep)
   -> core::Status
 {
-  auto overall = core::Status::Success();
-  while (keep_running()) {
-    auto const status = RunServicesOnce();
-    if (!status.ok()) {
-      overall = status;
-    }
-    if (idle_sleep.count() > 0) {
-      std::this_thread::sleep_for(idle_sleep);
-    }
-  }
-  return overall;
+  return RunServiceLoop(*this, [&keep_running]() { return keep_running(); },
+    idle_sleep);
 }
 
 auto Node::ServiceStates() const -> std::vector<ServiceState>
