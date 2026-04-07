@@ -369,15 +369,9 @@ auto main(int argc, char** argv) -> int
       return 2;
     }
 
-    auto const events = dht.Query(blocxxi::p2p::EventQuery {
-      .taxonomy = std::string { "transaction" },
-      .limit = 8,
-    });
+    auto const events = dht.Query(blocxxi::p2p::EventQuery { .limit = 64 });
     std::cout << "analyzer-cycle=" << cycle << " analyzer-events=" << events.size()
               << '\n';
-    if (events.empty()) {
-      return 3;
-    }
 
     cycle += 1U;
     if (options.oneshot) {
