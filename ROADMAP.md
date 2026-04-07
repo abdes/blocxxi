@@ -354,3 +354,86 @@ Blocxxi will be successful when:
 5. consumer SDK for dashboards, mobile apps, and agents
 
 These steps strengthen the platform far more than prematurely optimizing for a public distributed intelligence network.
+
+## 16. Blocxxi Platform and App Model
+
+The following model captures the intended relationship between the Blocxxi
+platform, Blocxxi apps, AI agents, and downstream consumer surfaces.
+
+### Layered view
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│ Consumer Surfaces                                            │
+│ dashboards | mobile apps | alerts | webhooks | OpenClaw     │
+│ agents | local readers | future DHT consumers               │
+└──────────────────────────────▲───────────────────────────────┘
+                               │
+┌──────────────────────────────┴───────────────────────────────┐
+│ Insight Layer                                                 │
+│ AI summarization | ranking | prioritization | concise views  │
+│ provenance-aware insight generation                          │
+└──────────────────────────────▲───────────────────────────────┘
+                               │
+┌──────────────────────────────┴───────────────────────────────┐
+│ Event Layer                                                   │
+│ rule outputs | signed event records | deterministic keys     │
+│ severity | confidence | revisions | publication contracts    │
+└──────────────────────────────▲───────────────────────────────┘
+                               │
+┌──────────────────────────────┴───────────────────────────────┐
+│ Persistence + Runtime Layer                                   │
+│ checkpoints | retries | scheduling | local storage           │
+│ rolling windows | dedup state | service lifecycle            │
+└──────────────────────────────▲───────────────────────────────┘
+                               │
+┌──────────────────────────────┴───────────────────────────────┐
+│ Ingestion Layer                                               │
+│ Bitcoin Core RPC | future native P2P | replay/offline input  │
+│ normalized observations                                       │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### Responsibility split
+
+| Layer | Owned by Blocxxi Platform | Owned by Apps |
+|---|---|---|
+| Ingestion | adapters, normalization, transport clients | source selection only when app-specific |
+| Persistence | stores, checkpoints, state models, local query contracts | app-specific retention policy if needed |
+| Runtime | scheduling, retries, lifecycle, health | app-specific composition choices |
+| Events | signed records, keys, publication/query interfaces | rules and taxonomy |
+| Insights | reusable insight contracts, provenance links | prompts, policies, domain-specific summarization |
+| Consumers | delivery helpers and SDK surfaces | final UX, routing, alert behavior |
+
+### How to think about apps
+
+A Blocxxi app should ideally be:
+- thin
+- domain-specific
+- replaceable
+- free of platform infrastructure code
+
+A good app defines:
+- what to detect
+- how to classify it
+- how to display or route it
+
+It should not redefine:
+- ingestion
+- persistence
+- signing
+- transport
+- long-running orchestration
+
+### How to think about AI agents
+
+AI agents should sit above persisted observations and structured events, not
+replace them.
+
+That means an agent should consume:
+- raw observations when detailed reasoning is required
+- structured events when concise reasoning is enough
+- prior insight records when building higher-level summaries
+
+This keeps Blocxxi grounded in deterministic contracts while still allowing AI
+to produce richer and more concise outputs for humans and automation systems.
