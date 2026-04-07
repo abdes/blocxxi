@@ -22,6 +22,18 @@ auto MakeTestNode(std::string_view address, std::uint16_t port) -> kademlia::Nod
     kademlia::Node::IdType::RandomHash(), std::string(address), port);
 }
 
+auto NextPortBase() -> std::uint16_t
+{
+  static auto next_port = []() {
+    auto const seed = static_cast<std::uint64_t>(
+      std::chrono::steady_clock::now().time_since_epoch().count());
+    return static_cast<std::uint16_t>(32000U + (seed % 2000U));
+  }();
+  auto const current = next_port;
+  next_port = static_cast<std::uint16_t>(next_port + 10U);
+  return current;
+}
+
 } // namespace
 
 TEST(EventDhtTest, PublishQueryAndDuplicateRepublishAreDeterministic)
@@ -81,6 +93,46 @@ TEST(EventDhtTest, PublishRejectsInvalidSignature)
   EXPECT_EQ(status.code, core::StatusCode::Rejected);
 }
 
+TEST(EventDhtTest, PlatformPublishAndQueryHelpersKeepSigningOutOfTheApp)
+{
+  auto dht = MemoryEventDht();
+  auto signed_record = core::SignedEventRecord {};
+  auto published = PublishResult {};
+
+  ASSERT_TRUE(PublishEvent(
+                core::EventEnvelope {
+                  .event_type = "bitcoin.reader.snapshot",
+                  .taxonomy = "reader",
+                  .source = "bitcoin.rpc",
+                  .producer = "blocxxi.reader",
+                  .window = { .start_utc = 20, .end_utc = 21 },
+                  .observed_at_utc = 20,
+                  .published_at_utc = 21,
+                  .identifiers = { "height:20" },
+                  .summary = "reader",
+                },
+                EventPublisherIdentity {
+                  .key_pair = blocxxi::crypto::KeyPair(
+                    "40C756697E6F60AC839FE53DD403F0B254D49A26243A196300CD4D515EE28062"),
+                  .signer_name = "reader",
+                },
+                dht, &signed_record, &published)
+                .ok());
+
+  auto query_result = EventQueryResult {};
+  ASSERT_TRUE(QueryEvents(
+                EventQuery {
+                  .deterministic_key = published.dht_key,
+                  .limit = 4,
+                },
+                dht, query_result)
+                .ok());
+  ASSERT_EQ(query_result.records.size(), 1U);
+  EXPECT_TRUE(query_result.peers.empty());
+  EXPECT_TRUE(core::VerifyEventRecord(signed_record));
+  EXPECT_EQ(query_result.records.front().dht_key, published.dht_key);
+}
+
 TEST(EventDhtTest, DeterministicKeyFilterReturnsOnlyMatchingRecords)
 {
   auto dht = MemoryEventDht();
@@ -127,20 +179,26 @@ TEST(EventDhtTest, DeterministicKeyFilterReturnsOnlyMatchingRecords)
 TEST(EventDhtTest, MainlineEventDhtQueriesDeterministicPeersAcrossSessions)
 {
   auto io_context = asio::io_context {};
-  auto const router = kademlia::IpEndpoint { "127.0.0.1", 30201 };
+  auto const port_base = NextPortBase();
+  auto const router = kademlia::IpEndpoint { "127.0.0.1", port_base };
   auto server_channel
-    = kademlia::AsyncUdpChannel::ipv4(io_context, "127.0.0.1", "30201");
+    = kademlia::AsyncUdpChannel::ipv4(
+      io_context, "127.0.0.1", std::to_string(port_base));
   auto publisher_channel
-    = kademlia::AsyncUdpChannel::ipv4(io_context, "127.0.0.1", "30202");
+    = kademlia::AsyncUdpChannel::ipv4(
+      io_context, "127.0.0.1", std::to_string(port_base + 1U));
   auto querier_channel
-    = kademlia::AsyncUdpChannel::ipv4(io_context, "127.0.0.1", "30203");
+    = kademlia::AsyncUdpChannel::ipv4(
+      io_context, "127.0.0.1", std::to_string(port_base + 2U));
 
   auto server = kademlia::Session(kademlia::MainlineDhtNode(io_context,
-    MakeTestNode("127.0.0.1", 30201), std::move(server_channel)));
+    MakeTestNode("127.0.0.1", port_base), std::move(server_channel)));
   auto publisher = kademlia::Session(kademlia::MainlineDhtNode(io_context,
-    MakeTestNode("127.0.0.1", 30202), std::move(publisher_channel)));
+    MakeTestNode("127.0.0.1", static_cast<std::uint16_t>(port_base + 1U)),
+    std::move(publisher_channel)));
   auto querier = kademlia::Session(kademlia::MainlineDhtNode(io_context,
-    MakeTestNode("127.0.0.1", 30203), std::move(querier_channel)));
+    MakeTestNode("127.0.0.1", static_cast<std::uint16_t>(port_base + 2U)),
+    std::move(querier_channel)));
 
   server.Start();
   publisher.Start();
@@ -180,7 +238,8 @@ TEST(EventDhtTest, MainlineEventDhtQueriesDeterministicPeersAcrossSessions)
   EXPECT_TRUE(query_result.records.empty());
   ASSERT_EQ(query_result.peers.size(), 1U);
   EXPECT_EQ(query_result.peers.front().Address().to_string(), "127.0.0.1");
-  EXPECT_EQ(query_result.peers.front().Port(), 30202);
+  EXPECT_EQ(query_result.peers.front().Port(),
+    static_cast<std::uint16_t>(port_base + 1U));
 
   querier.Stop();
   publisher.Stop();

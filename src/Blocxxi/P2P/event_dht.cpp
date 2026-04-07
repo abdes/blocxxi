@@ -15,6 +15,34 @@
 namespace blocxxi::p2p {
 namespace {
 
+template <typename DhtType>
+auto PublishSignedRecord(core::SignedEventRecord record, DhtType& dht,
+  PublishResult* published) -> core::Status
+{
+  auto const status = dht.Publish(std::move(record));
+  if (!status.ok()) {
+    return status;
+  }
+  if (published != nullptr) {
+    *published = dht.LastPublish().value_or(PublishResult {});
+  }
+  return status;
+}
+
+template <typename DhtType>
+auto SignAndPublishEvent(core::EventEnvelope envelope,
+  EventPublisherIdentity const& identity, DhtType& dht,
+  core::SignedEventRecord* signed_record, PublishResult* published)
+  -> core::Status
+{
+  auto signed_value
+    = core::SignEventRecord(std::move(envelope), identity.key_pair, identity.signer_name);
+  if (signed_record != nullptr) {
+    *signed_record = signed_value;
+  }
+  return PublishSignedRecord(std::move(signed_value), dht, published);
+}
+
 auto MatchesIdentifiers(core::SignedEventRecord const& record,
   std::vector<std::string> const& identifiers) -> bool
 {
@@ -313,6 +341,39 @@ auto MainlineEventDht::AnnounceToRouter(std::string const& deterministic_key,
     return core::Status::Failure(core::StatusCode::IOError, "DHT announce timed out");
   }
   return status;
+}
+
+auto PublishEvent(core::EventEnvelope envelope,
+  EventPublisherIdentity const& identity, MemoryEventDht& dht,
+  core::SignedEventRecord* signed_record, PublishResult* published)
+  -> core::Status
+{
+  return SignAndPublishEvent(
+    std::move(envelope), identity, dht, signed_record, published);
+}
+
+auto PublishEvent(core::EventEnvelope envelope,
+  EventPublisherIdentity const& identity, MainlineEventDht& dht,
+  core::SignedEventRecord* signed_record, PublishResult* published)
+  -> core::Status
+{
+  return SignAndPublishEvent(
+    std::move(envelope), identity, dht, signed_record, published);
+}
+
+auto QueryEvents(
+  EventQuery query, MemoryEventDht const& dht, EventQueryResult& result)
+  -> core::Status
+{
+  result.records = dht.Query(std::move(query));
+  result.peers.clear();
+  return core::Status::Success();
+}
+
+auto QueryEvents(
+  EventQuery query, MainlineEventDht& dht, EventQueryResult& result) -> core::Status
+{
+  return dht.Query(std::move(query), result);
 }
 
 auto DeriveInfoHash(std::string const& deterministic_key) -> kademlia::Node::IdType

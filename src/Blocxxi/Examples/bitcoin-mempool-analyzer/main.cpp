@@ -158,13 +158,14 @@ class RulesOnlyAnalyzerService final : public blocxxi::node::Service {
 public:
   RulesOnlyAnalyzerService(blocxxi::bitcoin::BitcoinCoreRpcAdapter adapter,
     std::chrono::milliseconds poll_interval,
-    blocxxi::p2p::MemoryEventDht& dht, blocxxi::crypto::KeyPair key_pair,
+    blocxxi::p2p::MemoryEventDht& dht,
+    blocxxi::p2p::EventPublisherIdentity identity,
     std::function<void(blocxxi::core::SignedEventRecord const&,
       blocxxi::p2p::PublishResult const&)> on_publish)
     : adapter_(std::move(adapter))
     , poll_interval_(poll_interval)
     , dht_(dht)
-    , key_pair_(std::move(key_pair))
+    , identity_(std::move(identity))
     , on_publish_(std::move(on_publish))
   {
   }
@@ -200,11 +201,26 @@ public:
         blocxxi::core::StatusCode::Rejected, "missing latest block observation");
     }
 
+    auto const publish = [&](blocxxi::core::EventEnvelope envelope)
+      -> blocxxi::core::Status {
+      auto published_record = blocxxi::core::SignedEventRecord {};
+      auto published = blocxxi::p2p::PublishResult {};
+      auto publish_status = blocxxi::p2p::PublishEvent(
+        std::move(envelope), identity_, dht_, &published_record, &published);
+      if (!publish_status.ok()) {
+        return publish_status;
+      }
+      if (on_publish_) {
+        on_publish_(published_record, published);
+      }
+      return blocxxi::core::Status::Success();
+    };
+
     for (auto const& observation : batch.mempool_transactions) {
       if (observation.base_fee_btc < 0.0003) {
         continue;
       }
-      auto record = blocxxi::core::SignEventRecord(
+      auto publish_status = publish(
         blocxxi::core::EventEnvelope {
           .event_type = "bitcoin.transaction.high-fee",
           .taxonomy = "transaction",
@@ -223,22 +239,15 @@ public:
               { .key = "vsize", .value = std::to_string(observation.vsize) },
             },
           .summary = "high-fee mempool transaction",
-        },
-        key_pair_, "example-analyzer");
-      auto const published_record = record;
-      auto publish_status = dht_.Publish(std::move(record));
+        });
       if (!publish_status.ok()) {
         return publish_status;
-      }
-      if (auto const published = dht_.LastPublish(); published.has_value()
-        && on_publish_) {
-        on_publish_(published_record, *published);
       }
     }
 
     if (batch.network_health.has_value()
       && batch.network_health->mempool_transaction_count >= 4U) {
-      auto record = blocxxi::core::SignEventRecord(
+      auto publish_status = publish(
         blocxxi::core::EventEnvelope {
           .event_type = "bitcoin.fee.mempool-pressure",
           .taxonomy = "fee-market",
@@ -260,16 +269,9 @@ public:
                 .value = std::to_string(batch.network_health->connection_count) },
             },
           .summary = "mempool pressure wave",
-        },
-        key_pair_, "example-analyzer");
-      auto const published_record = record;
-      auto publish_status = dht_.Publish(std::move(record));
+        });
       if (!publish_status.ok()) {
         return publish_status;
-      }
-      if (auto const published = dht_.LastPublish(); published.has_value()
-        && on_publish_) {
-        on_publish_(published_record, *published);
       }
     }
 
@@ -280,7 +282,7 @@ private:
   blocxxi::bitcoin::BitcoinCoreRpcAdapter adapter_;
   std::chrono::milliseconds poll_interval_ {};
   blocxxi::p2p::MemoryEventDht& dht_;
-  blocxxi::crypto::KeyPair key_pair_;
+  blocxxi::p2p::EventPublisherIdentity identity_;
   std::function<void(blocxxi::core::SignedEventRecord const&,
     blocxxi::p2p::PublishResult const&)>
     on_publish_ {};
@@ -352,7 +354,12 @@ auto main(int argc, char** argv) -> int
     blocxxi::bitcoin::BitcoinCoreRpcAdapter(
       options.rpc, std::move(transport)),
     options.poll_interval,
-    dht, blocxxi::crypto::KeyPair(), publish_printer);
+    dht,
+    blocxxi::p2p::EventPublisherIdentity {
+      .key_pair = blocxxi::crypto::KeyPair(),
+      .signer_name = "example-analyzer",
+    },
+    publish_printer);
 
   if (!node.Start().ok()) {
     return 1;

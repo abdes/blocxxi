@@ -63,8 +63,9 @@ auto main() -> int
   }
 
   auto dht = blocxxi::p2p::MemoryEventDht {};
-  auto const key_pair = blocxxi::crypto::KeyPair();
-  auto const record = blocxxi::core::SignEventRecord(
+  auto record = blocxxi::core::SignedEventRecord {};
+  auto published = blocxxi::p2p::PublishResult {};
+  if (!blocxxi::p2p::PublishEvent(
     blocxxi::core::EventEnvelope {
       .event_type = "bitcoin.reader.snapshot",
       .taxonomy = "reader",
@@ -86,17 +87,28 @@ auto main() -> int
         },
       .summary = "reader-side snapshot",
     },
-    key_pair, "reader");
-  if (!dht.Publish(record).ok()) {
+    blocxxi::p2p::EventPublisherIdentity {
+      .key_pair = blocxxi::crypto::KeyPair(),
+      .signer_name = "reader",
+    },
+    dht, &record, &published)
+         .ok()) {
     return 3;
   }
 
-  auto const event_key = record.DeterministicKey();
-  auto const matches = dht.Query(blocxxi::p2p::EventQuery {
-    .deterministic_key = event_key,
-    .limit = 4,
-  });
-  std::cout << "reader-events=" << matches.size()
+  auto query_result = blocxxi::p2p::EventQueryResult {};
+  auto const event_key = published.dht_key;
+  if (!blocxxi::p2p::QueryEvents(
+        blocxxi::p2p::EventQuery {
+          .deterministic_key = event_key,
+          .limit = 4,
+        },
+        dht, query_result)
+         .ok()) {
+    return 4;
+  }
+
+  std::cout << "reader-events=" << query_result.records.size()
             << " key=" << event_key << '\n';
-  return matches.size() == 1U ? 0 : 4;
+  return query_result.records.size() == 1U ? 0 : 5;
 }

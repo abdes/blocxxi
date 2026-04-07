@@ -53,6 +53,11 @@ The platform-level examples live under ``src/Blocxxi/Examples/``:
 - ``bitcoin-event-reader`` — second consumer proof that reuses the same SDK
   and queries published records by deterministic key
 
+The Bitcoin examples keep signing/publication/query inside the reusable
+platform surface: they construct event envelopes and rule outputs, then hand
+them to the P2P event-DHT helpers rather than signing or storing records
+manually in app code.
+
 Deferred work
 =============
 

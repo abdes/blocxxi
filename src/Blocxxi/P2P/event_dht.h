@@ -52,6 +52,11 @@ struct PublishResult {
   bool duplicate { false };
 };
 
+struct EventPublisherIdentity {
+  blocxxi::crypto::KeyPair key_pair {};
+  std::string signer_name {};
+};
+
 struct EventQueryResult {
   std::vector<PublishedEvent> records {};
   std::vector<kademlia::IpEndpoint> peers {};
@@ -97,6 +102,24 @@ private:
   MainlineEventDhtOptions options_ {};
   MemoryEventDht local_store_ {};
 };
+
+auto BLOCXXI_P2P_API PublishEvent(core::EventEnvelope envelope,
+  EventPublisherIdentity const& identity, MemoryEventDht& dht,
+  core::SignedEventRecord* signed_record = nullptr,
+  PublishResult* published = nullptr) -> core::Status;
+
+auto BLOCXXI_P2P_API PublishEvent(core::EventEnvelope envelope,
+  EventPublisherIdentity const& identity, MainlineEventDht& dht,
+  core::SignedEventRecord* signed_record = nullptr,
+  PublishResult* published = nullptr) -> core::Status;
+
+auto BLOCXXI_P2P_API QueryEvents(
+  EventQuery query, MemoryEventDht const& dht, EventQueryResult& result)
+  -> core::Status;
+
+auto BLOCXXI_P2P_API QueryEvents(
+  EventQuery query, MainlineEventDht& dht, EventQueryResult& result)
+  -> core::Status;
 
 [[nodiscard]] BLOCXXI_P2P_API auto DeriveInfoHash(
   std::string const& deterministic_key) -> kademlia::Node::IdType;
