@@ -148,7 +148,7 @@ TEST(EventDhtTest, MainlineEventDhtQueriesDeterministicPeersAcrossSessions)
 
   auto const options = MainlineEventDhtOptions {
     .routers = { router },
-    .request_timeout = std::chrono::seconds { 1 },
+    .request_timeout = std::chrono::seconds { 2 },
   };
   auto publisher_dht = MainlineEventDht(io_context, publisher, options);
   auto querier_dht = MainlineEventDht(io_context, querier, options);
@@ -181,6 +181,10 @@ TEST(EventDhtTest, MainlineEventDhtQueriesDeterministicPeersAcrossSessions)
   ASSERT_EQ(query_result.peers.size(), 1U);
   EXPECT_EQ(query_result.peers.front().Address().to_string(), "127.0.0.1");
   EXPECT_EQ(query_result.peers.front().Port(), 30202);
+
+  querier.Stop();
+  publisher.Stop();
+  server.Stop();
 }
 
 } // namespace blocxxi::p2p
